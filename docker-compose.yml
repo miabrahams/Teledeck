@@ -1,0 +1,12 @@
+version: '3'
+services:
+  telegram-app:
+    image: akhmetov/python-telegram
+    volumes:
+      - ./app:/app
+    environment:
+      - API_ID=${TG_API_ID}
+      - API_HASH=${TG_API_HASH}
+      - PHONE=${TG_PHONE}
+    tty: true
+    stdin_open: true
