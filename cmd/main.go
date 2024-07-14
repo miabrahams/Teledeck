@@ -19,6 +19,12 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+
+    "encoding/json"
+    "io/ioutil"
+    "goth/internal/store"
+    "path/filepath"
+	"strings"
 )
 
 /*
@@ -31,12 +37,68 @@ func init() {
 	os.Setenv("env", Environment)
 }
 
+
+// Add this function to load media items
+func loadMediaItems(filename string) ([]store.MediaItem, error) {
+	data, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	var mediaItems []store.MediaItem
+	err = json.Unmarshal(data, &mediaItems)
+	if err != nil {
+		return nil, err
+	}
+
+
+	for i := range mediaItems{
+		downloadIndex := strings.Index(mediaItems[i].Path, "/downloads")
+		if downloadIndex != -1 {
+			mediaItems[i].Path = mediaItems[i].Path[downloadIndex + 11:]
+		} else {
+			mediaItems[i].Path = filepath.Base(mediaItems[i].Path)
+		}
+
+		if !strings.HasPrefix(mediaItems[i].Path, "/") {
+			mediaItems[i].Path = "/" + mediaItems[i].Path
+		}
+	}
+	return mediaItems, nil
+}
+
+// FileServer conveniently sets up a http.FileServer handler to serve
+// static files from a http.FileSystem.
+func DownloadFileServer(r chi.Router, path string, root http.FileSystem, logger *slog.Logger) {
+    if strings.ContainsAny(path, "{}*") {
+        panic("FileServer does not permit any URL parameters.")
+    }
+
+    if path != "/" && path[len(path)-1] != '/' {
+        r.Get(path, http.RedirectHandler(path+"/", 301).ServeHTTP)
+        path += "/"
+    }
+    path += "*"
+
+	rootServer := http.FileServer(root)
+
+    r.Get(path, func(w http.ResponseWriter, r *http.Request) {
+        rctx := chi.RouteContext(r.Context())
+        pathPrefix := strings.TrimSuffix(rctx.RoutePattern(), "/*")
+        fs := http.StripPrefix(pathPrefix, rootServer)
+		logger.Info("Requesting path: ", "Path", r.URL.Path, "fs", fs)
+        fs.ServeHTTP(w, r)
+    })
+}
+
 func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	r := chi.NewRouter()
 
 	cfg := config.MustLoadConfig()
 
+
+	/* Register Database Stores */
 	db := database.MustOpen(cfg.DatabaseName)
 	passwordhash := passwordhash.NewHPasswordHash()
 
@@ -53,10 +115,23 @@ func main() {
 		},
 	)
 
+	authMiddleware := m.NewAuthMiddleware(sessionStore, cfg.SessionCookieName)
+
+	/* Static media handlers */
 	fileServer := http.FileServer(http.Dir("./static"))
 	r.Handle("/static/*", http.StripPrefix("/static/", fileServer))
 
-	authMiddleware := m.NewAuthMiddleware(sessionStore, cfg.SessionCookieName)
+    workDir, _ := os.Getwd()
+    downloadsDir := filepath.Join(workDir, "../", "downloads") // Adjust this path as needed
+	logger.Info("downloadsDir", "dir", http.Dir(downloadsDir))
+    DownloadFileServer(r, "/downloads", http.Dir(downloadsDir), logger)
+
+    mediaItems, err := loadMediaItems("media_data.json")
+    if err != nil {
+        logger.Error("Failed to load media items", slog.Any("err", err))
+        os.Exit(1)
+    }
+
 
 	r.Group(func(r chi.Router) {
 		r.Use(
@@ -68,7 +143,7 @@ func main() {
 
 		r.NotFound(handlers.NewNotFoundHandler().ServeHTTP)
 
-		r.Get("/", handlers.NewHomeHandler().ServeHTTP)
+        r.Get("/", handlers.NewHomeHandler(mediaItems).ServeHTTP)
 
 		r.Get("/about", handlers.NewAboutHandler().ServeHTTP)
 

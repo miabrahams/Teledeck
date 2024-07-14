@@ -1,14 +1,41 @@
 package templates
 
-templ Index(email string) {
-		<div>
-		Welcome {email}
-		</div>
+import "goth/internal/store"
 
+
+templ GalleryItem(store.MediaItem) {
+	<div class="gallery-item">
+		if item.Type == "photo" || item.Type == "gif" {
+			<img src={"/downloads" + item.Path} alt={item.FileName} />
+		} else if item.Type == "video" {
+			<video controls>
+				<source src={"/downloads" + item.Path} type="video/mp4" />
+				Your browser does not support the video tag.
+			</video>
+		}
+		<p>{item.Text}</p>
+	</div>
 }
 
-templ GuestIndex() {
-	<div>
-	Welcome guest
-	</div>
+
+templ Index(email string, mediaItems []store.MediaItem) {
+    <div>
+        <h1>Welcome {email}</h1>
+        <div class="media-gallery">
+            for _, item := range mediaItems {
+				@GalleryItem(item)
+            }
+        </div>
+    </div>
+}
+
+templ GuestIndex(mediaItems []store.MediaItem) {
+    <div>
+        <h1>Welcome guest</h1>
+        <div class="media-gallery">
+            for _, item := range mediaItems {
+				@GalleryItem(item)
+            }
+        </div>
+    </div>
 }

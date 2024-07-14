@@ -1,3 +1,5 @@
+// Extension of HTMX to handle response targets based on response code, e.g. 401, 404 etc
+
 (function(){
     /** @type {import("../htmx").HtmxInternalApi} */
     var api;
@@ -57,7 +59,7 @@
                 }
             }
         }
-        
+
         return null;
     }
 

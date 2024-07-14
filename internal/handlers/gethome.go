@@ -5,36 +5,30 @@ import (
 	"goth/internal/store"
 	"goth/internal/templates"
 	"net/http"
+    "github.com/a-h/templ"
 )
 
-type HomeHandler struct{}
+type HomeHandler struct {
+    MediaItems []store.MediaItem
+}
 
-func NewHomeHandler() *HomeHandler {
-	return &HomeHandler{}
+func NewHomeHandler(mediaItems []store.MediaItem) *HomeHandler {
+    return &HomeHandler{MediaItems: mediaItems}
 }
 
 func (h *HomeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+    user, _ := r.Context().Value(middleware.UserKey).(*store.User)
 
-	user, ok := r.Context().Value(middleware.UserKey).(*store.User)
+    var c templ.Component
+    if user != nil {
+        c = templates.Index(user.Email, h.MediaItems)
+    } else {
+        c = templates.GuestIndex(h.MediaItems)
+    }
 
-	if !ok {
-		c := templates.GuestIndex()
-
-		err := templates.Layout(c, "My website").Render(r.Context(), w)
-
-		if err != nil {
-			http.Error(w, "Error rendering template", http.StatusInternalServerError)
-			return
-		}
-
-		return
-	}
-
-	c := templates.Index(user.Email)
-	err := templates.Layout(c, "My website").Render(r.Context(), w)
-
-	if err != nil {
-		http.Error(w, "Error rendering template", http.StatusInternalServerError)
-		return
-	}
+    err := templates.Layout(c, "Media Gallery").Render(r.Context(), w)
+    if err != nil {
+        http.Error(w, "Error rendering template", http.StatusInternalServerError)
+        return
+    }
 }
