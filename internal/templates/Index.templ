@@ -3,7 +3,7 @@ package templates
 import "goth/internal/store"
 
 
-templ GalleryItem(store.MediaItem) {
+templ GalleryItem(item store.MediaItem) {
 	<div class="gallery-item">
 		if item.Type == "photo" || item.Type == "gif" {
 			<img src={"/downloads" + item.Path} alt={item.FileName} />

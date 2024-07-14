@@ -20,10 +20,9 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
-    "encoding/json"
-    "io/ioutil"
-    "goth/internal/store"
-    "path/filepath"
+	"encoding/json"
+	"goth/internal/store"
+	"path/filepath"
 	"strings"
 )
 
@@ -40,7 +39,7 @@ func init() {
 
 // Add this function to load media items
 func loadMediaItems(filename string) ([]store.MediaItem, error) {
-	data, err := ioutil.ReadFile(filename)
+	data, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}
@@ -167,6 +166,7 @@ func main() {
 		}).ServeHTTP)
 	})
 
+	// Listen for kill signal
 	killSig := make(chan os.Signal, 1)
 
 	signal.Notify(killSig, os.Interrupt, syscall.SIGTERM)
@@ -188,6 +188,7 @@ func main() {
 	}()
 
 	logger.Info("Server started", slog.String("port", cfg.Port), slog.String("env", Environment))
+	// Block until we receive a kill signal
 	<-killSig
 
 	logger.Info("Shutting down server")

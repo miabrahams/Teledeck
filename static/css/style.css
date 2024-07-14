@@ -802,17 +802,17 @@ select {
   color: rgb(229 231 235 / var(--tw-text-opacity));
 }
 
-
-
 .media-gallery {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 400px));
-    gap: 1rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 400px));
+  gap: 1rem;
 }
 
 .media-gallery img,
+
 .media-gallery video {
-    width: 100%;
-    height: auto;
-    object-fit: cover;
+  width: 100%;
+  height: auto;
+  -o-object-fit: cover;
+     object-fit: cover;
 }

@@ -16,6 +16,7 @@ func (h *AboutHandLer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	err := templates.Layout(c, "Telegram Media Gallery").Render(r.Context(), w)
 
 	if err != nil {
+		// There may be a better way to handle this error.
 		http.Error(w, "Error rendering template", http.StatusInternalServerError)
 		return
 	}

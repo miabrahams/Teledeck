@@ -1,15 +1,16 @@
-.PHONY: tailwind-watch
-tailwind-watch:
-	./tailwindcss -i ./static/css/input.css -o ./static/css/style.css --watch
-
 .PHONY: tailwind-dl
 tailwind-dl:
 	curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64
 	mv tailwindcss-linux-x64 tailwindcss
 	chmod +x tailwindcss
 
+.PHONY: tailwind-watch
+tailwind-watch:
+	./tailwindcss -i ./static/css/input.css -o ./static/css/style.css --watch
+
 .PHONY: tailwind-build
 tailwind-build:
+	./tailwindcss -i ./static/css/input.css -o ./static/css/style.css
 	./tailwindcss -i ./static/css/input.css -o ./static/css/style.min.css --minify
 
 .PHONY: templ-generate
