@@ -20,8 +20,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
-	"encoding/json"
-	"goth/internal/store"
 	"path/filepath"
 	"strings"
 )
@@ -37,38 +35,10 @@ func init() {
 }
 
 
-// Add this function to load media items
-func loadMediaItems(filename string) ([]store.MediaItem, error) {
-	data, err := os.ReadFile(filename)
-	if err != nil {
-		return nil, err
-	}
-
-	var mediaItems []store.MediaItem
-	err = json.Unmarshal(data, &mediaItems)
-	if err != nil {
-		return nil, err
-	}
-
-
-	for i := range mediaItems{
-		downloadIndex := strings.Index(mediaItems[i].Path, "/downloads")
-		if downloadIndex != -1 {
-			mediaItems[i].Path = mediaItems[i].Path[downloadIndex + 11:]
-		} else {
-			mediaItems[i].Path = filepath.Base(mediaItems[i].Path)
-		}
-
-		if !strings.HasPrefix(mediaItems[i].Path, "/") {
-			mediaItems[i].Path = "/" + mediaItems[i].Path
-		}
-	}
-	return mediaItems, nil
-}
 
 // FileServer conveniently sets up a http.FileServer handler to serve
 // static files from a http.FileSystem.
-func DownloadFileServer(r chi.Router, path string, root http.FileSystem, logger *slog.Logger) {
+func MediaFileServer(r chi.Router, path string, root http.FileSystem, logger *slog.Logger) {
     if strings.ContainsAny(path, "{}*") {
         panic("FileServer does not permit any URL parameters.")
     }
@@ -114,6 +84,12 @@ func main() {
 		},
 	)
 
+	mediaStore := dbstore.NewMediaStore(
+		dbstore.NewMediaStoreParams{
+			DB: db,
+		},
+	)
+
 	authMiddleware := m.NewAuthMiddleware(sessionStore, cfg.SessionCookieName)
 
 	/* Static media handlers */
@@ -121,11 +97,11 @@ func main() {
 	r.Handle("/static/*", http.StripPrefix("/static/", fileServer))
 
     workDir, _ := os.Getwd()
-    downloadsDir := filepath.Join(workDir, "../", "downloads") // Adjust this path as needed
-	logger.Info("downloadsDir", "dir", http.Dir(downloadsDir))
-    DownloadFileServer(r, "/downloads", http.Dir(downloadsDir), logger)
+    mediaDir := filepath.Join(workDir, "../", "static", "media") // Adjust this path as needed
+	logger.Info("downloadsDir", "dir", http.Dir(mediaDir))
+    MediaFileServer(r, "/media", http.Dir(mediaDir), logger)
 
-    mediaItems, err := loadMediaItems("media_data.json")
+    mediaItems, err := mediaStore.GetAllMediaItems()
     if err != nil {
         logger.Error("Failed to load media items", slog.Any("err", err))
         os.Exit(1)

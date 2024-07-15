@@ -1,5 +1,10 @@
 package store
 
+import (
+	"time"
+)
+
+
 type User struct {
 	ID       uint   `gorm:"primaryKey" json:"id"`
 	Email    string `json:"email"`
@@ -21,4 +26,21 @@ type UserStore interface {
 type SessionStore interface {
 	CreateSession(session *Session) (*Session, error)
 	GetUserFromSession(sessionID string, userID string) (*User, error)
+}
+
+type MediaItem struct {
+	FileID   string `gorm:"uniqueIndex"`
+	Date     time.Time
+	Channel  string
+	Text     string
+	Type     string
+	Path     string
+	FileName string
+	FileSize int64
+	URL      string
+}
+
+
+type MediaStore interface {
+	GetAllMediaItems() (*MediaItem, error)
 }

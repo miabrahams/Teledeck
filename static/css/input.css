@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+main {
+    max-width: 90%;
+}
 
 .media-gallery {
     display: grid;
@@ -15,4 +18,9 @@
     width: 100%;
     height: auto;
     object-fit: cover;
+}
+
+
+.main-container {
+    max-width: 90%;
 }

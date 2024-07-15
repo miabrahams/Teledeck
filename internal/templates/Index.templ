@@ -6,10 +6,10 @@ import "goth/internal/store"
 templ GalleryItem(item store.MediaItem) {
 	<div class="gallery-item">
 		if item.Type == "photo" || item.Type == "gif" {
-			<img src={"/downloads" + item.Path} alt={item.FileName} />
-		} else if item.Type == "video" {
+			<img src={"/media/" + item.FileName} alt={item.FileName} />
+		} else if item.Type == "video" || item.Type == "gif" {
 			<video controls>
-				<source src={"/downloads" + item.Path} type="video/mp4" />
+				<source src={"/media/" + item.FileName} type="video/mp4" />
 				Your browser does not support the video tag.
 			</video>
 		}

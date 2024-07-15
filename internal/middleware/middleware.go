@@ -32,6 +32,7 @@ func generateRandomString(length int) string {
 	return hex.EncodeToString(bytes)
 }
 
+// TODO: Ask Claude about nonces, Content-Security-Policy, and HtmxCSSHash
 func CSPMiddleware(next http.Handler) http.Handler {
 	// To use the same nonces in all responses, move the Nonces
 	// struct creation to here, outside the handler.
@@ -60,6 +61,7 @@ func CSPMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+// This middleware adds Content-Type=text/html to the header
 func TextHTMLMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")

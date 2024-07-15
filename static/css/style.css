@@ -816,3 +816,8 @@ select {
   -o-object-fit: cover;
      object-fit: cover;
 }
+
+
+.main-container {
+    max-width: 90%;
+}
