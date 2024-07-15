@@ -2,25 +2,48 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+    body {
+        @apply bg-white text-neutral-800 dark:bg-slate-800 dark:text-gray-200;
+    }
+}
+
+@layer components {
+    .main-container {
+        @apply max-w-[90%] mx-auto;
+    }
+    .media-gallery {
+        @apply grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4;
+    }
+
+    .media-item {
+        @apply bg-white dark:bg-slate-700 rounded-lg overflow-hidden shadow-md transition-transform duration-300 hover:scale-105;
+    }
+
+    .media-item img,
+    .media-item video {
+        @apply w-full object-cover aspect-square;
+    }
+
+    .media-info {
+        @apply p-4;
+    }
+
+    .media-title {
+        @apply text-lg font-semibold mb-2 dark:text-dark-text;
+    }
+
+    .media-meta {
+        @apply text-sm text-neutral-600 dark:text-neutral-400;
+    }
+
+    .media-type, .media-channel, .media-date, .media-text {
+        @apply hidden;
+    }
+
+
+}
+
 main {
-    max-width: 90%;
-}
-
-.media-gallery {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 400px));
-    gap: 1rem;
-}
-
-.media-gallery img,
-
-.media-gallery video {
-    width: 100%;
-    height: auto;
-    object-fit: cover;
-}
-
-
-.main-container {
     max-width: 90%;
 }

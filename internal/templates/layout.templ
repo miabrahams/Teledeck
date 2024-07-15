@@ -12,6 +12,12 @@ templ header(title string) {
 		<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 		<script src="static/script/htmx.min.js" nonce={ middleware.GetHtmxNonce(ctx) }></script>
 		<script src="static/script/response-targets.js" nonce={ middleware.GetResponseTargetsNonce(ctx) }></script>
+		<script>
+			// Dark mode toggle function
+			function toggleDarkMode() {
+				document.documentElement.classList.toggle('dark');
+			}
+		</script>
 		if os.Getenv("env") == "production" {
 			<link rel="stylesheet" href="static/css/style.min.css" nonce={ middleware.GetTwNonce(ctx) }/>
 		} else {
@@ -21,11 +27,15 @@ templ header(title string) {
 }
 
 templ footer() {
-	<footer class="bg-primary-600 p-4"></footer>
+	<footer class="bg-neutral-200 dark:bg-dark-surface text-neutral-600 dark:text-neutral-400 p-4 mt-8">
+		<div class="main-container text-center">
+			© 2023 Media Gallery
+		</div>
+	</footer>
 }
 
 templ nav() {
-	<nav class="bg-primary-600 p-4">
+	<nav class="bg-primary-600 p-4 dark:bg-dark-surface text-white">
 		<div class="container flex justify-between">
 			<ol class="flex space-x-4">
 				<li>
@@ -33,6 +43,11 @@ templ nav() {
 				</li>
 				<li>
 					<a class="text-gray-200" href="/about">About</a>
+				</li>
+				<li>
+					<button onclick="toggleDarkMode()" class="px-4 py-2 bg-primary-700 dark:bg-primary-800 rounded">
+						Toggle Dark Mode
+					</button>
 				</li>
 			</ol>
 			<ol class="flex space-x-4">
@@ -54,12 +69,15 @@ templ nav() {
 }
 
 templ Layout(contents templ.Component, title string) {
-	@header(title)
-	<body class="flex flex-col h-full">
-		@nav()
-		<main class="flex-1 container main-container ">
-			@contents
-		</main>
-		@footer()
-	</body>
+    <!DOCTYPE html>
+    <html lang="en" class="dark">
+		@header(title)
+		<body class="flex flex-col h-full">
+			@nav()
+			<main class="flex-1 container main-container ">
+				@contents
+			</main>
+			@footer()
+		</body>
+	</html>
 }

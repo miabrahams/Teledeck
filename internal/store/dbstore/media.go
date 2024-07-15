@@ -23,6 +23,6 @@ func NewMediaStore(params NewMediaStoreParams) *MediaStore {
 
 func (s *MediaStore) GetAllMediaItems() ([]store.MediaItem, error) {
 	var mediaItems []store.MediaItem
-	result := s.db.Find(&mediaItems)
+	result := s.db.Order("date DESC").Find(&mediaItems)
     return mediaItems, result.Error
 }

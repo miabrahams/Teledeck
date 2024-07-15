@@ -55,7 +55,7 @@ func MediaFileServer(r chi.Router, path string, root http.FileSystem, logger *sl
         rctx := chi.RouteContext(r.Context())
         pathPrefix := strings.TrimSuffix(rctx.RoutePattern(), "/*")
         fs := http.StripPrefix(pathPrefix, rootServer)
-		logger.Info("Requesting path: ", "Path", r.URL.Path, "fs", fs)
+		logger.Info("Requesting path: ", "Path", r.URL.Path)
         fs.ServeHTTP(w, r)
     })
 }

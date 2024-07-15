@@ -4,7 +4,7 @@ import "goth/internal/store"
 
 
 templ GalleryItem(item store.MediaItem) {
-	<div class="gallery-item">
+	<div class="media-item">
 		if item.Type == "photo" || item.Type == "gif" {
 			<img src={"/media/" + item.FileName} alt={item.FileName} />
 		} else if item.Type == "video" || item.Type == "gif" {
@@ -13,7 +13,12 @@ templ GalleryItem(item store.MediaItem) {
 				Your browser does not support the video tag.
 			</video>
 		}
-		<p>{item.Text}</p>
+        <div class="media-info">
+            <h2 class="media-meta media-filename">{item.FileName}</h2>
+            <p class="media-meta media-channel">Channel: {item.Channel}</p>
+            <p class="media-meta media-date">Date: {item.Date.Format("2006-01-02 15:04:05")}</p>
+            <p class="media-meta media-text">{item.Text}</p>
+        </div>
 	</div>
 }
 

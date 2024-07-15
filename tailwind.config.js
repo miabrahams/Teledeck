@@ -20,9 +20,15 @@ module.exports = {
         primary: colors.blue,
         secondary: colors.yellow,
         neutral: colors.gray,
+      },
+      dark: {
+        surface: '#121212',
+        bg: '#1E1E1E',
+        text: '#E0E0E0'
       }
     },
   },
+  dark: 'class',
   plugins: [
     require('@tailwindcss/forms'),
     require('@tailwindcss/typography'),
