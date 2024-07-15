@@ -5,6 +5,12 @@ module.exports = {
   content: [
     'internal/templates/*.templ',
   ],
+  safelist: [
+    'fullscreen-view',
+    'fullscreen-content',
+    'modal',
+    'active'
+  ],
   theme: {
     container: {
       center: true,

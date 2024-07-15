@@ -4,7 +4,6 @@ import (
 	"time"
 )
 
-
 type User struct {
 	ID       uint   `gorm:"primaryKey" json:"id"`
 	Email    string `json:"email"`
@@ -38,9 +37,11 @@ type MediaItem struct {
 	FileName string
 	FileSize int64
 	URL      string
+	Seen     bool
 }
 
-
 type MediaStore interface {
-	GetAllMediaItems() (*MediaItem, error)
+	GetTotalMediaItems() int64
+	GetPaginatedMediaItems(page, itemsPerPage int) ([]MediaItem, error)
+	GetAllMediaItems() ([]MediaItem, error)
 }

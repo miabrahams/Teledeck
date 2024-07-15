@@ -34,30 +34,28 @@ func init() {
 	os.Setenv("env", Environment)
 }
 
-
-
 // FileServer conveniently sets up a http.FileServer handler to serve
 // static files from a http.FileSystem.
 func MediaFileServer(r chi.Router, path string, root http.FileSystem, logger *slog.Logger) {
-    if strings.ContainsAny(path, "{}*") {
-        panic("FileServer does not permit any URL parameters.")
-    }
+	if strings.ContainsAny(path, "{}*") {
+		panic("FileServer does not permit any URL parameters.")
+	}
 
-    if path != "/" && path[len(path)-1] != '/' {
-        r.Get(path, http.RedirectHandler(path+"/", 301).ServeHTTP)
-        path += "/"
-    }
-    path += "*"
+	if path != "/" && path[len(path)-1] != '/' {
+		r.Get(path, http.RedirectHandler(path+"/", 301).ServeHTTP)
+		path += "/"
+	}
+	path += "*"
 
 	rootServer := http.FileServer(root)
 
-    r.Get(path, func(w http.ResponseWriter, r *http.Request) {
-        rctx := chi.RouteContext(r.Context())
-        pathPrefix := strings.TrimSuffix(rctx.RoutePattern(), "/*")
-        fs := http.StripPrefix(pathPrefix, rootServer)
+	r.Get(path, func(w http.ResponseWriter, r *http.Request) {
+		rctx := chi.RouteContext(r.Context())
+		pathPrefix := strings.TrimSuffix(rctx.RoutePattern(), "/*")
+		fs := http.StripPrefix(pathPrefix, rootServer)
 		logger.Info("Requesting path: ", "Path", r.URL.Path)
-        fs.ServeHTTP(w, r)
-    })
+		fs.ServeHTTP(w, r)
+	})
 }
 
 func main() {
@@ -65,7 +63,6 @@ func main() {
 	r := chi.NewRouter()
 
 	cfg := config.MustLoadConfig()
-
 
 	/* Register Database Stores */
 	db := database.MustOpen(cfg.DatabaseName)
@@ -96,17 +93,10 @@ func main() {
 	fileServer := http.FileServer(http.Dir("./static"))
 	r.Handle("/static/*", http.StripPrefix("/static/", fileServer))
 
-    workDir, _ := os.Getwd()
-    mediaDir := filepath.Join(workDir, "../", "static", "media") // Adjust this path as needed
+	workDir, _ := os.Getwd()
+	mediaDir := filepath.Join(workDir, "../", "static", "media") // Adjust this path as needed
 	logger.Info("downloadsDir", "dir", http.Dir(mediaDir))
-    MediaFileServer(r, "/media", http.Dir(mediaDir), logger)
-
-    mediaItems, err := mediaStore.GetAllMediaItems()
-    if err != nil {
-        logger.Error("Failed to load media items", slog.Any("err", err))
-        os.Exit(1)
-    }
-
+	MediaFileServer(r, "/media", http.Dir(mediaDir), logger)
 
 	r.Group(func(r chi.Router) {
 		r.Use(
@@ -118,7 +108,9 @@ func main() {
 
 		r.NotFound(handlers.NewNotFoundHandler().ServeHTTP)
 
-        r.Get("/", handlers.NewHomeHandler(mediaItems).ServeHTTP)
+		r.Get("/", handlers.NewHomeHandler(handlers.NewHomeHandlerParams{
+			MediaStore: mediaStore,
+		}).ServeHTTP)
 
 		r.Get("/about", handlers.NewAboutHandler().ServeHTTP)
 

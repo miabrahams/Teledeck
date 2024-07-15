@@ -4,31 +4,52 @@ import (
 	"goth/internal/middleware"
 	"goth/internal/store"
 	"goth/internal/templates"
+	"math"
 	"net/http"
-    "github.com/a-h/templ"
+	"strconv"
+
+	"github.com/a-h/templ"
 )
 
 type HomeHandler struct {
-    MediaItems []store.MediaItem
+	MediaStore store.MediaStore
 }
 
-func NewHomeHandler(mediaItems []store.MediaItem) *HomeHandler {
-    return &HomeHandler{MediaItems: mediaItems}
+type NewHomeHandlerParams struct {
+	MediaStore store.MediaStore
+}
+
+func NewHomeHandler(params NewHomeHandlerParams) *HomeHandler {
+	return &HomeHandler{MediaStore: params.MediaStore}
 }
 
 func (h *HomeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-    user, _ := r.Context().Value(middleware.UserKey).(*store.User)
+	user, _ := r.Context().Value(middleware.UserKey).(*store.User)
 
-    var c templ.Component
-    if user != nil {
-        c = templates.Index(user.Email, h.MediaItems)
-    } else {
-        c = templates.GuestIndex(h.MediaItems)
-    }
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	if page < 1 {
+		page = 1
+	}
+	itemsPerPage := 100
 
-    err := templates.Layout(c, "Media Gallery").Render(r.Context(), w)
-    if err != nil {
-        http.Error(w, "Error rendering template", http.StatusInternalServerError)
-        return
-    }
+	mediaItems, err := h.MediaStore.GetPaginatedMediaItems(page, itemsPerPage)
+	if err != nil {
+		http.Error(w, "Error fetching media items", http.StatusInternalServerError)
+		return
+	}
+
+	totalPages := int(math.Ceil(float64(h.MediaStore.GetTotalMediaItems()) / float64(itemsPerPage)))
+
+	var c templ.Component
+	if user != nil {
+		c = templates.Index(user.Email, mediaItems, page, totalPages)
+	} else {
+		c = templates.GuestIndex(mediaItems, page, totalPages)
+	}
+
+	err = templates.Layout(c, "Media Gallery").Render(r.Context(), w)
+	if err != nil {
+		http.Error(w, "Error rendering template", http.StatusInternalServerError)
+		return
+	}
 }
