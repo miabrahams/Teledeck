@@ -2,3 +2,4 @@ venv
 credentials.txt
 .env
 *.session
+static/media/*
