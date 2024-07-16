@@ -884,15 +884,15 @@ body {
 }
 
 .fullscreen-content {
+  display: flex;
   max-height: 90vh;
   max-width: 90vh;
-  flex: 1 1 0%;
+  align-items: center;
   justify-content: center;
   overflow: auto;
   border-radius: 0.5rem;
   --tw-bg-opacity: 1;
   background-color: rgb(255 255 255 / var(--tw-bg-opacity));
-  vertical-align: middle;
 }
 
 @media (prefers-color-scheme: dark) {

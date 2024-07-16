@@ -62,7 +62,7 @@
   }
 
   .fullscreen-content {
-    @apply max-w-[90vh] max-h-[90vh] overflow-auto bg-white dark:bg-slate-700 rounded-lg flex-1 justify-center align-middle;
+    @apply max-w-[90vh] max-h-[90vh] overflow-auto bg-white dark:bg-slate-700 rounded-lg flex justify-center items-center;
   }
 
   .fullscreen-content img,
