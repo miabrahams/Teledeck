@@ -27,21 +27,32 @@ type SessionStore interface {
 	GetUserFromSession(sessionID string, userID string) (*User, error)
 }
 
+type Channel struct {
+	ID    uint `gorm:"primaryKey"`
+	title string
+}
+
 type MediaItem struct {
-	FileID   string `gorm:"uniqueIndex"`
-	Date     time.Time
-	Channel  string
-	Text     string
-	Type     string
-	Path     string
+	ID        uint `gorm:"uniqueIndex"`
+	ChannelID uint
+	MessageID uint
+	Date      time.Time
+	Text      string
+	Type      string
+	/* 	Path      string */
 	FileName string
 	FileSize int64
 	URL      string
 	Seen     bool
 }
 
+type MediaItemWithChannel struct {
+	MediaItem
+	ChannelTitle string
+}
+
 type MediaStore interface {
 	GetTotalMediaItems() int64
-	GetPaginatedMediaItems(page, itemsPerPage int) ([]MediaItem, error)
-	GetAllMediaItems() ([]MediaItem, error)
+	GetPaginatedMediaItems(page, itemsPerPage int, sort string) ([]MediaItemWithChannel, error)
+	GetAllMediaItems() ([]MediaItemWithChannel, error)
 }

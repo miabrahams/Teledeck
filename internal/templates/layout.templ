@@ -30,15 +30,15 @@ templ header(title string) {
 templ footer() {
 	<footer class="bg-neutral-200 dark:bg-dark-surface text-neutral-600 dark:text-neutral-400 p-4 mt-8">
 		<div class="main-container text-center">
-			© 2023 Media Gallery
+			© 2024 Media Gallery
 		</div>
 	</footer>
 }
 
 templ nav() {
 	<nav class="bg-primary-600 p-4 dark:bg-dark-surface text-white">
-		<div class="container flex justify-between">
-			<ol class="flex space-x-4">
+		<div class="container flex justify-between items-center">
+			<ol class="flex space-x-4 items-center">
 				<li>
 					<a class="text-gray-200" href="/">Home</a>
 				</li>
@@ -49,6 +49,20 @@ templ nav() {
 					<button onclick="toggleDarkMode()" class="px-4 py-2 bg-primary-700 dark:bg-primary-800 rounded">
 						Toggle Dark Mode
 					</button>
+				</li>
+				<li>
+					<select id="sort-select"
+					class="bg-primary-700 dark:bg-primary-800 text-gray-200 rounded px-2 py-1"
+					hx-get="/"
+					hx-target="#media-index"
+					hx-trigger="change"
+					hx-include="[name='sort']"
+					name="sort">
+						<option value="date_desc">Newest posts first</option>
+						<option value="date_asc">Oldest posts first</option>
+						<option value="id_desc">Recent additions first</option>
+						<option value="id_asc">Oldest additions first</option>
+					</select>
 				</li>
 			</ol>
 			<ol class="flex space-x-4">

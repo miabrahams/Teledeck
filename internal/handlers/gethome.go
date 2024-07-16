@@ -32,7 +32,12 @@ func (h *HomeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	itemsPerPage := 100
 
-	mediaItems, err := h.MediaStore.GetPaginatedMediaItems(page, itemsPerPage)
+	sort := r.URL.Query().Get("sort")
+	if sort == "" {
+		sort = "date_desc"
+	}
+
+	mediaItems, err := h.MediaStore.GetPaginatedMediaItems(page, itemsPerPage, sort)
 	if err != nil {
 		http.Error(w, "Error fetching media items", http.StatusInternalServerError)
 		return
@@ -42,14 +47,18 @@ func (h *HomeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	var c templ.Component
 	if user != nil {
-		c = templates.Index(user.Email, mediaItems, page, totalPages)
+		c = templates.Index(user.Email, mediaItems, page, totalPages, sort)
 	} else {
-		c = templates.GuestIndex(mediaItems, page, totalPages)
+		c = templates.GuestIndex(mediaItems, page, totalPages, sort)
 	}
 
-	err = templates.Layout(c, "Media Gallery").Render(r.Context(), w)
+	if r.Header.Get("HX-Request") == "true" {
+		err = c.Render(r.Context(), w)
+	} else {
+		err = templates.Layout(c, "Media Gallery").Render(r.Context(), w)
+	}
 	if err != nil {
-		http.Error(w, "Error rendering template", http.StatusInternalServerError)
+		http.Error(w, "Error rendering page", http.StatusInternalServerError)
 		return
 	}
 }

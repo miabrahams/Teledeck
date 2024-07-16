@@ -6,12 +6,13 @@ import (
 )
 
 
-templ GalleryItem(item store.MediaItem) {
+templ GalleryItem(item store.MediaItemWithChannel) {
 	<div class="media-item relative">
         <div class="media-item-content cursor-pointer" data-fullscreen="true">
-            if item.Type == "photo" {
+        /* Todo: handle mp3, pdf */
+            if item.Type == "photo" || item.Type == "png" || item.Type == "jpeg" || item.Type == "webp" {
                 <img src={"/media/" + item.FileName} alt={item.FileName} />
-            } else if item.Type == "video" || item.Type == "gif" {
+            } else if item.Type == "video" || item.Type == "gif" || item.Type == "webm" {
                 <video controls>
                     <source src={"/media/" + item.FileName} type="video/mp4" />
                     Your browser does not support the video tag.
@@ -20,7 +21,7 @@ templ GalleryItem(item store.MediaItem) {
         </div>
         <div class="media-info">
             <h2 class="media-meta media-filename">{item.FileName}</h2>
-            <p class="media-meta media-channel">Channel: {item.Channel}</p>
+            <p class="media-meta media-channel">Channel: {item.ChannelTitle}</p>
             <p class="media-meta media-date">Date: {item.Date.Format("2006-01-02 15:04:05")}</p>
             <p class="media-meta media-text">{item.Text}</p>
         </div>
@@ -30,39 +31,42 @@ templ GalleryItem(item store.MediaItem) {
 	</div>
 }
 
-templ Pagination (currentPage, totalPages int) {
+templ Pagination (currentPage, totalPages int, sort string) {
     <div class="pagination flex justify-center space-x-2 mt-4">
         if currentPage > 1 {
-            <a href={templ.SafeURL("/?page=" + strconv.Itoa(currentPage - 1))} class="px-4 py-2 bg-blue-500 text-white rounded">Previous</a>
+            <a  href={templ.SafeURL("/?page=" + strconv.Itoa(currentPage - 1) + "&sort=" + sort)} class="px-4 py-2 bg-blue-500 text-white rounded">
+                Previous
+            </a>
         }
         <span class="px-4 py-2">Page {strconv.Itoa(currentPage)} of {strconv.Itoa(totalPages)}</span>
         if currentPage < totalPages {
-            <a href={templ.SafeURL("/?page=" + strconv.Itoa(currentPage + 1))} class="px-4 py-2 bg-blue-500 text-white rounded">Next</a>
+            <a href={templ.SafeURL("/?page=" + strconv.Itoa(currentPage + 1) + "&sort=" + sort)} class="px-4 py-2 bg-blue-500 text-white rounded">
+                Next
+            </a>
         }
     </div>
 }
 
+templ Gallery (mediaItems []store.MediaItemWithChannel, currentPage, totalPages int, sort string) {
+    <div class="media-gallery">
+        for _, item := range mediaItems {
+            @GalleryItem(item)
+        }
+    </div>
+    @Pagination(currentPage, totalPages, sort)
+}
 
-templ Index(email string, mediaItems []store.MediaItem, currentPage, totalPages int) {
-    <div>
+
+templ Index(email string, mediaItems []store.MediaItemWithChannel, currentPage, totalPages int, sort string) {
+    <div id="media-index">
         <h1>Welcome {email}</h1>
-        <div class="media-gallery">
-            for _, item := range mediaItems {
-				@GalleryItem(item)
-            }
-        </div>
-        @Pagination(currentPage, totalPages)
+        @Gallery(mediaItems, currentPage, totalPages, sort)
     </div>
 }
 
-templ GuestIndex(mediaItems []store.MediaItem, currentPage, totalPages int) {
-    <div>
+templ GuestIndex(mediaItems []store.MediaItemWithChannel, currentPage, totalPages int, sort string) {
+    <div id="media-index">
         <h1>Welcome guest</h1>
-        <div class="media-gallery">
-            for _, item := range mediaItems {
-				@GalleryItem(item)
-            }
-        </div>
-        @Pagination(currentPage, totalPages)
+        @Gallery(mediaItems, currentPage, totalPages, sort)
     </div>
 }
