@@ -3,3 +3,5 @@ credentials.txt
 .env
 *.session
 static/media/*
+data/*
+*.pyc
