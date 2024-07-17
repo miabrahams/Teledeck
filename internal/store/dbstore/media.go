@@ -24,13 +24,21 @@ func NewMediaStore(params NewMediaStoreParams) *MediaStore {
 	}
 }
 
-func (s *MediaStore) GetTotalMediaItems() int64 {
+const VIDEOS_SELECTOR = "media_items.type = 'video' OR media_items.type = 'gif' OR media_items.type = 'webm'"
+
+func (s *MediaStore) GetTotalMediaItems(only_videos bool) int64 {
 	var count int64
-	s.db.Model(&store.MediaItem{}).Count(&count)
+	query := s.db.Model(&store.MediaItem{})
+	if only_videos {
+		query = query.Where(VIDEOS_SELECTOR)
+	}
+
+	query.Count(&count)
 	return count
+
 }
 
-func (s *MediaStore) GetPaginatedMediaItems(page, itemsPerPage int, sort string) ([]store.MediaItemWithChannel, error) {
+func (s *MediaStore) GetPaginatedMediaItems(page, itemsPerPage int, sort string, only_videos bool) ([]store.MediaItemWithChannel, error) {
 	offset := (page - 1) * itemsPerPage
 	var mediaItems []store.MediaItemWithChannel
 	query := s.db.Table("media_items").
@@ -50,10 +58,15 @@ func (s *MediaStore) GetPaginatedMediaItems(page, itemsPerPage int, sort string)
 		query = query.Order("media_items.date DESC")
 	}
 
-	result := query.Order("media_items.id").
+	query = query.Order("media_items.id").
 		Limit(itemsPerPage).
-		Offset(offset).
-		Scan(&mediaItems)
+		Offset(offset)
+
+	if only_videos {
+		query = query.Where(VIDEOS_SELECTOR)
+	}
+
+	result := query.Scan(&mediaItems)
 	return mediaItems, result.Error
 }
 

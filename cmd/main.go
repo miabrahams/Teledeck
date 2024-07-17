@@ -53,7 +53,6 @@ func MediaFileServer(r chi.Router, path string, root http.FileSystem, logger *sl
 		rctx := chi.RouteContext(r.Context())
 		pathPrefix := strings.TrimSuffix(rctx.RoutePattern(), "/*")
 		fs := http.StripPrefix(pathPrefix, rootServer)
-		logger.Info("Requesting path: ", "Path", r.URL.Path)
 		fs.ServeHTTP(w, r)
 	})
 }
@@ -110,6 +109,7 @@ func main() {
 
 		r.Get("/", handlers.NewHomeHandler(handlers.NewHomeHandlerParams{
 			MediaStore: mediaStore,
+			Logger:     logger,
 		}).ServeHTTP)
 
 		r.Get("/about", handlers.NewAboutHandler().ServeHTTP)

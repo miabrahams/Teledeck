@@ -52,7 +52,7 @@ type MediaItemWithChannel struct {
 }
 
 type MediaStore interface {
-	GetTotalMediaItems() int64
-	GetPaginatedMediaItems(page, itemsPerPage int, sort string) ([]MediaItemWithChannel, error)
+	GetTotalMediaItems(videos bool) int64
+	GetPaginatedMediaItems(page, itemsPerPage int, sort string, only_videos bool) ([]MediaItemWithChannel, error)
 	GetAllMediaItems() ([]MediaItemWithChannel, error)
 }

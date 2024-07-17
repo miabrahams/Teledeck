@@ -37,7 +37,7 @@ templ footer() {
 
 templ nav() {
 	<nav class="bg-primary-600 p-4 dark:bg-dark-surface text-white">
-		<div class="container flex justify-between items-center">
+		<div class="container flex justify-between items-center" name="sort-options">
 			<ol class="flex space-x-4 items-center">
 				<li>
 					<a class="text-gray-200" href="/">Home</a>
@@ -56,13 +56,24 @@ templ nav() {
 					hx-get="/"
 					hx-target="#media-index"
 					hx-trigger="change"
-					hx-include="[name='sort']"
+					hx-include="[name='sort-options']"
 					name="sort">
 						<option value="date_desc">Newest posts first</option>
 						<option value="date_asc">Oldest posts first</option>
 						<option value="id_desc">Recent additions first</option>
 						<option value="id_asc">Oldest additions first</option>
 					</select>
+				</li>
+				<li>
+					<input type="checkbox"
+						id="videos-check"
+						name="videos"
+						value="true"
+						hx-get="/"
+						hx-target="#media-index"
+						hx-trigger="change"
+						hx-include="[name='sort-options']"
+					></input>
 				</li>
 			</ol>
 			<ol class="flex space-x-4">
