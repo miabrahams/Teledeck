@@ -1,0 +1,112 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-white text-neutral-800 dark:bg-slate-800 dark:text-gray-200;
+  }
+}
+
+@layer components {
+  .main-container {
+    @apply max-w-[90%] mx-auto;
+  }
+  .media-gallery {
+    @apply grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4;
+  }
+
+  .media-item {
+    @apply bg-white dark:bg-slate-700 rounded-lg overflow-hidden shadow-md transition-transform duration-300 hover:scale-105 relative;
+  }
+
+  .media-item img,
+  .media-item video {
+    @apply w-full object-cover aspect-square;
+  }
+
+  .media-info {
+    @apply p-4;
+  }
+
+  .media-title {
+    @apply text-lg font-semibold mb-2 dark:text-dark-text;
+  }
+
+  .media-meta {
+    @apply text-sm text-neutral-600 dark:text-neutral-400;
+  }
+
+  .media-type,
+  .media-channel,
+  .media-date,
+  .media-text {
+    @apply hidden;
+  }
+
+  .media-item-content {
+    @apply cursor-pointer;
+  }
+
+
+  .fullscreen-content .media-item-content {
+    @apply cursor-default;
+  }
+
+  .what {
+    @apply bg-white;
+  }
+
+  .fullscreen-view {
+    @apply fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50;
+  }
+
+  .fullscreen-content {
+    @apply max-w-[90vh] max-h-[90vh] overflow-auto bg-white dark:bg-slate-700 rounded-lg flex justify-center items-center;
+  }
+
+  .fullscreen-content img,
+  .fullscreen-content video {
+    @apply max-w-full max-h-[80vh] object-contain;
+  }
+
+  .fullscreen-content .download-button {
+    @apply hidden;
+  }
+
+  .pagination {
+    @apply flex justify-center space-x-2 mt-4;
+  }
+
+  .pagination a {
+    @apply px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors;
+  }
+
+  .pagination span {
+    @apply px-4 py-2;
+  }
+}
+
+.modal {
+  z-index: 101;
+  background-color: #000;
+/*
+  visibility: hidden;
+    opacity: 0;
+  transition: opacity 0.5s, visibility 0s 0.5s; */
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+}
+
+.modal .active {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.5s;
+}
+
+main {
+  max-width: 90%;
+}

@@ -1,0 +1,109 @@
+package templates
+
+import (
+	"os"
+	"goth/internal/middleware"
+)
+
+templ header(title string) {
+	<head>
+		<title>{ title }</title>
+		<meta charset="UTF-8"/>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+		<script src="static/script/htmx.min.js" nonce={ middleware.GetHtmxNonce(ctx) }></script>
+		<script src="static/script/response-targets.js" nonce={ middleware.GetResponseTargetsNonce(ctx) }></script>
+        <script src="static/script/gallery.js" nonce={ middleware.GetGalleryScriptsNonce(ctx) }></script>
+		<script>
+			// Dark mode toggle function
+			function toggleDarkMode() {
+				document.documentElement.classList.toggle('dark');
+			}
+		</script>
+		if os.Getenv("env") == "production" {
+			<link rel="stylesheet" href="static/css/style.min.css" nonce={ middleware.GetTwNonce(ctx) }/>
+		} else {
+			<link rel="stylesheet" href="static/css/style.css" nonce={ middleware.GetTwNonce(ctx) }/>
+		}
+	</head>
+}
+
+templ footer() {
+	<footer class="bg-neutral-200 dark:bg-dark-surface text-neutral-600 dark:text-neutral-400 p-4 mt-8">
+		<div class="main-container text-center">
+			© 2024 Media Gallery
+		</div>
+	</footer>
+}
+
+templ nav() {
+	<nav class="bg-primary-600 p-4 dark:bg-dark-surface text-white">
+		<div class="container flex justify-between items-center" name="sort-options">
+			<ol class="flex space-x-4 items-center">
+				<li>
+					<a class="text-gray-200" href="/">Home</a>
+				</li>
+				<li>
+					<a class="text-gray-200" href="/about">About</a>
+				</li>
+				<li>
+					<button onclick="toggleDarkMode()" class="px-4 py-2 bg-primary-700 dark:bg-primary-800 rounded">
+						Toggle Dark Mode
+					</button>
+				</li>
+				<li>
+					<select id="sort-select"
+					class="bg-primary-700 dark:bg-primary-800 text-gray-200 rounded px-2 py-1"
+					hx-get="/"
+					hx-target="#media-index"
+					hx-trigger="change"
+					hx-include="[name='sort-options']"
+					name="sort">
+						<option value="date_desc">Newest posts first</option>
+						<option value="date_asc">Oldest posts first</option>
+						<option value="id_desc">Recent additions first</option>
+						<option value="id_asc">Oldest additions first</option>
+					</select>
+				</li>
+				<li>
+					<input type="checkbox"
+						id="videos-check"
+						name="videos"
+						value="true"
+						hx-get="/"
+						hx-target="#media-index"
+						hx-trigger="change"
+						hx-include="[name='sort-options']"
+					></input>
+				</li>
+			</ol>
+			<ol class="flex space-x-4">
+				if middleware.GetUser(ctx) != nil {
+					<li>
+						<button class="text-gray-200" hx-target="body" hx-swap="innerHTML" hx-post="/logout">Logout</button>
+					</li>
+				} else {
+					<li>
+						<a class="text-gray-200" href="/register">Register</a>
+					</li>
+					<li>
+						<a class="text-gray-200" href="/login">Login</a>
+					</li>
+				}
+			</ol>
+		</div>
+	</nav>
+}
+
+templ Layout(contents templ.Component, title string) {
+    <!DOCTYPE html>
+    <html lang="en" class="dark">
+		@header(title)
+		<body class="flex flex-col h-full">
+			@nav()
+			<main class="flex-1 container main-container ">
+				@contents
+			</main>
+			@footer()
+		</body>
+	</html>
+}
