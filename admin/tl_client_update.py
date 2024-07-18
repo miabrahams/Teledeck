@@ -1,6 +1,13 @@
 from telethon import functions
 from telethon.client.telegramclient import TelegramClient
-from telethon.tl.types import Message, Channel, InputMessagesFilterDocument, InputMessagesFilterVideo, InputMessagesFilterPhotoVideo, InputMessagesFilterGif
+from telethon.tl.types import (
+    Message,
+    Channel,
+    InputMessagesFilterDocument,
+    InputMessagesFilterVideo,
+    InputMessagesFilterPhotoVideo,
+    InputMessagesFilterGif,
+)
 from telethon.tl.types.messages import DialogFilters
 from telethon.tl.custom.file import File
 from telethon.errors import FloodWaitError
@@ -12,11 +19,11 @@ import asyncio
 import json
 import uuid
 from datetime import datetime
-from sqlmodel import create_engine, Session
+from sqlmodel import create_engine, Session, select
 from sqlalchemy.engine.base import Engine
 from models.telegram import MediaItem
 
-a = create_engine("sqlite:///teledeck.db")
+engine = create_engine("sqlite:///teledeck.db")
 print()
 
 load_dotenv()  # take environment variables from .env.
@@ -29,13 +36,12 @@ username = "Hex"
 # Paths
 MEDIA_PATH = "./static/media/"
 DB_PATH = "./teledeck.db"
-UPDATE_PATH  = './data/update_info'
+UPDATE_PATH = "./data/update_info"
 NEST_TQDM = True
-DEFAULT_FETCH_LIMIT = 200
+DEFAULT_FETCH_LIMIT = 30
 
 
 class TLContext:
-    engine: Engine
     tclient: TelegramClient
     progress_bar: tqdm
     counter_semaphore: asyncio.Semaphore
@@ -75,7 +81,7 @@ class TLContext:
 
 
 # Flood prevention
-MAX_CONCURRENT_TASKS = 1
+MAX_CONCURRENT_TASKS = 5
 DELAY = 0.1
 semaphore = asyncio.Semaphore(MAX_CONCURRENT_TASKS)
 
@@ -120,15 +126,17 @@ async def download_media(ctx: TLContext, message: Message) -> str:
     else:
         return await ctx.tclient.download_media(message, MEDIA_PATH)
 
+
 def save_to_json(data):
     os.makedirs(UPDATE_PATH, exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M")
     unique_id = str(uuid.uuid4())[:4]
     filename = os.path.join(UPDATE_PATH, f"data_{timestamp}_{unique_id}.json")
-    with open(filename, 'w') as f:
+    with open(filename, "w") as f:
         json.dump(data, f)
 
     return filename
+
 
 async def process_message(ctx: TLContext, message: Message, channel: Channel) -> None:
     # print(f"PROCESS_MESSAGE {message.id} - {channel.title}")
@@ -149,28 +157,19 @@ async def process_message(ctx: TLContext, message: Message, channel: Channel) ->
             return
 
         # Check if file_id already exists in database
-        cursor = ctx.conn.cursor()
-        cursor.execute(
-            "SELECT file_id, message_id FROM media_items WHERE file_id = ?", (file_id,)
-        )
-        found = cursor.fetchone()
-        if found:
-            # If message_id is empty update it
-            if not found[1]:
-                # Update with channel ID and message ID
-                cursor.execute(
-                    """
-                UPDATE media_items
-                set channel_id = ?, message_id = ?
-                where file_id = ?
-                """,
-                    (channel.id, message.id, file_id),
-                )
-                ctx.conn.commit()
-
-            print(f"Skipping download for existing file_id: {file_id}")
-            await message.mark_read()
-            return
+        with Session(engine) as session:
+            query = select(MediaItem).where(MediaItem.file_id == file_id)
+            found = session.exec(query).first()
+            if found:
+                # If message_id is empty update it
+                if not found.message_id:
+                    # Update with channel ID and message ID
+                    found.message_id = message.id
+                    found.channel_id = channel.id
+                    session.commit()
+                print(f"Skipping download for existing file_id: {file_id}")
+                await message.mark_read()
+                return
 
         file_path = await download_media(ctx, message)
         if file_path:
@@ -190,25 +189,22 @@ async def process_message(ctx: TLContext, message: Message, channel: Channel) ->
             else:
                 media_type = "unknown"
 
-            cursor.execute(
-                """
-            INSERT OR REPLACE INTO media_items
-            (file_id, date, channel_id, text, type, file_name, file_size, url, message_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-                (
-                    file_id,
-                    message.date,
-                    channel.id,
-                    message.text,
-                    media_type,
-                    file_name,
-                    message.file.size,
-                    f"/media/{file_name}",
-                    message.id,
-                ),
-            )
-            ctx.conn.commit()
+            with Session(engine) as session:
+                session.add(
+                    MediaItem(
+                        file_id=file_id,
+                        channel_id=channel.id,
+                        date=message.date,
+                        text=message.text,
+                        type=media_type,
+                        file_name=file_name,
+                        file_size=message.file.size,
+                        url=f"/media/{file_name}",
+                        message_id=message.id,
+                    )
+                )
+                session.commit()
+
     elif message.web_preview:
         print(f"Skipping web preview: {message.id}")
     else:
@@ -222,40 +218,37 @@ def get_messages(ctx: TLContext, channel: Channel, limit: int):
 def get_old_messages(ctx: TLContext, channel: Channel, limit: int):
     return ctx.tclient.iter_messages(channel, limit, reverse=True, add_offset=500)
 
+
 def get_all_videos(ctx: TLContext, channel: Channel):
     return ctx.tclient.iter_messages(channel, filter=InputMessagesFilterVideo)
 
+
 def get_new_messages(ctx: TLContext, channel: Channel, limit: int):
-    cursor = ctx.conn.cursor()
-    query = cursor.execute(
-        """
-        SELECT message_id FROM media_items
-        WHERE media_items.channel_id == ?
-        AND media_items.message_id IS NOT NULL
-        ORDER BY message_id DESC
-        """,
-        (channel.id,),
-    )
-    last_seen_post = query.fetchone()
+    with Session(engine) as session:
+        query = (
+            select(MediaItem.message_id)
+            .where(MediaItem.channel_id == channel.id)
+            .where(MediaItem.message_id is not None)
+            .order_by(MediaItem.message_id)
+        )
+        last_seen_post = session.exec(query).first()
 
     if last_seen_post:
-        return ctx.tclient.iter_messages(channel, limit, min_id=last_seen_post[0])
+        return ctx.tclient.iter_messages(channel, limit, min_id=last_seen_post)
     else:
         return get_messages(ctx, channel, limit)
 
 
 def get_earlier_messages(ctx: TLContext, channel: Channel, limit: int):
-    cursor = ctx.conn.cursor()
-    query = cursor.execute(
-        """
-        SELECT message_id FROM media_items
-        WHERE media_items.channel_id == ?
-        AND media_items.message_id IS NOT NULL
-        ORDER BY message_id ASC
-        """,
-        (channel.id,),
-    )
-    oldest_seen_post = query.fetchone()
+    with Session(engine) as session:
+        query = (
+            select(MediaItem.message_id)
+            .where(MediaItem.channel_id == channel.id)
+            .where(MediaItem.message_id is not None)
+            .order_by(MediaItem.message_id.desc())
+        )
+        oldest_seen_post = session.exec(query).first()
+
     if oldest_seen_post:
         return ctx.tclient.iter_messages(channel, limit, offset_id=oldest_seen_post[0])
     else:
@@ -267,17 +260,16 @@ async def get_channel_messages(
 ) -> Tuple[Channel, List[Message]]:
     print(f"Processing channel: {channel.title}")
 
-    # fetch_messages_task = get_messages(ctx, channel, DEFAULT_FETCH_LIMIT)
+    fetch_messages_task = get_messages(ctx, channel, DEFAULT_FETCH_LIMIT)
     # fetch_messages_task = get_old_messages(ctx, channel, DEFAULT_FETCH_LIMIT)
     # fetch_messages_task = get_new_messages(ctx, channel, DEFAULT_FETCH_LIMIT)
     # fetch_messages_task = get_earlier_messages(ctx, channel, DEFAULT_FETCH_LIMIT)
-    fetch_messages_task = get_all_videos(ctx, channel)
+    # fetch_messages_task = get_all_videos(ctx, channel)
 
     messages: List[Message] = []
     async for message in fetch_messages_task:
         messages.append(message)
     return channel, messages
-
 
 
 async def message_task_wrapper(ctx: TLContext, message: Message, channel: Channel):
@@ -325,7 +317,7 @@ async def main():
     tclient = TelegramClient(username, api_id, api_hash)
     await tclient.connect()
     print("Telegram client connected!")
-    ctx = TLContext(tclient, conn)
+    ctx = TLContext(tclient)
     print("Database connected!")
 
     target_channels = await get_target_channels(ctx)
@@ -342,7 +334,6 @@ async def main():
         for message in messageList
     ]
 
-
     ctx.init_progress(len(message_tasks))
     await asyncio.gather(*message_tasks)
 
@@ -351,7 +342,6 @@ async def main():
     if len(ctx.data) > 0:
         filename = save_to_json(ctx.data)
         print(f"Exported data to {filename}")
-    conn.close()
 
 
 if __name__ == "__main__":

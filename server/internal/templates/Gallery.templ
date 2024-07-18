@@ -14,8 +14,19 @@ templ Gallery(mediaItems []store.MediaItemWithChannel, currentPage, totalPages i
 	@Pagination(currentPage, totalPages, sort, videos)
 }
 
+func favoriteClass(item *store.MediaItemWithChannel) string {
+	if item.Favorite {
+		return "media-item relative favorite"
+	} else {
+		return "media-item relative"
+	}
+}
+
 templ GalleryItem(item *store.MediaItemWithChannel) {
-	<div class="media-item relative" id={"media-item-" + strconv.FormatUint(uint64(item.ID), 10)}>
+	<div
+		class={ favoriteClass(item) }
+		id={ "media-item-" + strconv.FormatUint(uint64(item.ID), 10) }
+	>
 		<div class="media-item-content cursor-pointer" data-fullscreen="true">
 			/* Todo: handle mp3, pdf */
 			if item.Type == "photo" || item.Type == "png" || item.Type == "gif" || item.Type == "jpeg" || item.Type == "webp" {
