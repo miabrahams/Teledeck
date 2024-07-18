@@ -32,6 +32,7 @@ func (s *MediaStore) GetTotalMediaItems(only_videos bool) int64 {
 	if only_videos {
 		query = query.Where(VIDEOS_SELECTOR)
 	}
+	query = query.Where("media_items.user_deleted = false")
 
 	query.Count(&count)
 	return count
@@ -66,12 +67,14 @@ func (s *MediaStore) GetPaginatedMediaItems(page, itemsPerPage int, sort string,
 		query = query.Where(VIDEOS_SELECTOR)
 	}
 
+	query = query.Where("media_items.user_deleted = false")
+
 	result := query.Scan(&mediaItems)
 	return mediaItems, result.Error
 }
 
 func (s *MediaStore) GetAllMediaItems() ([]store.MediaItemWithChannel, error) {
 	var mediaItems []store.MediaItemWithChannel
-	result := s.db.Order("date DESC").Joins("LEFT JOIN channels ON media_items.channel_id = channels.id").Scan(&mediaItems)
+	result := s.db.Order("date DESC").Joins("LEFT JOIN channels ON media_items.channel_id = channels.id").Where("user_deleted = false").Scan(&mediaItems)
 	return mediaItems, result.Error
 }

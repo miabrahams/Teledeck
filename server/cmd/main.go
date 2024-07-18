@@ -140,7 +140,7 @@ func main() {
 	signal.Notify(killSig, os.Interrupt, syscall.SIGTERM)
 
 	srv := &http.Server{
-		Addr:    cfg.Port,
+		Addr:    "0.0.0.0" + cfg.Port,
 		Handler: r,
 	}
 

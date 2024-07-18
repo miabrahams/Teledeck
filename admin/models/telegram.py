@@ -37,4 +37,5 @@ class MediaItem(SQLModel, table=True):
     url: Optional[str] = Field(default=None)
     path: Optional[str] = Field(default=None)
     seen: Optional[bool] = Field(default=None)
-    favorite: bool = Field(default=False)
+    favorite: bool
+    user_deleted: bool = Field(default=False)

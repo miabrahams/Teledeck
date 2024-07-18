@@ -29,21 +29,23 @@ type SessionStore interface {
 
 type Channel struct {
 	ID    uint `gorm:"primaryKey"`
-	title string
+	Title string
 }
 
 type MediaItem struct {
-	ID        uint `gorm:"uniqueIndex"`
+	ID        uint `gorm:"primaryKey"`
 	ChannelID uint
 	MessageID uint
 	Date      time.Time
 	Text      string
 	Type      string
 	/* 	Path      string */
-	FileName string
-	FileSize int64
-	URL      string
-	Seen     bool
+	FileName    string
+	FileSize    int64
+	URL         string
+	Seen        bool
+	userDeleted bool
+	favorite    bool
 }
 
 type MediaItemWithChannel struct {
