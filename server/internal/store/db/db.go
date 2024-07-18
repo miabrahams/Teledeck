@@ -23,7 +23,7 @@ func open(dbName string) (*gorm.DB, error) {
 func MustOpen(dbName string) *gorm.DB {
 
 	if dbName == "" {
-		dbName = "goth.db"
+		dbName = "teledeck.db"
 	}
 
 	db, err := open(dbName)

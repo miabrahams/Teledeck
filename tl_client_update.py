@@ -24,7 +24,7 @@ username = "Hex"
 
 # Paths
 MEDIA_PATH = "./static/media/"
-DB_PATH = "./GOTTH/goth.db"
+DB_PATH = "./teledeck.db"
 UPDATE_PATH  = './data/update_info'
 NEST_TQDM = True
 DEFAULT_FETCH_LIMIT = 200
@@ -61,7 +61,7 @@ class TLContext:
     async def update_progress(self):
         async with self.counter_semaphore:
             self.finished_tasks += 1
-            self.progress_bar.update(self.finished_tasks)
+            self.progress_bar.update(1)
             if self.finished_tasks == self.total_tasks:
                 self.progress_bar.close()
 

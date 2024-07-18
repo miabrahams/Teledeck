@@ -12,7 +12,7 @@ templ GalleryItem(item store.MediaItemWithChannel) {
         /* Todo: handle mp3, pdf */
             if item.Type == "photo" || item.Type == "png" || item.Type == "gif" || item.Type == "jpeg" || item.Type == "webp" {
                 <img src={"/media/" + item.FileName} alt={item.FileName} />
-            } else if item.Type == "video" || item.Type == "gif" || item.Type == "webm" {
+            } else if item.Type == "video" || item.Type == "gif" || item.Type == "webm" || item.Type == "document" {
                 <video controls>
                     <source src={"/media/" + item.FileName} type="video/mp4" />
                     Your browser does not support the video tag.
@@ -21,7 +21,7 @@ templ GalleryItem(item store.MediaItemWithChannel) {
         </div>
         <div class="media-info">
             <h2 class="media-meta media-filename">
-                {item.FileName}
+                {item.FileName} ({item.Type})
                 if false  {
                     /*item.favorite*/
                     <span class="favorite-star">⭐</span>
