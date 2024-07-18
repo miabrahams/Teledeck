@@ -58,4 +58,3 @@ This target runs the development server using Air, which helps in hot-reloading 
 make build
 ```
 This target orchestrates the building process by executing the tailwind-build, templ-generate, and go build commands sequentially. It creates the binary output in the ./bin/ directory.
-
