@@ -9,11 +9,15 @@ from dotenv import load_dotenv
 from typing import List, Dict, Any, Tuple
 import os
 import asyncio
-import sqlite3
 import json
 import uuid
 from datetime import datetime
+from sqlmodel import create_engine, Session
+from sqlalchemy.engine.base import Engine
+from models.telegram import MediaItem
 
+a = create_engine("sqlite:///teledeck.db")
+print()
 
 load_dotenv()  # take environment variables from .env.
 api_id = os.environ["TG_API_ID"]
@@ -31,7 +35,7 @@ DEFAULT_FETCH_LIMIT = 200
 
 
 class TLContext:
-    conn: sqlite3.Connection
+    engine: Engine
     tclient: TelegramClient
     progress_bar: tqdm
     counter_semaphore: asyncio.Semaphore
@@ -40,9 +44,9 @@ class TLContext:
     data: List[Any]
     data_semaphore: asyncio.Semaphore
 
-    def __init__(self, tclient: TelegramClient, conn: sqlite3.Connection):
-        self.tclient: TelegramClient = tclient
-        self.conn: sqlite3.Connection = conn
+    def __init__(self, tclient: TelegramClient):
+        self.tclient = tclient
+        self.engine = create_engine(f"sqlite:///{DB_PATH}")
         self.counter_semaphore = asyncio.Semaphore(1)
         self.data_semaphore = asyncio.Semaphore(1)
         self.data = []
@@ -307,7 +311,6 @@ async def get_target_channels(ctx: TLContext) -> List[Channel]:
     # cursor.execute('SELECT DISTINCT channel FROM media_items')
     # existing_channels = set(row[0] for row in cursor.fetchall())
     # target_channels = [channel for channel in target_channels if channel.title not in existing_channels]
-    # target_channels = [channel for channel in target_channels if channel.title.find("Macro") > -1]
 
     print(f"{len(target_channels)} channels found")
 
@@ -322,7 +325,6 @@ async def main():
     tclient = TelegramClient(username, api_id, api_hash)
     await tclient.connect()
     print("Telegram client connected!")
-    conn = sqlite3.connect(DB_PATH)
     ctx = TLContext(tclient, conn)
     print("Database connected!")
 
