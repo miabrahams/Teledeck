@@ -103,6 +103,7 @@ func main() {
 			m.TextHTMLMiddleware,
 			m.CSPMiddleware,
 			authMiddleware.AddUserToContext,
+			m.WithLogger(logger),
 		)
 
 		r.NotFound(handlers.NewNotFoundHandler().ServeHTTP)
@@ -121,6 +122,8 @@ func main() {
 		}).ServeHTTP)
 
 		r.Get("/login", handlers.NewGetLoginHandler().ServeHTTP)
+
+		r.Post("/favorite/{id}", handlers.NewFavoriteHandler(mediaStore).ServeHTTP)
 
 		r.Post("/login", handlers.NewPostLoginHandler(handlers.PostLoginHandlerParams{
 			UserStore:         userStore,

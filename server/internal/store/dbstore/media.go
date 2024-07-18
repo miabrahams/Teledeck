@@ -3,6 +3,9 @@ package dbstore
 import (
 	"goth/internal/store"
 
+	"log/slog"
+	"strconv"
+
 	"gorm.io/gorm"
 )
 
@@ -33,10 +36,37 @@ func (s *MediaStore) GetTotalMediaItems(only_videos bool) int64 {
 		query = query.Where(VIDEOS_SELECTOR)
 	}
 	query = query.Where("media_items.user_deleted = false")
-
 	query.Count(&count)
 	return count
+}
 
+func (s *MediaStore) GetMediaItem(id uint64) (*store.MediaItemWithChannel, error) {
+	query := s.db.Model(&store.MediaItem{}).
+		Joins("LEFT JOIN channels ON media_items.channel_id = channels.id")
+	query = query.Where("media_items.id = ?", id)
+	item := store.MediaItemWithChannel{}
+	result := query.Scan(&item)
+	return &item, result.Error
+}
+
+func (s *MediaStore) ToggleFavorite(id uint64) (*store.MediaItemWithChannel, error) {
+	logger := slog.Default()
+	var itemWithChannel store.MediaItemWithChannel
+	result := s.db.Model(&store.MediaItem{}).Where("media_items.id = ?", id).Joins("LEFT JOIN channels ON media_items.channel_id = channels.id").Scan(&itemWithChannel)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	itemWithChannel.Favorite = !itemWithChannel.Favorite
+
+	var item store.MediaItem = itemWithChannel.MediaItem
+	logger.Info("New fav status: ", "New status:", strconv.FormatBool(item.Favorite), "File", item.FileName)
+	err := s.db.Save(&item).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &itemWithChannel, nil
 }
 
 func (s *MediaStore) GetPaginatedMediaItems(page, itemsPerPage int, sort string, only_videos bool) ([]store.MediaItemWithChannel, error) {

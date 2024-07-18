@@ -56,17 +56,19 @@ func (h *HomeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	totalPages := int(math.Ceil(float64(h.MediaStore.GetTotalMediaItems(only_videos)) / float64(itemsPerPage)))
 
-	var c templ.Component
+	gallery := templates.Gallery(mediaItems, page, totalPages, sort, videos)
+
+	var index templ.Component
 	if user != nil {
-		c = templates.Index(user.Email, mediaItems, page, totalPages, sort, videos)
+		index = templates.Index(user.Email, gallery)
 	} else {
-		c = templates.GuestIndex(mediaItems, page, totalPages, sort, videos)
+		index = templates.GuestIndex(gallery)
 	}
 
 	if r.Header.Get("HX-Request") == "true" {
-		err = c.Render(r.Context(), w)
+		err = index.Render(r.Context(), w)
 	} else {
-		err = templates.Layout(c, "Media Gallery").Render(r.Context(), w)
+		err = templates.Layout(index, "Media Gallery").Render(r.Context(), w)
 	}
 	if err != nil {
 		http.Error(w, "Error rendering page", http.StatusInternalServerError)

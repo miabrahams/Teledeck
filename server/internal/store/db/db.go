@@ -1,7 +1,7 @@
 package db
 
 import (
-	"goth/internal/store"
+	// "goth/internal/store"
 	"os"
 
 	"gorm.io/driver/sqlite" // Sqlite driver based on CGO
@@ -31,7 +31,7 @@ func MustOpen(dbName string) *gorm.DB {
 		panic(err)
 	}
 
-	err = db.AutoMigrate(&store.User{}, &store.Session{}, &store.MediaItem{})
+	// err = db.AutoMigrate(&store.User{}, &store.Session{}, &store.MediaItem{})
 
 	if err != nil {
 		panic(err)

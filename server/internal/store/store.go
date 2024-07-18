@@ -28,14 +28,14 @@ type SessionStore interface {
 }
 
 type Channel struct {
-	ID    uint `gorm:"primaryKey"`
+	ID    uint64 `gorm:"primaryKey"`
 	Title string
 }
 
 type MediaItem struct {
-	ID        uint `gorm:"primaryKey"`
-	ChannelID uint
-	MessageID uint
+	ID        uint64 `gorm:"primaryKey"`
+	ChannelID uint64
+	MessageID uint64
 	Date      time.Time
 	Text      string
 	Type      string
@@ -44,8 +44,8 @@ type MediaItem struct {
 	FileSize    int64
 	URL         string
 	Seen        bool
-	userDeleted bool
-	favorite    bool
+	Favorite    bool
+	UserDeleted bool
 }
 
 type MediaItemWithChannel struct {
@@ -57,4 +57,6 @@ type MediaStore interface {
 	GetTotalMediaItems(videos bool) int64
 	GetPaginatedMediaItems(page, itemsPerPage int, sort string, only_videos bool) ([]MediaItemWithChannel, error)
 	GetAllMediaItems() ([]MediaItemWithChannel, error)
+	ToggleFavorite(id uint64) (*MediaItemWithChannel, error)
+	GetMediaItem(id uint64) (*MediaItemWithChannel, error)
 }
