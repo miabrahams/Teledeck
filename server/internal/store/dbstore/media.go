@@ -85,13 +85,13 @@ func (s *MediaStore) GetPaginatedMediaItems(page, itemsPerPage int, sort string,
 		query = query.Order("media_items.id ASC")
 	case "id_desc":
 		query = query.Order("media_items.id DESC")
+	case "random":
+		query = query.Order("RANDOM()")
 	default:
 		query = query.Order("media_items.date DESC")
 	}
 
-	query = query.Order("media_items.id").
-		Limit(itemsPerPage).
-		Offset(offset)
+	query = query.Order("media_items.id").Offset(offset)
 
 	if only_videos {
 		query = query.Where(VIDEOS_SELECTOR)
@@ -101,6 +101,8 @@ func (s *MediaStore) GetPaginatedMediaItems(page, itemsPerPage int, sort string,
 	}
 
 	query = query.Where("media_items.user_deleted = false")
+
+	query = query.Limit(itemsPerPage)
 
 	result := query.Scan(&mediaItems)
 	return mediaItems, result.Error
