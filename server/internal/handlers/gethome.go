@@ -40,7 +40,11 @@ func (h *HomeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	sort := r.URL.Query().Get("sort")
 	if sort == "" {
-		sort = "date_desc"
+		err := templates.Layout(templates.IndexEmpty(), "Media Gallery").Render(r.Context(), w)
+		if err != nil {
+			http.Error(w, "Error rendering page", http.StatusInternalServerError)
+		}
+		return
 	}
 
 	videosOnly := r.URL.Query().Get("videos") == "true"
