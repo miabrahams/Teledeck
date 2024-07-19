@@ -5,13 +5,13 @@ import (
 	"strconv"
 )
 
-templ Gallery(mediaItems []store.MediaItemWithChannel, currentPage, totalPages int, sort, videos string) {
+templ Gallery(mediaItems []store.MediaItemWithChannel, currentPage, totalPages int) {
 	<div class="media-gallery">
 		for _, item := range mediaItems {
 			@GalleryItem(&item)
 		}
 	</div>
-	@Pagination(currentPage, totalPages, sort, videos)
+	@Pagination(currentPage, totalPages)
 }
 
 func favoriteClass(item *store.MediaItemWithChannel) string {
@@ -68,16 +68,16 @@ templ GalleryItem(item *store.MediaItemWithChannel) {
 	</div>
 }
 
-templ Pagination(currentPage, totalPages int, sort, videos string) {
+templ Pagination(currentPage, totalPages int) {
 	<div class="pagination flex justify-center space-x-2 mt-4">
 		if currentPage > 1 {
-			<a href={ templ.SafeURL("/?page=" + strconv.Itoa(currentPage-1) + "&sort=" + sort + "&videos=" + videos) } class="px-4 py-2 bg-blue-500 text-white rounded">
+			<a href={ templ.SafeURL("/?page=" + strconv.Itoa(currentPage-1)) } class="px-4 py-2 bg-blue-500 text-white rounded">
 				Previous
 			</a>
 		}
 		<span class="px-4 py-2">Page { strconv.Itoa(currentPage) } of { strconv.Itoa(totalPages) }</span>
 		if currentPage < totalPages {
-			<a href={ templ.SafeURL("/?page=" + strconv.Itoa(currentPage+1) + "&sort=" + sort + "&videos=" + videos) } class="px-4 py-2 bg-blue-500 text-white rounded">
+			<a href={ templ.SafeURL("/?page=" + strconv.Itoa(currentPage+1)) } class="px-4 py-2 bg-blue-500 text-white rounded">
 				Next
 			</a>
 		}

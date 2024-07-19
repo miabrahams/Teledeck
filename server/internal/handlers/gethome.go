@@ -35,6 +35,7 @@ func (h *HomeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if page < 1 {
 		page = 1
 	}
+
 	itemsPerPage := 100
 
 	sort := r.URL.Query().Get("sort")
@@ -42,21 +43,18 @@ func (h *HomeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		sort = "date_desc"
 	}
 
-	videos := r.URL.Query().Get("videos")
-	only_videos := false
-	if videos == "true" {
-		only_videos = true
-	}
+	videosOnly := r.URL.Query().Get("videos") == "true"
+	favoritesOnly := r.URL.Query().Get("favorites") == "true"
 
-	mediaItems, err := h.MediaStore.GetPaginatedMediaItems(page, itemsPerPage, sort, only_videos)
+	mediaItems, err := h.MediaStore.GetPaginatedMediaItems(page, itemsPerPage, sort, videosOnly, favoritesOnly)
 	if err != nil {
 		http.Error(w, "Error fetching media items", http.StatusInternalServerError)
 		return
 	}
 
-	totalPages := int(math.Ceil(float64(h.MediaStore.GetTotalMediaItems(only_videos)) / float64(itemsPerPage)))
+	totalPages := int(math.Ceil(float64(h.MediaStore.GetTotalMediaItems(videosOnly)) / float64(itemsPerPage)))
 
-	gallery := templates.Gallery(mediaItems, page, totalPages, sort, videos)
+	gallery := templates.Gallery(mediaItems, page, totalPages)
 
 	var index templ.Component
 	if user != nil {

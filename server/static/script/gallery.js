@@ -32,7 +32,6 @@ document.addEventListener('click', function(e) {
 
 window.addEventListener("load", function() {
   for (video of document.querySelectorAll("video")) {
-    console.log(video);
     /* Applying mouseover event on video clip
     and then we call play() function to play
     the video when the mouse is over the video */

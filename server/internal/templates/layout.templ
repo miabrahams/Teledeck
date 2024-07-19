@@ -11,8 +11,9 @@ templ header(title string) {
 		<meta charset="UTF-8"/>
 		<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 		<script src="static/script/htmx.min.js" nonce={ middleware.GetHtmxNonce(ctx) }></script>
-		<script src="static/script/response-targets.js" nonce={ middleware.GetResponseTargetsNonce(ctx) }></script>
-        <script src="static/script/gallery.js" nonce={ middleware.GetGalleryScriptsNonce(ctx) }></script>
+		<script src="static/script/response-targets.js" nonce={ middleware.GetResponseTargetsNonce(ctx) } defer></script>
+        <script src="static/script/gallery.js" nonce={ middleware.GetGalleryScriptsNonce(ctx) } defer></script>
+        <script src="static/script/preferences.js" defer></script>
 		<script>
 			// Dark mode toggle function
 			function toggleDarkMode() {
@@ -53,10 +54,7 @@ templ nav() {
 				<li>
 					<select id="sort-select"
 					class="bg-primary-700 dark:bg-primary-800 text-gray-200 rounded px-2 py-1"
-					hx-get="/"
-					hx-target="#media-index"
-					hx-trigger="change"
-					hx-include="[name='sort-options']"
+					onchange="setPreference('sort', this.value); updateGallery();"
 					name="sort">
 						<option value="date_desc">Newest posts first</option>
 						<option value="date_asc">Oldest posts first</option>
@@ -69,11 +67,18 @@ templ nav() {
 						id="videos-check"
 						name="videos"
 						value="true"
-						hx-get="/"
-						hx-target="#media-index"
-						hx-trigger="change"
-						hx-include="[name='sort-options']"
+						onchange="setPreference('videosOnly', this.checked); updateGallery();"
 					></input>
+					<label for="videos-check">Videos only</label>
+				</li>
+				<li>
+					<input type="checkbox"
+						id="favorites-check"
+						name="videos"
+						value="true"
+						onchange="setPreference('favoritesOnly', this.checked); updateGallery();"
+					></input>
+					<label for="favorites-check">Favorites only</label>
 				</li>
 			</ol>
 			<ol class="flex space-x-4">

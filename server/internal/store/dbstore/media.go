@@ -69,7 +69,7 @@ func (s *MediaStore) ToggleFavorite(id uint64) (*store.MediaItemWithChannel, err
 	return &itemWithChannel, nil
 }
 
-func (s *MediaStore) GetPaginatedMediaItems(page, itemsPerPage int, sort string, only_videos bool) ([]store.MediaItemWithChannel, error) {
+func (s *MediaStore) GetPaginatedMediaItems(page, itemsPerPage int, sort string, only_videos bool, only_favorites bool) ([]store.MediaItemWithChannel, error) {
 	offset := (page - 1) * itemsPerPage
 	var mediaItems []store.MediaItemWithChannel
 	query := s.db.Table("media_items").
@@ -95,6 +95,9 @@ func (s *MediaStore) GetPaginatedMediaItems(page, itemsPerPage int, sort string,
 
 	if only_videos {
 		query = query.Where(VIDEOS_SELECTOR)
+	}
+	if only_favorites {
+		query = query.Where("media_items.favorite = true")
 	}
 
 	query = query.Where("media_items.user_deleted = false")
