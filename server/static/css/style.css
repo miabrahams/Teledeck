@@ -835,8 +835,8 @@ body {
   .media-item video {
   aspect-ratio: 1 / 1;
   width: 100%;
-  -o-object-fit: cover;
-     object-fit: cover;
+  -o-object-fit: contain;
+     object-fit: contain;
 }
 
 .media-info {
@@ -1101,7 +1101,9 @@ body {
 }
 
 .favorite {
-  box-shadow: 0px 0px 10px rgba(255, 225, 64, 128);
+  box-shadow: 0 0 10px 10px rgba(180, 240, 255, 0.5);
+  border: 2px solid #48abe0;
+  /* box-shadow: 0px 0px 10px rgba(255, 225, 64, 128); */
 }
 
 .modal {
