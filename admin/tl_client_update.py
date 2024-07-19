@@ -3,10 +3,8 @@ from telethon.client.telegramclient import TelegramClient
 from telethon.tl.types import (
     Message,
     Channel,
-    InputMessagesFilterDocument,
+    InputMessagesFilterUrl,
     InputMessagesFilterVideo,
-    InputMessagesFilterPhotoVideo,
-    InputMessagesFilterGif,
 )
 from telethon.tl.types.messages import DialogFilters
 from telethon.tl.custom.file import File
@@ -22,6 +20,7 @@ from datetime import datetime
 from sqlmodel import create_engine, Session, select
 from sqlalchemy.engine.base import Engine
 from models.telegram import MediaItem
+import pickle
 
 engine = create_engine("sqlite:///teledeck.db")
 print()
@@ -117,14 +116,12 @@ class DownloadProgressBar(tqdm):
         self.update(current - self.n)
 
 
-async def download_media(ctx: TLContext, message: Message) -> str:
+async def download_media(ctx: TLContext, messageOrMedia) -> str:
     if NEST_TQDM:
         with DownloadProgressBar(unit="B", unit_scale=True, desc="Download") as pb:
-            return await ctx.tclient.download_media(
-                message, MEDIA_PATH, progress_callback=pb.update_to
-            )
+            return await ctx.tclient.download_media(messageOrMedia, MEDIA_PATH, progress_callback=pb.update_to)
     else:
-        return await ctx.tclient.download_media(message, MEDIA_PATH)
+        return await ctx.tclient.download_media(messageOrMedia, MEDIA_PATH)
 
 
 def save_to_json(data):
@@ -137,139 +134,106 @@ def save_to_json(data):
 
     return filename
 
+async def get_message_link(ctx: TLContext, channel: Channel, message: Message):
+    messageLinkRequest = functions.channels.ExportMessageLinkRequest(channel, message.id)
+    return await ctx.tclient(messageLinkRequest)
 
-async def process_message(ctx: TLContext, message: Message, channel: Channel) -> None:
-    # print(f"PROCESS_MESSAGE {message.id} - {channel.title}")
-    if message.file:
+def extract_media(ctx: TLContext, message: Message):
+    if (
+        message.web_preview
+        and message.web_preview.document
+        and message.web_preview.document.mime_type == "video/mp4"
+    ):
+        print("Found embedded video")
+        download_target = message.media.webpage.document
+        file_id = -1 * download_target.id  # TODO: Fix hack
+
+        return download_target, file_id # has mime_type
+
+    elif message.file:
         file: File = message.file
         file_id = file.media.id
         if file.size > 1_000_000_000:
             """
-            messageLinkRequest = functions.channels.ExportMessageLinkRequest(channel, message.id)
-            messageLink = await ctx.tclient(messageLinkRequest)
+            messageLink = get_message_link(ctx, channel, message)
             print(messageLink.stringify())
             await ctx.add_data(messageLink.link)
             """
             print(f"*****Skipping large file*****: {file_id}")
-            return
+            return None
         if file.sticker_set is not None:
             print(f"Skipping sticker: {file_id}")
-            return
-
-        # Check if file_id already exists in database
-        with Session(engine) as session:
-            query = select(MediaItem).where(MediaItem.file_id == file_id)
-            found = session.exec(query).first()
-            if found:
-                # If message_id is empty update it
-                if not found.message_id:
-                    # Update with channel ID and message ID
-                    found.message_id = message.id
-                    found.channel_id = channel.id
-                    session.commit()
-                print(f"Skipping download for existing file_id: {file_id}")
-                await message.mark_read()
-                return
-
-        file_path = await download_media(ctx, message)
-        if file_path:
-            file_name = os.path.basename(file_path)
-
-            if message.video or file_name.lower().endswith(".mp4"):
-                media_type = "video"
-            elif message.gif:
-                media_type = "gif"
-            elif message.photo:
-                media_type = "photo"
-            elif message.document:
-                mime_type = message.document.mime_type
-                media_type = (
-                    mime_type.split("/")[-1] if "image/" in mime_type else "document"
-                )
-            else:
-                media_type = "unknown"
-
-            with Session(engine) as session:
-                session.add(
-                    MediaItem(
-                        file_id=file_id,
-                        channel_id=channel.id,
-                        date=message.date,
-                        text=message.text,
-                        type=media_type,
-                        file_name=file_name,
-                        file_size=message.file.size,
-                        url=f"/media/{file_name}",
-                        message_id=message.id,
-                    )
-                )
-                session.commit()
+            return None
+        return file, file_id
 
     elif message.web_preview:
         print(f"Skipping web preview: {message.id}")
+        return None, None
     else:
         print(f"No media found: {message.id}")
+        return None, None
 
+async def process_message(ctx: TLContext, message: Message, channel: Channel) -> None:
+    download_target, file_id = extract_media(ctx, message)
+    if file_id is None:
+        return
 
-def get_messages(ctx: TLContext, channel: Channel, limit: int):
-    return ctx.tclient.iter_messages(channel, limit)
-
-
-def get_old_messages(ctx: TLContext, channel: Channel, limit: int):
-    return ctx.tclient.iter_messages(channel, limit, reverse=True, add_offset=500)
-
-
-def get_all_videos(ctx: TLContext, channel: Channel):
-    return ctx.tclient.iter_messages(channel, filter=InputMessagesFilterVideo)
-
-
-def get_new_messages(ctx: TLContext, channel: Channel, limit: int):
+    # Check for existing files
     with Session(engine) as session:
-        query = (
-            select(MediaItem.message_id)
-            .where(MediaItem.channel_id == channel.id)
-            .where(MediaItem.message_id is not None)
-            .order_by(MediaItem.message_id)
-        )
-        last_seen_post = session.exec(query).first()
+        query = select(MediaItem).where(MediaItem.file_id == file_id)
+        found = session.exec(query).first()
+        if found:
+            if found.file_size != message.file.size:
+                print(message.stringify())
+                print(found.file_name)
+                raise AssertionError(f"File size mismatch: {found.file_size} vs {message.file.size}")
+            # Update legacy entries
+            if not found.message_id:
+                found.message_id = message.id
+                found.channel_id = channel.id
+                session.commit()
+            print(f"Skipping download for existing file_id: {file_id}")
+            return
 
-    if last_seen_post:
-        return ctx.tclient.iter_messages(channel, limit, min_id=last_seen_post)
-    else:
-        return get_messages(ctx, channel, limit)
+    file_path = await download_media(ctx, download_target)
+    if file_path:
+        file_name = os.path.basename(file_path)
 
+        mime_type = download_target.mime_type if hasattr(download_target, "mime_type") else None
+        [mtype, subtype] = mime_type.split("/")
 
-def get_earlier_messages(ctx: TLContext, channel: Channel, limit: int):
-    with Session(engine) as session:
-        query = (
-            select(MediaItem.message_id)
-            .where(MediaItem.channel_id == channel.id)
-            .where(MediaItem.message_id is not None)
-            .order_by(MediaItem.message_id.desc())
-        )
-        oldest_seen_post = session.exec(query).first()
+        match mtype:
+            case "video":
+                media_type = "video"
+            case "image":
+                media_type = "image"
+            case _:
+                media_type = None
 
-    if oldest_seen_post:
-        return ctx.tclient.iter_messages(channel, limit, offset_id=oldest_seen_post[0])
-    else:
-        return get_messages(ctx, channel, limit)
+        if media_type is None:
+            if message.photo:
+                media_type = "photo"
+            else:
+                media_type = "document"
+                print(message.stringify())
+                raise ValueError(f"Unknown media type: {mime_type}")
 
-
-async def get_channel_messages(
-    ctx: TLContext, channel: Channel
-) -> Tuple[Channel, List[Message]]:
-    print(f"Processing channel: {channel.title}")
-
-    fetch_messages_task = get_messages(ctx, channel, DEFAULT_FETCH_LIMIT)
-    # fetch_messages_task = get_old_messages(ctx, channel, DEFAULT_FETCH_LIMIT)
-    # fetch_messages_task = get_new_messages(ctx, channel, DEFAULT_FETCH_LIMIT)
-    # fetch_messages_task = get_earlier_messages(ctx, channel, DEFAULT_FETCH_LIMIT)
-    # fetch_messages_task = get_all_videos(ctx, channel)
-
-    messages: List[Message] = []
-    async for message in fetch_messages_task:
-        messages.append(message)
-    return channel, messages
+        with Session(engine) as session:
+            session.add(
+                MediaItem(
+                    file_id=file_id,
+                    channel_id=channel.id,
+                    date=message.date,
+                    text=message.text,
+                    type=media_type,
+                    file_name=file_name,
+                    file_size=message.file.size,
+                    url=f"/media/{file_name}",
+                    message_id=message.id,
+                )
+            )
+            session.commit()
+            await message.mark_read()
 
 
 async def message_task_wrapper(ctx: TLContext, message: Message, channel: Channel):
@@ -279,18 +243,80 @@ async def message_task_wrapper(ctx: TLContext, message: Message, channel: Channe
     await ctx.update_progress()
 
 
+
+##### Message filtering strategies
+
+def get_messages(ctx: TLContext, channel: Channel, limit: int):
+    return ctx.tclient.iter_messages(channel, limit)
+
+
+def get_old_messages(ctx: TLContext, channel: Channel, limit: int):
+    return ctx.tclient.iter_messages(channel, limit, reverse=True, add_offset=500)
+
+def get_urls(ctx: TLContext, channel: Channel, limit):
+    return ctx.tclient.iter_messages(channel, filter=InputMessagesFilterUrl, limit=limit)
+
+def get_all_videos(ctx: TLContext, channel: Channel):
+    return ctx.tclient.iter_messages(channel, filter=InputMessagesFilterVideo)
+
+def get_unread_messages(ctx: TLContext, channel: Channel):
+    return ctx.tclient.iter_messages(channel, limit=channel.unread_count)
+
+def get_new_messages(ctx: TLContext, channel: Channel, limit: int):
+    with Session(engine) as session:
+        query = (
+            select(MediaItem.message_id)
+            .where(MediaItem.channel_id == channel.id)
+            .where(MediaItem.message_id is not None)
+            .order_by(MediaItem.message_id.desc())  # Find the last message_id
+        )
+        last_seen_post = session.exec(query).first()
+
+    if last_seen_post:
+        return ctx.tclient.iter_messages(channel, limit, min_id=last_seen_post)
+    else:
+        return get_messages(ctx, channel, limit)
+
+def get_earlier_messages(ctx: TLContext, channel: Channel, limit: int):
+    with Session(engine) as session:
+        query = (
+            select(MediaItem.message_id)
+            .where(MediaItem.channel_id == channel.id)
+            .where(MediaItem.message_id is not None)
+            .order_by(MediaItem.message_id)
+        )
+        oldest_seen_post = session.exec(query).first()
+
+    if oldest_seen_post:
+        return ctx.tclient.iter_messages(channel, limit, offset_id=oldest_seen_post[0])
+    else:
+        return get_messages(ctx, channel, limit)
+
+
+async def get_channel_messages(ctx: TLContext, channel: Channel) -> Tuple[Channel, List[Message]]:
+    print(f"Processing channel: {channel.title}")
+
+    # fetch_messages_task = get_messages(ctx, channel, DEFAULT_FETCH_LIMIT)
+    # fetch_messages_task = get_old_messages(ctx, channel, DEFAULT_FETCH_LIMIT)
+    # fetch_messages_task = get_new_messages(ctx, channel, DEFAULT_FETCH_LIMIT)
+    # fetch_messages_task = get_unread_messages(ctx, channel, DEFAULT_FETCH_LIMIT)
+    # fetch_messages_task = get_earlier_messages(ctx, channel, DEFAULT_FETCH_LIMIT)
+    # fetch_messages_task = get_all_videos(ctx, channel)
+    fetch_messages_task = get_urls(ctx, channel, DEFAULT_FETCH_LIMIT)
+
+    messages: List[Message] = []
+    async for message in fetch_messages_task:
+        messages.append(message)
+    return channel, messages
+
+
+
 async def get_target_channels(ctx: TLContext) -> List[Channel]:
-    chat_folders: DialogFilters = await ctx.tclient(
-        functions.messages.GetDialogFiltersRequest()
-    )
+    chat_folders: DialogFilters = await ctx.tclient(functions.messages.GetDialogFiltersRequest())
 
     try:
         media_folder = next(
-            (
-                folder
-                for folder in chat_folders.filters
-                if hasattr(folder, "title") and folder.title == "MediaView"
-            )
+            (folder for folder in chat_folders.filters if hasattr(folder, "title") and folder.title == "MediaView")
         )
     except StopIteration:
         raise NameError("MediaView folder not found.")
@@ -309,11 +335,17 @@ async def get_target_channels(ctx: TLContext) -> List[Channel]:
     return target_channels
 
 
+async def gather_tasklists(ctx: TLContext, channels: List[Channel]) -> List[Tuple[Channel, List[Message]]]:
+    channel_tasklists = await asyncio.gather(*[get_channel_messages(ctx, channel) for channel in channels])
+    # pickle.dump(channel_tasklists, open("data/channel_tasklists.pkl", "wb"))
+    return channel_tasklists
+
+
 # PROBLEMS
 # 1. How to handle media that is not a file (e.g. web previews)?
 # 2. Check what happens to Twitter embeds
 # 3. Paginate / search by date?
-async def main():
+async def main(load_saved_tasks = False, start_task = 0):
     tclient = TelegramClient(username, api_id, api_hash)
     await tclient.connect()
     print("Telegram client connected!")
@@ -324,9 +356,16 @@ async def main():
     print("Found channels:")
     print([channel.title for channel in target_channels])
 
-    channel_tasklists = await asyncio.gather(
-        *[get_channel_messages(ctx, channel) for channel in target_channels]
-    )
+    channel_tasklists = await gather_tasklists(ctx, target_channels)
+
+    if False:
+        if load_saved_tasks:
+            channel_tasklists = pickle.load(open("data/channel_tasklists.pkl", "rb"))
+        else:
+            channel_tasklists = await gather_tasklists(ctx, target_channels)
+        if start_task > 0:
+            channel_tasklists = channel_tasklists[start_task:]
+
 
     message_tasks = [
         message_task_wrapper(ctx, message, channel)
@@ -345,4 +384,15 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.get_event_loop().run_until_complete(main())
+    import sys
+    n = len(sys.argv)
+    if n == 1:
+        load_saved_tasks = False
+        start_task = 0
+    elif n == 2:
+        load_saved_tasks = True
+        start_task = 0
+    elif n == 3:
+        load_saved_tasks = True
+        start_task = int(sys.argv[2])
+    asyncio.get_event_loop().run_until_complete(main(load_saved_tasks, start_task))
