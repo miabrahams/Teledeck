@@ -28,7 +28,7 @@ load_dotenv()  # take environment variables from .env.
 api_id = os.environ["TG_API_ID"]
 api_hash = os.environ["TG_API_HASH"]
 phone = os.environ["TG_PHONE"]
-username = "Hex"
+session_file = "../user.session"
 
 
 # Paths
@@ -362,7 +362,7 @@ async def get_channel_messages(ctx: TLContext, channel: Channel) -> AsyncGenerat
 # 2. Check what happens to Twitter embeds
 # 3. Paginate / search by date?
 async def main(load_saved_tasks=False, start_task=0):
-    tclient = TelegramClient(username, api_id, api_hash)
+    tclient = TelegramClient(session_file, api_id, api_hash)
     await tclient.connect()
     print("Telegram client connected!")
     ctx = TLContext(tclient)
