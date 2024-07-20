@@ -1,9 +1,10 @@
 import os
 import hashlib
 import pathlib
+import re
 
-def get_file_hash(file_path, chunk_size=1024 * 1024):
-    """Compute SHA-256 hash of a file. If the file is larger than 1MB, only the first 1MB is hashed."""
+def get_file_hash(file_path, chunk_size=2 * 1024 * 1024):
+    """Compute SHA-256 hash of a file. If the file is larger than 2MB, only the first 2MB is hashed."""
     hash_sha256 = hashlib.sha256()
     with open(file_path, 'rb') as f:
         # Read the first 1MB or the whole file if it's smaller
@@ -20,12 +21,36 @@ def handle_duplicates(file1, file2, file_hash):
         print(file1)
         os.unlink(file1)
 
-    if name1 == (name2 + " (4)"):
-        print("**************ONE***************")
+    name_to_del = delete_lower_number_extension(name1, name2) or delete_lower_number_extension(name2, name1)
+    if name_to_del == name1:
+        print(f"Deleting {name1}")
         os.unlink(file1)
-    elif name2 == name1 + " (4)":
-        print("**************TWO***************")
+    elif name_to_del == name2:
+        print(f"Deleting {name2}")
         os.unlink(file2)
+
+
+
+def delete_lower_number_extension(name1, name2):
+    # Try to match documents like '1abq2325b083aW.mp4' '1abq2325b083aW (2).mp4'
+    name_re = re.compile(r"^(.+) \(([0-9]+)\)$")
+    match1 = re.match(name_re, name1)
+    if not match1:
+        return None
+    else:
+        basename = match1.group(1)
+        if name2 == basename:
+            # name2 has no number at the end
+            return name1
+        match2 = re.match(name_re, name2)
+        if not match2:
+            return None
+        if match2.group(1) == basename:
+            if int(match1.group(2)) > int(match2.group(2)):
+                return name2
+            else:
+                return name1
+
 
 
 
@@ -34,6 +59,8 @@ def find_duplicates(directory):
     files_by_size = {}
     duplicates = []
     n = 0
+
+    raise NotImplementedError("Implement better handling of favorites please!")
 
     # Group files by their size
     for item in os.scandir(directory):

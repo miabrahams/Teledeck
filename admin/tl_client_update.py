@@ -11,7 +11,7 @@ from telethon.tl.custom.file import File
 from telethon.errors import FloodWaitError
 from tqdm import tqdm
 from dotenv import load_dotenv
-from typing import List, Dict, Any, Tuple
+from typing import AsyncGenerator, List, Dict, Any, Optional, Tuple
 import os
 import asyncio
 import json
@@ -20,7 +20,6 @@ from datetime import datetime
 from sqlmodel import create_engine, Session, select
 from sqlalchemy.engine.base import Engine
 from models.telegram import MediaItem
-import pickle
 
 engine = create_engine("sqlite:///teledeck.db")
 print()
@@ -37,7 +36,7 @@ MEDIA_PATH = "./static/media/"
 DB_PATH = "./teledeck.db"
 UPDATE_PATH = "./data/update_info"
 NEST_TQDM = True
-DEFAULT_FETCH_LIMIT = 30
+DEFAULT_FETCH_LIMIT = 1000
 
 
 class TLContext:
@@ -55,13 +54,16 @@ class TLContext:
         self.counter_semaphore = asyncio.Semaphore(1)
         self.data_semaphore = asyncio.Semaphore(1)
         self.data = []
-        self.init_progress(50000)
-
-    def init_progress(self, total_tasks: int):
-        print("Found tasks: ", total_tasks)
-        self.total_tasks = total_tasks
         self.finished_tasks = 0
-        self.progress_bar = tqdm(total=total_tasks, desc="Progress", unit="tasks")
+        self.total_tasks = -1
+        self.progress_bar: Optional[tqdm] = None
+
+    async def init_progress(self, total_tasks: int):
+        async with self.counter_semaphore:
+            print("Found tasks: ", total_tasks)
+            self.total_tasks = total_tasks
+            self.progress_bar = tqdm(total=total_tasks, desc="Progress", unit="tasks")
+            self.progress_bar.update(self.finished_tasks)
 
     async def update_message(self, new_message):
         async with self.counter_semaphore:
@@ -70,6 +72,8 @@ class TLContext:
     async def update_progress(self):
         async with self.counter_semaphore:
             self.finished_tasks += 1
+            if not self.progress_bar:
+                return
             self.progress_bar.update(1)
             if self.finished_tasks == self.total_tasks:
                 self.progress_bar.close()
@@ -134,21 +138,19 @@ def save_to_json(data):
 
     return filename
 
+
 async def get_message_link(ctx: TLContext, channel: Channel, message: Message):
     messageLinkRequest = functions.channels.ExportMessageLinkRequest(channel, message.id)
     return await ctx.tclient(messageLinkRequest)
 
+
 def extract_media(ctx: TLContext, message: Message):
-    if (
-        message.web_preview
-        and message.web_preview.document
-        and message.web_preview.document.mime_type == "video/mp4"
-    ):
+    if message.web_preview and message.web_preview.document and message.web_preview.document.mime_type == "video/mp4":
         print("Found embedded video")
         download_target = message.media.webpage.document
         file_id = -1 * download_target.id  # TODO: Fix hack
 
-        return download_target, file_id # has mime_type
+        return download_target, file_id  # has mime_type
 
     elif message.file:
         file: File = message.file
@@ -172,6 +174,7 @@ def extract_media(ctx: TLContext, message: Message):
     else:
         print(f"No media found: {message.id}")
         return None, None
+
 
 async def process_message(ctx: TLContext, message: Message, channel: Channel) -> None:
     download_target, file_id = extract_media(ctx, message)
@@ -243,8 +246,8 @@ async def message_task_wrapper(ctx: TLContext, message: Message, channel: Channe
     await ctx.update_progress()
 
 
-
 ##### Message filtering strategies
+
 
 def get_messages(ctx: TLContext, channel: Channel, limit: int):
     return ctx.tclient.iter_messages(channel, limit)
@@ -253,14 +256,18 @@ def get_messages(ctx: TLContext, channel: Channel, limit: int):
 def get_old_messages(ctx: TLContext, channel: Channel, limit: int):
     return ctx.tclient.iter_messages(channel, limit, reverse=True, add_offset=500)
 
+
 def get_urls(ctx: TLContext, channel: Channel, limit):
-    return ctx.tclient.iter_messages(channel, filter=InputMessagesFilterUrl, limit=limit)
+    return ctx.tclient.iter_messages(channel, filter=InputMessagesFilterUrl)
+
 
 def get_all_videos(ctx: TLContext, channel: Channel):
     return ctx.tclient.iter_messages(channel, filter=InputMessagesFilterVideo)
 
+
 def get_unread_messages(ctx: TLContext, channel: Channel):
     return ctx.tclient.iter_messages(channel, limit=channel.unread_count)
+
 
 def get_new_messages(ctx: TLContext, channel: Channel, limit: int):
     with Session(engine) as session:
@@ -276,6 +283,7 @@ def get_new_messages(ctx: TLContext, channel: Channel, limit: int):
         return ctx.tclient.iter_messages(channel, limit, min_id=last_seen_post)
     else:
         return get_messages(ctx, channel, limit)
+
 
 def get_earlier_messages(ctx: TLContext, channel: Channel, limit: int):
     with Session(engine) as session:
@@ -293,24 +301,6 @@ def get_earlier_messages(ctx: TLContext, channel: Channel, limit: int):
         return get_messages(ctx, channel, limit)
 
 
-async def get_channel_messages(ctx: TLContext, channel: Channel) -> Tuple[Channel, List[Message]]:
-    print(f"Processing channel: {channel.title}")
-
-    # fetch_messages_task = get_messages(ctx, channel, DEFAULT_FETCH_LIMIT)
-    # fetch_messages_task = get_old_messages(ctx, channel, DEFAULT_FETCH_LIMIT)
-    # fetch_messages_task = get_new_messages(ctx, channel, DEFAULT_FETCH_LIMIT)
-    # fetch_messages_task = get_unread_messages(ctx, channel, DEFAULT_FETCH_LIMIT)
-    # fetch_messages_task = get_earlier_messages(ctx, channel, DEFAULT_FETCH_LIMIT)
-    # fetch_messages_task = get_all_videos(ctx, channel)
-    fetch_messages_task = get_urls(ctx, channel, DEFAULT_FETCH_LIMIT)
-
-    messages: List[Message] = []
-    async for message in fetch_messages_task:
-        messages.append(message)
-    return channel, messages
-
-
-
 async def get_target_channels(ctx: TLContext) -> List[Channel]:
     chat_folders: DialogFilters = await ctx.tclient(functions.messages.GetDialogFiltersRequest())
 
@@ -324,28 +314,54 @@ async def get_target_channels(ctx: TLContext) -> List[Channel]:
     target_channels: List[Channel] = await asyncio.gather(
         *[ctx.tclient.get_entity(peer) for peer in media_folder.include_peers]
     )
-    # Keep only channels where channel.title is not in the database
-    # cursor = conn.cursor()
-    # cursor.execute('SELECT DISTINCT channel FROM media_items')
-    # existing_channels = set(row[0] for row in cursor.fetchall())
-    # target_channels = [channel for channel in target_channels if channel.title not in existing_channels]
-
     print(f"{len(target_channels)} channels found")
 
     return target_channels
 
 
-async def gather_tasklists(ctx: TLContext, channels: List[Channel]) -> List[Tuple[Channel, List[Message]]]:
-    channel_tasklists = await asyncio.gather(*[get_channel_messages(ctx, channel) for channel in channels])
-    # pickle.dump(channel_tasklists, open("data/channel_tasklists.pkl", "wb"))
-    return channel_tasklists
+async def message_task_producer(ctx: TLContext, channels: List[Channel], queue: asyncio.Queue) -> int:
+    total_tasks = 0
+    for channel in channels:
+        async for message in get_channel_messages(ctx, channel):
+            total_tasks += 1
+            await queue.put((channel, message))
+    return total_tasks
+
+
+async def message_task_consumer(ctx: TLContext, queue: asyncio.Queue):
+    while True:
+        channel, message = await queue.get()
+        try:
+            await message_task_wrapper(ctx, message, channel)
+        except Exception as e:
+            print("******Failed to process message: ", e)
+            try:
+                print(message.stringify())
+            except Exception as e:
+                continue
+        queue.task_done()
+
+
+async def get_channel_messages(ctx: TLContext, channel: Channel) -> AsyncGenerator[Message, None]:
+    print(f"Processing channel: {channel.title}")
+
+    # fetch_messages_task = get_messages(ctx, channel, DEFAULT_FETCH_LIMIT)
+    # fetch_messages_task = get_old_messages(ctx, channel, DEFAULT_FETCH_LIMIT)
+    # fetch_messages_task = get_new_messages(ctx, channel, DEFAULT_FETCH_LIMIT)
+    # fetch_messages_task = get_unread_messages(ctx, channel, DEFAULT_FETCH_LIMIT)
+    # fetch_messages_task = get_earlier_messages(ctx, channel, DEFAULT_FETCH_LIMIT)
+    # fetch_messages_task = get_all_videos(ctx, channel)
+    fetch_messages_task = get_urls(ctx, channel, DEFAULT_FETCH_LIMIT)
+
+    async for message in fetch_messages_task:
+        yield message
 
 
 # PROBLEMS
 # 1. How to handle media that is not a file (e.g. web previews)?
 # 2. Check what happens to Twitter embeds
 # 3. Paginate / search by date?
-async def main(load_saved_tasks = False, start_task = 0):
+async def main(load_saved_tasks=False, start_task=0):
     tclient = TelegramClient(username, api_id, api_hash)
     await tclient.connect()
     print("Telegram client connected!")
@@ -354,10 +370,15 @@ async def main(load_saved_tasks = False, start_task = 0):
 
     target_channels = await get_target_channels(ctx)
     print("Found channels:")
-    print([channel.title for channel in target_channels])
+    [print(f"{n}: {channel.title}") for n, channel in enumerate(target_channels)]
 
-    channel_tasklists = await gather_tasklists(ctx, target_channels)
+    target_channels = target_channels[7:]
 
+    queue = asyncio.Queue()
+    # One producer is fine!
+    gather_messages = asyncio.create_task(message_task_producer(ctx, target_channels, queue))
+
+    """
     if False:
         if load_saved_tasks:
             channel_tasklists = pickle.load(open("data/channel_tasklists.pkl", "rb"))
@@ -365,16 +386,17 @@ async def main(load_saved_tasks = False, start_task = 0):
             channel_tasklists = await gather_tasklists(ctx, target_channels)
         if start_task > 0:
             channel_tasklists = channel_tasklists[start_task:]
+    """
 
+    consumers = [asyncio.create_task(message_task_consumer(ctx, queue)) for _ in range(MAX_CONCURRENT_TASKS)]
 
-    message_tasks = [
-        message_task_wrapper(ctx, message, channel)
-        for (channel, messageList) in channel_tasklists
-        for message in messageList
-    ]
+    num_tasks = await gather_messages
+    print("******** Done producing*********")
+    await ctx.init_progress(num_tasks)
 
-    ctx.init_progress(len(message_tasks))
-    await asyncio.gather(*message_tasks)
+    await queue.join()
+    for c in consumers:
+        c.cancel()
 
     print("Processing complete")
     print(f"Finished tasks: {ctx.finished_tasks}")
@@ -385,6 +407,7 @@ async def main(load_saved_tasks = False, start_task = 0):
 
 if __name__ == "__main__":
     import sys
+
     n = len(sys.argv)
     if n == 1:
         load_saved_tasks = False
@@ -396,3 +419,4 @@ if __name__ == "__main__":
         load_saved_tasks = True
         start_task = int(sys.argv[2])
     asyncio.get_event_loop().run_until_complete(main(load_saved_tasks, start_task))
+
