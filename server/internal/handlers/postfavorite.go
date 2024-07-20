@@ -1,5 +1,6 @@
 package handlers
 
+/*
 import (
 	"goth/internal/middleware"
 	"goth/internal/store"
@@ -36,3 +37,4 @@ func (h *FavoriteHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	templates.GalleryItem(item).Render(r.Context(), w)
 }
+*/

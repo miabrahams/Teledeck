@@ -88,7 +88,7 @@ func main() {
 
 	authMiddleware := m.NewAuthMiddleware(sessionStore, cfg.SessionCookieName)
 
-	/* Static media handlers */
+	/* Serve static media */
 	fileServer := http.FileServer(http.Dir("./static"))
 	r.Handle("/static/*", http.StripPrefix("/static/", fileServer))
 
@@ -96,6 +96,10 @@ func main() {
 	mediaDir := filepath.Join(workDir, "../", "static", "media") // Adjust this path as needed
 	logger.Info("downloadsDir", "dir", http.Dir(mediaDir))
 	MediaFileServer(r, "/media", http.Dir(mediaDir), logger)
+
+	/* Handlers */
+	MediaHandler := handlers.NewMediaItemHandler(mediaStore)
+	PlainPageHandler := handlers.NewPlainPageHandler()
 
 	r.Group(func(r chi.Router) {
 		r.Use(
@@ -115,15 +119,14 @@ func main() {
 
 		r.Get("/about", handlers.NewAboutHandler().ServeHTTP)
 
-		r.Get("/register", handlers.NewGetRegisterHandler().ServeHTTP)
+		r.Get("/register", PlainPageHandler.GetRegister)
+		r.Get("/login", PlainPageHandler.GetLogin)
 
 		r.Post("/register", handlers.NewPostRegisterHandler(handlers.PostRegisterHandlerParams{
 			UserStore: userStore,
 		}).ServeHTTP)
 
-		r.Get("/login", handlers.NewGetLoginHandler().ServeHTTP)
-
-		r.Post("/favorite/{id}", handlers.NewFavoriteHandler(mediaStore).ServeHTTP)
+		r.Post("/favorite/{id}", MediaHandler.PostFavorite)
 
 		r.Post("/login", handlers.NewPostLoginHandler(handlers.PostLoginHandlerParams{
 			UserStore:         userStore,
