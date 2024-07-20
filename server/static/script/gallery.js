@@ -4,42 +4,36 @@ window.fullscreenView = null;
 document.addEventListener('click', function(e) {
     if (window.fullscreenView !== null) {
         console.log("Closing modal");
+        console.log(window.fullscreenView.restoreTarget)
+        window.fullscreenView.restoreTarget.appendChild(window.fullscreenView.mediaItem);
         window.fullscreenView.remove();
         window.fullscreenView = null;
         return e.preventDefault();
     }
 
-    const mediaContent = e.target.closest('[data-fullscreen="true"]');
-    if (mediaContent && !e.target.closest('.download-button')) {
+    const mediaContainer = e.target.closest('[data-fullscreen="true"]');
+    if (mediaContainer && !e.target.closest('.download-button')) {
       console.log("Clicked on media content");
       const fullscreenView = document.createElement('div');
       fullscreenView.className = 'fullscreen-view';
-      fullscreenView.innerHTML = `
-          <div class="fullscreen-content">
-              ${mediaContent.outerHTML}
-          </div>
-      `;
+      fullscreenView.innerHTML = `<div class="fullscreen-content"></div>`;
       console.log(fullscreenView.innerHTML);
 
       document.body.appendChild(fullscreenView);
+      const mediaItem = mediaContainer.children[0];
+      fullscreenView.appendChild(mediaItem);
+      fullscreenView.restoreTarget = mediaContainer;
+      fullscreenView.mediaItem = mediaItem
       window.fullscreenView = fullscreenView;
     }
 });
 
 
-// Targeting video element
 
-
+// Autoplay on hover
 window.addEventListener("load", function() {
   for (video of document.querySelectorAll("video")) {
-    /* Applying mouseover event on video clip
-    and then we call play() function to play
-    the video when the mouse is over the video */
     video.addEventListener("mouseover", video.play)
-
-    /* Applying mouseout event on video clip
-    and then we call pause() function to stop
-    the video when the mouse is out the video */
     video.addEventListener("mouseout", video.pause)
   }
 });

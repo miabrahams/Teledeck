@@ -53,9 +53,16 @@ type MediaItemWithChannel struct {
 	ChannelTitle string
 }
 
+type SearchPrefs struct {
+	Sort          string
+	VideosOnly    bool
+	FavoritesOnly bool
+	Search        string
+}
+
 type MediaStore interface {
 	GetTotalMediaItems(videos bool) int64
-	GetPaginatedMediaItems(page, itemsPerPage int, sort string, only_videos bool, only_favorites bool) ([]MediaItemWithChannel, error)
+	GetPaginatedMediaItems(page, itemsPerPage int, P SearchPrefs) ([]MediaItemWithChannel, error)
 	GetAllMediaItems() ([]MediaItemWithChannel, error)
 	ToggleFavorite(id uint64) (*MediaItemWithChannel, error)
 	GetMediaItem(id uint64) (*MediaItemWithChannel, error)

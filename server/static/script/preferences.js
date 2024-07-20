@@ -1,14 +1,14 @@
 const defaultPreferences = {
   sort: 'date_desc',
-  videosOnly: false,
-  favoritesOnly: false,
+  videos: false,
+  favorites: false,
+  search: '',
 };
 
 function getPreferences() {
   const storedPrefs = localStorage.getItem('userPreferences');
   const page = new URLSearchParams(window.location.search).get('page', 1);
   updatedPrefs = Object.assign(defaultPreferences, JSON.parse(storedPrefs) || {}, {page});
-  console.log(updatedPrefs)
   return updatedPrefs;
 }
 
@@ -22,8 +22,10 @@ function setPreference(key, value) {
 function applyPreferences() {
   const prefs = getPreferences();
   document.getElementById('sort-select').value = prefs.sort;
-  document.getElementById('videos-check').checked = prefs.videosOnly;
-  document.getElementById('favorites-check').checked = prefs.favoritesOnly;
+  document.getElementById('videos-check').checked = prefs.videos;
+  document.getElementById('favorites-check').checked = prefs.favorites;
+  document.getElementById('search-field').value = prefs.search;
+  return prefs;
 }
 
 function updateGallery() {
@@ -33,14 +35,16 @@ function updateGallery() {
     swap: 'innerHTML',
     values: {
       sort: prefs.sort,
-      videos: prefs.videosOnly,
-      favorites: prefs.favoritesOnly,
-      page: prefs.page
+      videos: prefs.videos,
+      favorites: prefs.favorites,
+      page: prefs.page,
+      search: prefs.search
     },
   });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  applyPreferences();
+  const prefs = applyPreferences();
+  console.log("Preferences loaded", prefs);
   updateGallery();
 });

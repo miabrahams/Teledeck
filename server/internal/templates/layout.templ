@@ -68,7 +68,7 @@ templ nav() {
 						id="videos-check"
 						name="videos"
 						value="true"
-						onchange="setPreference('videosOnly', this.checked); updateGallery();"
+						onchange="setPreference('videos', this.checked); updateGallery();"
 					></input>
 					<label for="videos-check">Videos only</label>
 				</li>
@@ -77,9 +77,19 @@ templ nav() {
 						id="favorites-check"
 						name="videos"
 						value="true"
-						onchange="setPreference('favoritesOnly', this.checked); updateGallery();"
+						onchange="setPreference('favorites', this.checked); updateGallery();"
 					></input>
 					<label for="favorites-check">Favorites only</label>
+				</li>
+
+				<li>
+					<input
+						id="search-field"
+						name="search"
+						onchange="setPreference('search', this.value); updateGallery();"
+						class="text-gray-800"
+						placeholder="Search"
+					></input>
 				</li>
 			</ol>
 			<ol class="flex space-x-4">

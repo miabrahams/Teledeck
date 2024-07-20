@@ -69,14 +69,14 @@ func (s *MediaStore) ToggleFavorite(id uint64) (*store.MediaItemWithChannel, err
 	return &itemWithChannel, nil
 }
 
-func (s *MediaStore) GetPaginatedMediaItems(page, itemsPerPage int, sort string, only_videos bool, only_favorites bool) ([]store.MediaItemWithChannel, error) {
+func (s *MediaStore) GetPaginatedMediaItems(page, itemsPerPage int, P store.SearchPrefs) ([]store.MediaItemWithChannel, error) {
 	offset := (page - 1) * itemsPerPage
 	var mediaItems []store.MediaItemWithChannel
 	query := s.db.Table("media_items").
 		Select("media_items.*, channels.title as channel_title").
 		Joins("LEFT JOIN channels ON media_items.channel_id = channels.id")
 
-	switch sort {
+	switch P.Sort {
 	case "date_asc":
 		query = query.Order("media_items.date ASC")
 	case "date_desc":
@@ -93,11 +93,15 @@ func (s *MediaStore) GetPaginatedMediaItems(page, itemsPerPage int, sort string,
 
 	query = query.Order("media_items.id").Offset(offset)
 
-	if only_videos {
+	if P.VideosOnly {
 		query = query.Where(VIDEOS_SELECTOR)
 	}
-	if only_favorites {
+	if P.FavoritesOnly {
 		query = query.Where("media_items.favorite = true")
+	}
+
+	if P.Search != "" {
+		query = query.Where("media_items.text LIKE ?", "%"+P.Search+"%")
 	}
 
 	query = query.Where("media_items.user_deleted = false")
