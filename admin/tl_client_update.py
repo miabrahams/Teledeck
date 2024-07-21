@@ -3,11 +3,13 @@ from telethon.client.telegramclient import TelegramClient
 from telethon.tl.types import (
     Message,
     Channel,
+    Dialog,
     InputMessagesFilterUrl,
     InputMessagesFilterVideo,
 )
 from telethon.tl.types.messages import DialogFilters
 from telethon.tl.custom.file import File
+from telethon.helpers import TotalList
 from telethon.errors import FloodWaitError
 from tqdm import tqdm
 from dotenv import load_dotenv
@@ -22,13 +24,12 @@ from sqlalchemy.engine.base import Engine
 from models.telegram import MediaItem
 
 engine = create_engine("sqlite:///teledeck.db")
-print()
 
 load_dotenv()  # take environment variables from .env.
 api_id = os.environ["TG_API_ID"]
 api_hash = os.environ["TG_API_HASH"]
 phone = os.environ["TG_PHONE"]
-session_file = "../user.session"
+session_file = "user"
 
 
 # Paths
@@ -36,7 +37,7 @@ MEDIA_PATH = "./static/media/"
 DB_PATH = "./teledeck.db"
 UPDATE_PATH = "./data/update_info"
 NEST_TQDM = True
-DEFAULT_FETCH_LIMIT = 1000
+DEFAULT_FETCH_LIMIT = 65
 
 
 class TLContext:
@@ -162,10 +163,10 @@ def extract_media(ctx: TLContext, message: Message):
             await ctx.add_data(messageLink.link)
             """
             print(f"*****Skipping large file*****: {file_id}")
-            return None
+            return None, None
         if file.sticker_set is not None:
             print(f"Skipping sticker: {file_id}")
-            return None
+            return None, None
         return file, file_id
 
     elif message.web_preview:
@@ -198,45 +199,47 @@ async def process_message(ctx: TLContext, message: Message, channel: Channel) ->
             print(f"Skipping download for existing file_id: {file_id}")
             return
 
-    file_path = await download_media(ctx, download_target)
-    if file_path:
-        file_name = os.path.basename(file_path)
+    # TODO: Handle different media types better
+    if isinstance(download_target, File):
+        file_path = await download_media(ctx, message)
+    else:
+        file_path = await download_media(ctx, download_target)
+    file_name = os.path.basename(file_path)
 
-        mime_type = download_target.mime_type if hasattr(download_target, "mime_type") else None
-        [mtype, subtype] = mime_type.split("/")
+    mime_type = download_target.mime_type if hasattr(download_target, "mime_type") else "/"
+    [mtype, subtype] = mime_type.split("/")
 
-        match mtype:
-            case "video":
-                media_type = "video"
-            case "image":
-                media_type = "image"
-            case _:
-                media_type = None
+    match mtype:
+        case "video":
+            media_type = "video"
+        case "image":
+            media_type = "image"
+        case _:
+            media_type = None
 
-        if media_type is None:
-            if message.photo:
-                media_type = "photo"
-            else:
-                media_type = "document"
-                print(message.stringify())
-                raise ValueError(f"Unknown media type: {mime_type}")
+    if media_type is None:
+        if message.photo:
+            media_type = "photo"
+        else:
+            media_type = "document"
+            raise ValueError(f"Unknown media type: {mime_type}")
 
-        with Session(engine) as session:
-            session.add(
-                MediaItem(
-                    file_id=file_id,
-                    channel_id=channel.id,
-                    date=message.date,
-                    text=message.text,
-                    type=media_type,
-                    file_name=file_name,
-                    file_size=message.file.size,
-                    url=f"/media/{file_name}",
-                    message_id=message.id,
-                )
+    with Session(engine) as session:
+        session.add(
+            MediaItem(
+                file_id=file_id,
+                channel_id=channel.id,
+                date=message.date,
+                text=message.text,
+                type=media_type,
+                file_name=file_name,
+                file_size=message.file.size,
+                url=f"/media/{file_name}",
+                message_id=message.id,
             )
-            session.commit()
-            await message.mark_read()
+        )
+        session.commit()
+        await message.mark_read()
 
 
 async def message_task_wrapper(ctx: TLContext, message: Message, channel: Channel):
@@ -265,8 +268,10 @@ def get_all_videos(ctx: TLContext, channel: Channel):
     return ctx.tclient.iter_messages(channel, filter=InputMessagesFilterVideo)
 
 
-def get_unread_messages(ctx: TLContext, channel: Channel):
-    return ctx.tclient.iter_messages(channel, limit=channel.unread_count)
+async def get_unread_messages(ctx: TLContext, channel: Channel):
+    full = await ctx.tclient(functions.channels.GetFullChannelRequest(channel))
+    full_channel = full.full_chat
+    return ctx.tclient.iter_messages(channel, limit=full_channel.unread_count)
 
 
 def get_new_messages(ctx: TLContext, channel: Channel, limit: int):
@@ -334,13 +339,11 @@ async def message_task_consumer(ctx: TLContext, queue: asyncio.Queue):
         try:
             await message_task_wrapper(ctx, message, channel)
         except Exception as e:
+            import traceback
             print("******Failed to process message: ", e)
-            try:
-                print(message.stringify())
-            except Exception as e:
-                continue
+            print(message.stringify())
+            print(traceback.format_exc())
         queue.task_done()
-
 
 async def get_channel_messages(ctx: TLContext, channel: Channel) -> AsyncGenerator[Message, None]:
     print(f"Processing channel: {channel.title}")
@@ -351,6 +354,7 @@ async def get_channel_messages(ctx: TLContext, channel: Channel) -> AsyncGenerat
     # fetch_messages_task = get_earlier_messages(ctx, channel, DEFAULT_FETCH_LIMIT)
     # fetch_messages_task = get_all_videos(ctx, channel)
     # fetch_messages_task = get_urls(ctx, channel, DEFAULT_FETCH_LIMIT)
+
     fetch_messages_task = get_unread_messages(ctx, channel)
 
     async for message in fetch_messages_task:
@@ -371,8 +375,6 @@ async def main(load_saved_tasks=False, start_task=0):
     target_channels = await get_target_channels(ctx)
     print("Found channels:")
     [print(f"{n}: {channel.title}") for n, channel in enumerate(target_channels)]
-
-    target_channels = target_channels[7:]
 
     queue = asyncio.Queue()
     # One producer is fine!
