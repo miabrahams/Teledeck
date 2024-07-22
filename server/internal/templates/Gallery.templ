@@ -29,7 +29,7 @@ templ GalleryItem(item *store.MediaItemWithChannel) {
 	>
 		<div class="media-item-content cursor-pointer" data-fullscreen="true">
 			/* Todo: handle mp3, pdf */
-			if item.Type == "photo" || item.Type == "png" || item.Type == "gif" || item.Type == "jpeg" || item.Type == "webp" {
+			if item.Type == "photo" || item.Type == "image" || item.Type == "png" || item.Type == "gif" || item.Type == "jpeg" || item.Type == "webp" {
 				<img src={ "/media/" + item.FileName } alt={ item.FileName }/>
 			} else if item.Type == "video" || item.Type == "gif" || item.Type == "webm" || item.Type == "document" {
 				<video controls loop >
