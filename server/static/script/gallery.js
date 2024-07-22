@@ -13,26 +13,78 @@ function clampInsideScope(mouseX, mouseY, scope, innerElement) {
 function setupContextMenu() {
   const scope = document.querySelector('main');
   const contextMenu = document.getElementById('context-menu');
+  const contextState = {
+    mediaItem : null,
+    mediaId : null,
+    mediaFileName : null
+  };
+
+  function closeContextMenu() {
+      contextState.mediaItem = null;
+      contextState.mediaId = null;
+      contextState.mediaFileName = null;
+      contextMenu.classList.remove('visible');
+  }
 
   scope.addEventListener('contextmenu', (contextEvent) => {
+    const mediaItem = contextEvent.target.closest('.media-item');
+    if (mediaItem === null) return
     contextEvent.preventDefault();
+
+    contextMenu.classList.remove('visible');
+
     const { clientX, clientY } = contextEvent;
     const { clampedX, clampedY } = clampInsideScope(clientX, clientY, scope, contextMenu);
 
     contextMenu.style.left = `${clampedX}px`;
     contextMenu.style.top = `${clampedY}px`;
 
-    contextMenu.classList.remove('visible');
-    setTimeout(() => { contextMenu.classList.add('visible'); });
-
-    // const mediaItem = contextEvent.target.closest('media-item');
-  });
+    setTimeout(() => {
+        contextState.mediaItem = mediaItem
+        contextState.mediaId = mediaItem.dataset.id;
+        contextState.mediaFileName = mediaItem.dataset.fileName;
+        contextMenu.classList.add('visible');
+    }, 0);
+  }, false);
 
   document.addEventListener('click', (clickEvent) => {
     if (clickEvent.target.offsetParent != contextMenu) {
-      contextMenu.classList.remove('visible');
+      closeContextMenu()
     }
   });
+
+  downloadItem = contextMenu.querySelector('.download-button');
+  favoriteItem = contextMenu.querySelector('.favorite-button');
+  deleteItem = contextMenu.querySelector('.delete-button');
+
+  downloadItem.addEventListener('click', (e) => {
+    if (contextState.mediaItem) {
+      // Implement this some otherway like create an <a> element?
+      contextState.mediaItem.querySelector('.download-link').click();
+      console.error("Not implemented.");
+    }
+    closeContextMenu()
+    e.preventDefault();
+  });
+
+  favoriteItem.addEventListener('click', (e) => {
+    if (contextState.mediaItem) {
+      contextState.mediaItem.querySelector('.favorite-button').click();
+    }
+    closeContextMenu()
+    e.preventDefault();
+  });
+
+  deleteItem.addEventListener('click', (e) => {
+    if (contextState.mediaItem) {
+      contextState.mediaItem.querySelector('.delete-button').click();
+    }
+    closeContextMenu()
+    e.preventDefault();
+  });
+
+
+
 }
 
 function setupModalView() {
@@ -46,7 +98,7 @@ function setupModalView() {
       );
       window.fullscreenView.remove();
       window.fullscreenView = null;
-      return clickEvent.preventDefault();
+      clickEvent.preventDefault();
     }
 
     const mediaContainer = clickEvent.target.closest(

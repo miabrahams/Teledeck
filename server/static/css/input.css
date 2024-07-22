@@ -17,7 +17,7 @@
   }
 
   .media-item {
-    @apply bg-white dark:bg-slate-700 rounded-lg overflow-hidden shadow-md transition-transform duration-200 relative;
+    @apply bg-white dark:bg-slate-700 rounded-lg overflow-hidden shadow-md relative transition-transform hover:scale-[1.02];
   }
 
   .media-item img,
@@ -86,40 +86,29 @@
     @apply px-4 py-2;
   }
 
+  .favorite {
+    @apply shadow-lg shadow-blue-200 border-2 border-blue-400;
+  }
+
+  .modal {
+    @apply z-[101] bg-black absolute inset-0 h-full w-full;
+  }
+
+  .modal .active {
+    @apply opacity-100 visible transition-opacity duration-500;
+  }
+
+  #context-menu .context-item {
+    @apply p-2 py-1 text-sm text-gray-200;
+  }
+
+  #context-menu .context-item:hover {
+    @apply bg-[#343434];
+  }
 
 }
 
-.favorite {
-  box-shadow: 0 0 10px 10px rgba(180, 240, 255, 0.5);
-  border: 2px solid #48abe0;
-
-  /* box-shadow: 0px 0px 10px rgba(255, 225, 64, 128); */
-}
-
-.modal {
-  z-index: 101;
-  background-color: #000;
-/*
-  visibility: hidden;
-    opacity: 0;
-  transition: opacity 0.5s, visibility 0s 0.5s; */
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  width: 100%;
-}
-
-.modal .active {
-  opacity: 1;
-  visibility: visible;
-  transition: opacity 0.5s;
-}
-
-main {
-  max-width: 90%;
-}
-
+/* TODO: Write custom Tailwind class */
 #context-menu {
   position: fixed;
   z-index: 1000;
@@ -130,29 +119,12 @@ main {
   transform: scale(1, 0);
   transform-origin: top left;
   opacity: 0;
+  cursor: pointer;
+  overflow: hidden;
 }
 
 #context-menu.visible {
   transform: scale(1,1);
   opacity: 1;
   transition: transform 0.1s, opacity 0.1s ease-in;
-}
-
-#context-menu .item {
-  padding: 8px 10px;
-  font-size: 15px;
-  color: #eee;
-  cursor: pointer;
-  border-radius: inherit;
-}
-
-#context-menu .item:hover {
-  background: #343434;
-}
-
-/* How to specify this in Tailwind? */
-.media-item:hover {
-  --tw-scale-x: 1.02;
-  --tw-scale-y: 1.02;
-  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
 }
