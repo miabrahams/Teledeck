@@ -11,8 +11,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetAboutHandler(t *testing.T) {
+func TestGlobalHandler(t *testing.T) {
 
+	/* Tests GetAbout */
 	testCases := []struct {
 		name               string
 		expectedStatusCode int
@@ -30,7 +31,7 @@ func TestGetAboutHandler(t *testing.T) {
 
 			assert := assert.New(t)
 
-			handler := NewAboutHandler()
+			handler := NewGlobalHandler()
 
 			req, err := http.NewRequest("GET", "/about", nil)
 			assert.NoError(err)
@@ -46,7 +47,7 @@ func TestGetAboutHandler(t *testing.T) {
 
 			rr := httptest.NewRecorder()
 
-			handler.ServeHTTP(rr, req)
+			handler.GetAbout(rr, req)
 
 			assert.Equal(tc.expectedStatusCode, rr.Code, "handler returned wrong status code: got %v want %v", rr.Code, tc.expectedStatusCode)
 
