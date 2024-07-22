@@ -66,4 +66,5 @@ type MediaStore interface {
 	GetAllMediaItems() ([]MediaItemWithChannel, error)
 	ToggleFavorite(id uint64) (*MediaItemWithChannel, error)
 	GetMediaItem(id uint64) (*MediaItemWithChannel, error)
+	MarkDeleted(item *MediaItem) error
 }

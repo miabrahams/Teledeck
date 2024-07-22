@@ -14,7 +14,7 @@ templ Gallery(mediaItems []store.MediaItemWithChannel, currentPage, totalPages i
 	@Pagination(currentPage, totalPages)
 }
 
-func favoriteClass(item *store.MediaItemWithChannel) string {
+func favoriteClass(item *store.MediaItem) string {
 	if item.Favorite {
 		return "media-item relative favorite"
 	} else {
@@ -22,10 +22,19 @@ func favoriteClass(item *store.MediaItemWithChannel) string {
 	}
 }
 
+templ EmptyGalleryItem() {
+	<div></div>
+}
+
+func itemID(item *store.MediaItem) string {
+	return "media-item-" + strconv.FormatUint(uint64(item.ID), 10)
+}
+
 templ GalleryItem(item *store.MediaItemWithChannel) {
+
     <div
-        class={ favoriteClass(item) }
-        id={ "media-item-" + strconv.FormatUint(uint64(item.ID), 10) }
+        class={ favoriteClass(&item.MediaItem) }
+        id={ itemID(&item.MediaItem) }
         data-id={ strconv.FormatUint(uint64(item.ID), 10) }
         data-filename={ item.FileName }
     >
@@ -62,8 +71,8 @@ templ GalleryItem(item *store.MediaItemWithChannel) {
 			<button
 				hx-trigger="click"
 				hx-swap="outerHTML"
-				hx-post={ "/delete/" + strconv.FormatUint(uint64(item.ID), 10) }
-				hx-target={ "#media-item-" + strconv.FormatUint(uint64(item.ID), 10) }
+				hx-delete={ "/mediaItem/" + strconv.FormatUint(uint64(item.ID), 10) }
+				hx-target={ "#" + itemID(&item.MediaItem) }
 				class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded delete-button"
 			>
 				Delete
@@ -71,8 +80,8 @@ templ GalleryItem(item *store.MediaItemWithChannel) {
 			<button
 				hx-trigger="click"
 				hx-swap="outerHTML"
-				hx-post={ "/favorite/" + strconv.FormatUint(uint64(item.ID), 10) }
-				hx-target={ "#media-item-" + strconv.FormatUint(uint64(item.ID), 10) }
+				hx-post={ "/mediaItem/" + strconv.FormatUint(uint64(item.ID), 10) + "/favorite" }
+				hx-target={ "#" + itemID(&item.MediaItem) }
 				class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded favorite-button"
 			>
 				Favorite

@@ -33,7 +33,7 @@ func generateRandomString(length int) string {
 	return hex.EncodeToString(bytes)
 }
 
-// TODO: Ask Claude about nonces, Content-Security-Policy, and HtmxCSSHash
+// TODO: Debug
 func CSPMiddleware(next http.Handler) http.Handler {
 	// To use the same nonces in all responses, move the Nonces
 	// struct creation to here, outside the handler.

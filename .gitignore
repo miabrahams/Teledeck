@@ -4,6 +4,7 @@ credentials.txt
 *.session
 *.session-journal
 *.db
-static/media/*
+static/*
+recyclebin/*
 data/*
 *.pyc

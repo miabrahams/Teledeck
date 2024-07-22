@@ -4,8 +4,10 @@ import (
 	"context"
 	"errors"
 	"goth/internal/config"
+	"goth/internal/fileops/localfile"
 	"goth/internal/handlers"
 	"goth/internal/hash/passwordhash"
+	"goth/internal/services"
 	database "goth/internal/store/db"
 	"goth/internal/store/dbstore"
 	"log/slog"
@@ -22,6 +24,8 @@ import (
 
 	"path/filepath"
 	"strings"
+
+	"github.com/joho/godotenv"
 )
 
 /*
@@ -42,7 +46,7 @@ func MediaFileServer(r chi.Router, path string, root http.FileSystem, logger *sl
 	}
 
 	if path != "/" && path[len(path)-1] != '/' {
-		r.Get(path, http.RedirectHandler(path+"/", 301).ServeHTTP)
+		r.Get(path, http.RedirectHandler(path+"/", http.StatusMovedPermanently).ServeHTTP)
 		path += "/"
 	}
 	path += "*"
@@ -59,6 +63,12 @@ func MediaFileServer(r chi.Router, path string, root http.FileSystem, logger *sl
 
 func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	err := godotenv.Load("../.env")
+	if err != nil {
+		logger.Error("Error loading .env file")
+		return
+	}
+
 	r := chi.NewRouter()
 
 	cfg := config.MustLoadConfig()
@@ -89,17 +99,20 @@ func main() {
 	authMiddleware := m.NewAuthMiddleware(sessionStore, cfg.SessionCookieName)
 
 	/* Serve static media */
-	fileServer := http.FileServer(http.Dir("./static"))
+	fileServer := http.FileServer(http.Dir(cfg.StaticDir))
 	r.Handle("/static/*", http.StripPrefix("/static/", fileServer))
 
 	workDir, _ := os.Getwd()
-	mediaDir := filepath.Join(workDir, "../", "static", "media") // Adjust this path as needed
+	mediaDir := filepath.Join(workDir, cfg.StaticMediaDir, "media") // Adjust this path as needed
 	logger.Info("downloadsDir", "dir", http.Dir(mediaDir))
 	MediaFileServer(r, "/media", http.Dir(mediaDir), logger)
 
+	mediaFileOperator := localfile.NewLocalMediaFileOperator(cfg.StaticMediaDir, cfg.RecycleDir, logger)
+	mediaService := services.NewMediaService(mediaStore, mediaFileOperator)
+
 	/* Handlers */
-	MediaHandler := handlers.NewMediaItemHandler(mediaStore)
-	PlainPageHandler := handlers.NewPlainPageHandler()
+	MediaHandler := handlers.NewMediaItemHandler(*mediaService)
+	GlobalHandler := handlers.NewGlobalHandler()
 
 	r.Group(func(r chi.Router) {
 		r.Use(
@@ -117,16 +130,23 @@ func main() {
 			Logger:     logger,
 		}).ServeHTTP)
 
-		r.Get("/about", handlers.NewAboutHandler().ServeHTTP)
-
-		r.Get("/register", PlainPageHandler.GetRegister)
-		r.Get("/login", PlainPageHandler.GetLogin)
+		r.Get("/about", GlobalHandler.GetAbout)
+		r.Get("/register", GlobalHandler.GetRegister)
+		r.Get("/login", GlobalHandler.GetLogin)
 
 		r.Post("/register", handlers.NewPostRegisterHandler(handlers.PostRegisterHandlerParams{
 			UserStore: userStore,
 		}).ServeHTTP)
 
-		r.Post("/favorite/{id}", MediaHandler.PostFavorite)
+		// r.Get("/scrape", TwitterScrapeHandler.ScrapeUser)
+
+		r.Route("/mediaItem/{mediaItemID}", func(r chi.Router) {
+			r.Use(MediaHandler.MediaItemCtx)
+			r.Get("/", MediaHandler.GetMediaItem)
+			r.Delete("/", MediaHandler.RecycleMediaItem)
+			r.Post("/favorite", MediaHandler.PostFavorite)
+			r.Delete("/favorite", MediaHandler.DeleteFavorite)
+		})
 
 		r.Post("/login", handlers.NewPostLoginHandler(handlers.PostLoginHandlerParams{
 			UserStore:         userStore,

@@ -117,3 +117,8 @@ func (s *MediaStore) GetAllMediaItems() ([]store.MediaItemWithChannel, error) {
 	result := s.db.Order("date DESC").Joins("LEFT JOIN channels ON media_items.channel_id = channels.id").Where("user_deleted = false").Scan(&mediaItems)
 	return mediaItems, result.Error
 }
+
+func (s *MediaStore) MarkDeleted(item *store.MediaItem) error {
+	result := s.db.Model(item).Update("user_deleted", true)
+	return result.Error
+}
