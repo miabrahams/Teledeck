@@ -27,6 +27,12 @@ func NewMediaStore(params NewMediaStoreParams) *MediaStore {
 	}
 }
 
+type ErrFavorite struct{}
+
+func (e ErrFavorite) Error() string {
+	return "Cannot delete a favorite item"
+}
+
 const VIDEOS_SELECTOR = "media_items.type = 'video' OR media_items.type = 'gif' OR media_items.type = 'webm'"
 
 func (s *MediaStore) GetTotalMediaItems(only_videos bool) int64 {
@@ -119,6 +125,9 @@ func (s *MediaStore) GetAllMediaItems() ([]store.MediaItemWithChannel, error) {
 }
 
 func (s *MediaStore) MarkDeleted(item *store.MediaItem) error {
+	if item.Favorite {
+		return ErrFavorite{}
+	}
 	result := s.db.Model(item).Update("user_deleted", true)
 	return result.Error
 }

@@ -5,7 +5,6 @@ import (
 	"crypto/rand"
 	b64 "encoding/base64"
 	"encoding/hex"
-	"fmt"
 	"goth/internal/store"
 	"log"
 	"net/http"
@@ -134,7 +133,6 @@ func (m *AuthMiddleware) AddUserToContext(next http.Handler) http.Handler {
 		sessionCookie, err := r.Cookie(m.sessionCookieName)
 
 		if err != nil {
-			fmt.Println("error getting session cookie", err)
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -155,9 +153,6 @@ func (m *AuthMiddleware) AddUserToContext(next http.Handler) http.Handler {
 
 		sessionID := splitValue[0]
 		userID := splitValue[1]
-
-		fmt.Println("sessionID", sessionID)
-		fmt.Println("userID", userID)
 
 		user, err := m.sessionStore.GetUserFromSession(sessionID, userID)
 

@@ -1,7 +1,6 @@
 package localfile
 
 import (
-	"fmt"
 	"io"
 	"log/slog"
 	"os"
@@ -55,9 +54,6 @@ func (l *LocalMediaFileOperator) Recycle(path string) error {
 	if err := os.MkdirAll(filepath.Dir(dstPath), 0755); err != nil {
 		return err
 	}
-	fmt.Println("Recycling file: ", srcPath)
-	fmt.Println("New destination: ", dstPath)
-
 	return os.Rename(srcPath, dstPath)
 }
 

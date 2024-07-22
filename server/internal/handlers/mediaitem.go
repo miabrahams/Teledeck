@@ -9,8 +9,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"fmt"
-
 	"github.com/go-chi/chi/v5"
 )
 
@@ -32,7 +30,6 @@ func (h *MediaItemHandler) MediaItemCtx(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		idStr := chi.URLParam(r, "mediaItemID")
 		id, err := strconv.ParseUint(idStr, 10, 64)
-		fmt.Printf("**** REQUEST TO MEDIA ITEM %d *******\n", id)
 		if err != nil {
 			http.Error(w, "Invalid Item ID", http.StatusBadRequest)
 			return
@@ -45,8 +42,6 @@ func (h *MediaItemHandler) MediaItemCtx(next http.Handler) http.Handler {
 		}
 
 		ctx := context.WithValue(r.Context(), MediaItemKey, mediaItem)
-
-		fmt.Printf("Serving media item: %v\n", mediaItem.FileName)
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -113,16 +108,17 @@ func (h *MediaItemHandler) RecycleMediaItem(w http.ResponseWriter, r *http.Reque
 		http.Error(w, http.StatusText(status), status)
 		return
 	}
+	if mediaItem.Favorite {
+		http.Error(w, "Cannot delete a favorite item", http.StatusBadRequest)
+		return
+	}
 
-	fmt.Println("Recycling media item ", mediaItem.FileName)
 	err := h.MediaService.RecycleMediaItem(mediaItem.MediaItem)
 	if err != nil {
-		fmt.Println("Error deleting gallery item", err)
 		http.Error(w, "Error deleting gallery item", http.StatusInternalServerError)
 		return
 	}
 	// Send status OK with empty body
-	fmt.Println("Delete OK!")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(""))
 }

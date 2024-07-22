@@ -1,7 +1,6 @@
 package services
 
 import (
-	"fmt"
 	"goth/internal/fileops"
 	"goth/internal/store"
 )
@@ -19,9 +18,7 @@ func NewMediaService(store store.MediaStore, fileOps fileops.LocalFileOperator) 
 }
 
 func (s *MediaService) RecycleMediaItem(mediaItem store.MediaItem) error {
-	fmt.Println("Deleting media item: %S", mediaItem.FileName)
 	if err := s.store.MarkDeleted(&mediaItem); err != nil {
-		fmt.Printf("Error: %v\n", err)
 		return err
 	}
 
