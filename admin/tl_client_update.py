@@ -355,7 +355,7 @@ async def get_channel_messages(ctx: TLContext, channel: Channel) -> AsyncGenerat
     # fetch_messages_task = get_all_videos(ctx, channel)
     # fetch_messages_task = get_urls(ctx, channel, DEFAULT_FETCH_LIMIT)
 
-    fetch_messages_task = get_unread_messages(ctx, channel)
+    fetch_messages_task = await get_unread_messages(ctx, channel)
 
     async for message in fetch_messages_task:
         yield message
