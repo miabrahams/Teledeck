@@ -1,10 +1,12 @@
 venv
-credentials.txt
 .env
 *.session
 *.session-journal
 *.db
+*.pyc
+
+
 static/*
 recyclebin/*
 data/*
-*.pyc
+tagger/model/*
