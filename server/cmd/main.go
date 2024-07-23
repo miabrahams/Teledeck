@@ -97,10 +97,12 @@ func main() {
 	)
 
 	/* Services */
-	twitterScrapeServce := services.NewTwitterScraper()
+	// twitterScrapeServce := services.NewTwitterScraper()
 
 	mediaFileOperator := localfile.NewLocalMediaFileOperator(cfg.StaticMediaDir, cfg.RecycleDir, logger)
 	mediaService := services.NewMediaService(mediaStore, mediaFileOperator)
+
+	// telegramService := services.NewTelegramService(cfg.Telegram_API_ID, cfg.Telegram_API_Hash)
 
 	// Middleware
 	authMiddleware := m.NewAuthMiddleware(sessionStore, cfg.SessionCookieName)
@@ -117,7 +119,7 @@ func main() {
 	/* Handlers */
 	MediaHandler := handlers.NewMediaItemHandler(*mediaService)
 	GlobalHandler := handlers.NewGlobalHandler()
-	TwitterScrapeHandler := handlers.NewTwitterScrapeHandler(twitterScrapeServce)
+	// TwitterScrapeHandler := handlers.NewTwitterScrapeHandler(twitterScrapeServce)
 
 	r.Group(func(r chi.Router) {
 		r.Use(
@@ -143,7 +145,7 @@ func main() {
 			UserStore: userStore,
 		}).ServeHTTP)
 
-		r.Get("/scrape", TwitterScrapeHandler.ScrapeUser)
+		// r.Get("/scrape", TwitterScrapeHandler.ScrapeUser)
 
 		r.Route("/mediaItem/{mediaItemID}", func(r chi.Router) {
 			r.Use(MediaHandler.MediaItemCtx)

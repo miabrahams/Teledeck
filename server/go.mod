@@ -18,6 +18,7 @@ require (
 	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/zelenin/go-tdlib v0.7.2 // indirect
 	golang.org/x/net v0.24.0 // indirect
+	golang.org/x/time v0.5.0 // indirect
 )
 
 require (
