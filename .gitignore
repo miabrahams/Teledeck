@@ -10,3 +10,5 @@ static/*
 recyclebin/*
 data/*
 tagger/model/*
+server/static/css/style.css
+server/static/css/style.min.css
