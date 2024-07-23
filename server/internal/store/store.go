@@ -56,10 +56,10 @@ type MediaItemWithChannel struct {
 }
 
 type SearchPrefs struct {
-	Sort          string
-	VideosOnly    bool
-	FavoritesOnly bool
-	Search        string
+	Sort       string
+	Favorites  string
+	VideosOnly bool
+	Search     string
 }
 
 type MediaStore interface {

@@ -48,14 +48,14 @@ func (h *HomeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	videosOnly := r.URL.Query().Get("videos") == "true"
-	favoritesOnly := r.URL.Query().Get("favorites") == "true"
+	favorites := r.URL.Query().Get("favorites")
 	search := r.URL.Query().Get("search")
 
 	mediaItems, err := h.MediaStore.GetPaginatedMediaItems(page, itemsPerPage, store.SearchPrefs{
-		Sort:          sort,
-		VideosOnly:    videosOnly,
-		FavoritesOnly: favoritesOnly,
-		Search:        search,
+		Sort:       sort,
+		VideosOnly: videosOnly,
+		Favorites:  favorites,
+		Search:     search,
 	})
 	if err != nil {
 		http.Error(w, "Error fetching media items", http.StatusInternalServerError)

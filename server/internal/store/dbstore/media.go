@@ -99,11 +99,16 @@ func (s *MediaStore) GetPaginatedMediaItems(page, itemsPerPage int, P store.Sear
 
 	query = query.Order("media_items.id").Offset(offset)
 
+	switch P.Favorites {
+	case "favorites":
+		query = query.Where("media_items.favorite = true")
+	case "non-favorites":
+		query = query.Where("media_items.favorite = false")
+	default:
+	}
+
 	if P.VideosOnly {
 		query = query.Where(VIDEOS_SELECTOR)
-	}
-	if P.FavoritesOnly {
-		query = query.Where("media_items.favorite = true")
 	}
 
 	if P.Search != "" {

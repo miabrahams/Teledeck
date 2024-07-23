@@ -1,14 +1,18 @@
 const defaultPreferences = {
   sort: 'date_desc',
   videos: false,
-  favorites: false,
+  favorites: 'all',
   search: '',
 };
 
 function getPreferences() {
-  const storedPrefs = localStorage.getItem('userPreferences');
+  const storedPrefs = JSON.parse(localStorage.getItem('userPreferences'));
+
   const page = new URLSearchParams(window.location.search).get('page', 1);
-  updatedPrefs = Object.assign(defaultPreferences, JSON.parse(storedPrefs) || {}, {page});
+  const updatedPrefs = Object.assign({}, defaultPreferences, {page})
+  for (const key in defaultPreferences) {
+    updatedPrefs[key] = storedPrefs[key];
+  }
   return updatedPrefs;
 }
 
@@ -22,8 +26,8 @@ function setPreference(key, value) {
 function applyPreferences() {
   const prefs = getPreferences();
   document.getElementById('sort-select').value = prefs.sort;
+  document.getElementById('favorites-select').value = prefs.favorites;
   document.getElementById('videos-check').checked = prefs.videos;
-  document.getElementById('favorites-check').checked = prefs.favorites;
   document.getElementById('search-field').value = prefs.search;
   return prefs;
 }
