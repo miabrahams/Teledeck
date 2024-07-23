@@ -25,8 +25,12 @@ func (s *MediaService) RecycleMediaItem(mediaItem store.MediaItem) error {
 	return s.fileOps.Recycle(mediaItem.FileName)
 }
 
-func (s *MediaService) GetTotalMediaItems(videos bool) int64 {
-	return s.store.GetTotalMediaItems(videos)
+func (s *MediaService) GetTotalMediaItems() int64 {
+	return s.store.GetTotalMediaItems()
+}
+
+func (s *MediaService) GetMediaItemCount(P store.SearchPrefs) int64 {
+	return s.store.GetMediaItemCount(P)
 }
 
 func (s *MediaService) GetPaginatedMediaItems(page, itemsPerPage int, P store.SearchPrefs) ([]store.MediaItemWithChannel, error) {

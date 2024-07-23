@@ -63,7 +63,8 @@ type SearchPrefs struct {
 }
 
 type MediaStore interface {
-	GetTotalMediaItems(videos bool) int64
+	GetTotalMediaItems() int64
+	GetMediaItemCount(P SearchPrefs) int64
 	GetPaginatedMediaItems(page, itemsPerPage int, P SearchPrefs) ([]MediaItemWithChannel, error)
 	GetAllMediaItems() ([]MediaItemWithChannel, error)
 	ToggleFavorite(id int64) (*MediaItemWithChannel, error)

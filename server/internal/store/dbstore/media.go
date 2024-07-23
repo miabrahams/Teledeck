@@ -1,6 +1,7 @@
 package dbstore
 
 import (
+	"fmt"
 	"goth/internal/store"
 
 	"log/slog"
@@ -35,14 +36,42 @@ func (e ErrFavorite) Error() string {
 
 const VIDEOS_SELECTOR = "media_items.type = 'video' OR media_items.type = 'gif' OR media_items.type = 'webm'"
 
-func (s *MediaStore) GetTotalMediaItems(only_videos bool) int64 {
+func (s *MediaStore) GetTotalMediaItems() int64 {
 	var count int64
 	query := s.db.Model(&store.MediaItem{})
-	if only_videos {
-		query = query.Where(VIDEOS_SELECTOR)
-	}
 	query = query.Where("media_items.user_deleted = false")
 	query.Count(&count)
+	return count
+}
+
+func applySearchFilters(P store.SearchPrefs, query *gorm.DB) *gorm.DB {
+	query = query.Where("media_items.user_deleted = false")
+
+	if P.VideosOnly {
+		query = query.Where(VIDEOS_SELECTOR)
+	}
+
+	if P.Search != "" {
+		query = query.Where("media_items.text LIKE ?", "%"+P.Search+"%")
+	}
+
+	switch P.Favorites {
+	case "favorites":
+		query = query.Where("media_items.favorite = true")
+	case "non-favorites":
+		query = query.Where("media_items.favorite = false")
+	default:
+	}
+
+	return query
+}
+
+func (s *MediaStore) GetMediaItemCount(P store.SearchPrefs) int64 {
+	var count int64
+	query := s.db.Model(&store.MediaItem{})
+	query = applySearchFilters(P, query)
+	query.Count(&count)
+	fmt.Printf("Count: %d\n", count)
 	return count
 }
 
@@ -99,23 +128,7 @@ func (s *MediaStore) GetPaginatedMediaItems(page, itemsPerPage int, P store.Sear
 
 	query = query.Order("media_items.id").Offset(offset)
 
-	switch P.Favorites {
-	case "favorites":
-		query = query.Where("media_items.favorite = true")
-	case "non-favorites":
-		query = query.Where("media_items.favorite = false")
-	default:
-	}
-
-	if P.VideosOnly {
-		query = query.Where(VIDEOS_SELECTOR)
-	}
-
-	if P.Search != "" {
-		query = query.Where("media_items.text LIKE ?", "%"+P.Search+"%")
-	}
-
-	query = query.Where("media_items.user_deleted = false")
+	query = applySearchFilters(P, query)
 
 	query = query.Limit(itemsPerPage)
 

@@ -51,18 +51,21 @@ func (h *HomeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	favorites := r.URL.Query().Get("favorites")
 	search := r.URL.Query().Get("search")
 
-	mediaItems, err := h.MediaStore.GetPaginatedMediaItems(page, itemsPerPage, store.SearchPrefs{
+	searchPrefs := store.SearchPrefs{
 		Sort:       sort,
 		VideosOnly: videosOnly,
 		Favorites:  favorites,
 		Search:     search,
-	})
+	}
+
+	mediaItems, err := h.MediaStore.GetPaginatedMediaItems(page, itemsPerPage, searchPrefs)
+
 	if err != nil {
 		http.Error(w, "Error fetching media items", http.StatusInternalServerError)
 		return
 	}
 
-	totalPages := int(math.Ceil(float64(h.MediaStore.GetTotalMediaItems(videosOnly)) / float64(itemsPerPage)))
+	totalPages := int(math.Ceil(float64(h.MediaStore.GetMediaItemCount(searchPrefs)) / float64(itemsPerPage)))
 
 	gallery := templates.Gallery(mediaItems, page, totalPages)
 
