@@ -5,37 +5,36 @@ from datetime import datetime
 class User(SQLModel, table=True):
     __tablename__ = "users"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
-    email: Optional[str] = Field(default=None)
-    password: Optional[str] = Field(default=None)
+    id: int = Field(default=None, primary_key=True)
+    email: str = Field(default=None)
+    password: str = Field(default=None)
 
 class Session(SQLModel, table=True):
     __tablename__ = "sessions"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
-    session_id: Optional[str] = Field(default=None)
-    user_id: Optional[int] = Field(default=None, foreign_key="users.id")
+    id: int = Field(default=None, primary_key=True)
+    session_id: str = Field(default=None)
+    user_id: int = Field(default=None, foreign_key="users.id")
 
 class Channel(SQLModel, table=True):
     __tablename__ = "channels"
 
     id: int = Field(primary_key=True)
-    title: Optional[str] = Field(default=None)
+    title: str = Field(default=None)
 
 class MediaItem(SQLModel, table=True):
     __tablename__ = "media_items"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
-    file_id: int = Field(unique=True)
-    channel_id: int
-    message_id: Optional[int] = Field(default=None)
-    date: Optional[datetime] = Field(default=None)
-    text: Optional[str] = Field(default=None)
-    type: str
-    file_name: Optional[str] = Field(default=None)
-    file_size: Optional[int] = Field(default=None)
-    url: Optional[str] = Field(default=None)
-    path: Optional[str] = Field(default=None)
-    seen: Optional[bool] = Field(default=None)
-    favorite: bool
-    user_deleted: bool = Field(default=False)
+    id: Optional[int] = Field(default=None, primary_key=True, nullable=False)
+    file_id: int = Field(unique=True, nullable=False)
+    channel_id: int = Field(nullable=False)
+    message_id: int = Field(nullable=False)
+    date: datetime = Field(nullable=False)
+    text: str = Field(nullable=False, default="")
+    type: str = Field(nullable=False)
+    file_name: str = Field(nullable=False)
+    file_size: int = Field(nullable=False)
+    url: str = Field(default=None)
+    seen: bool = Field(default=False, nullable=False)
+    favorite: bool = Field(nullable=False, default=False)
+    user_deleted: bool = Field(default=False, nullable=False)
