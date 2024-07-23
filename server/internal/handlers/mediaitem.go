@@ -29,7 +29,7 @@ const (
 func (h *MediaItemHandler) MediaItemCtx(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		idStr := chi.URLParam(r, "mediaItemID")
-		id, err := strconv.ParseUint(idStr, 10, 64)
+		id, err := strconv.ParseInt(idStr, 10, 64)
 		if err != nil {
 			http.Error(w, "Invalid Item ID", http.StatusBadRequest)
 			return
@@ -84,7 +84,7 @@ func (h *MediaItemHandler) PostFavorite(w http.ResponseWriter, r *http.Request) 
 func (h *MediaItemHandler) DeleteFavorite(w http.ResponseWriter, r *http.Request) {
 	logger := middleware.GetLogger(r.Context())
 	idStr := chi.URLParam(r, "id")
-	id, err := strconv.ParseUint(idStr, 10, 64)
+	id, err := strconv.ParseInt(idStr, 10, 64)
 	logger.Info("Toggling favorite", "id", id)
 	if err != nil {
 		http.Error(w, "Invalid ID", http.StatusBadRequest)

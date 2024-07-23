@@ -46,7 +46,7 @@ func (s *MediaStore) GetTotalMediaItems(only_videos bool) int64 {
 	return count
 }
 
-func (s *MediaStore) GetMediaItem(id uint64) (*store.MediaItemWithChannel, error) {
+func (s *MediaStore) GetMediaItem(id int64) (*store.MediaItemWithChannel, error) {
 	query := s.db.Model(&store.MediaItem{}).
 		Joins("LEFT JOIN channels ON media_items.channel_id = channels.id")
 	query = query.Where("media_items.id = ?", id)
@@ -55,7 +55,7 @@ func (s *MediaStore) GetMediaItem(id uint64) (*store.MediaItemWithChannel, error
 	return &item, result.Error
 }
 
-func (s *MediaStore) ToggleFavorite(id uint64) (*store.MediaItemWithChannel, error) {
+func (s *MediaStore) ToggleFavorite(id int64) (*store.MediaItemWithChannel, error) {
 	logger := slog.Default()
 	var itemWithChannel store.MediaItemWithChannel
 	result := s.db.Model(&store.MediaItem{}).Where("media_items.id = ?", id).Joins("LEFT JOIN channels ON media_items.channel_id = channels.id").Scan(&itemWithChannel)

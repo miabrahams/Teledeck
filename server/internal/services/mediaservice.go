@@ -37,10 +37,10 @@ func (s *MediaService) GetAllMediaItems() ([]store.MediaItemWithChannel, error) 
 	return s.store.GetAllMediaItems()
 }
 
-func (s *MediaService) ToggleFavorite(id uint64) (*store.MediaItemWithChannel, error) {
+func (s *MediaService) ToggleFavorite(id int64) (*store.MediaItemWithChannel, error) {
 	return s.store.ToggleFavorite(id)
 }
 
-func (s *MediaService) GetMediaItem(id uint64) (*store.MediaItemWithChannel, error) {
+func (s *MediaService) GetMediaItem(id int64) (*store.MediaItemWithChannel, error) {
 	return s.store.GetMediaItem(id)
 }

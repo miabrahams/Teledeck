@@ -26,8 +26,12 @@ templ EmptyGalleryItem() {
 	<div></div>
 }
 
+func IDStr(item *store.MediaItem) string {
+	return strconv.FormatInt(item.ID, 10)
+}
+
 func itemID(item *store.MediaItem) string {
-	return "media-item-" + strconv.FormatUint(uint64(item.ID), 10)
+	return "media-item-" + IDStr(item)
 }
 
 templ GalleryItem(item *store.MediaItemWithChannel) {
@@ -35,7 +39,7 @@ templ GalleryItem(item *store.MediaItemWithChannel) {
     <div
         class={ favoriteClass(&item.MediaItem) }
         id={ itemID(&item.MediaItem) }
-        data-id={ strconv.FormatUint(uint64(item.ID), 10) }
+        data-id={ strconv.FormatInt(item.ID, 10) }
         data-filename={ item.FileName }
     >
 		<div class="media-item-content cursor-pointer" data-fullscreen="true">

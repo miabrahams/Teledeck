@@ -6,9 +6,11 @@ type Config struct {
 	Port              string `envconfig:"PORT" default:":4000"`
 	DatabaseName      string `envconfig:"DATABASE_NAME" default:"../teledeck.db"`
 	SessionCookieName string `envconfig:"SESSION_COOKIE_NAME" default:"session"`
-	StaticDir         string `envconfig:"MEDIA_DIR" default:"./static"`
+	StaticDir         string `envconfig:"STATIC_DIR" default:"./static"`
 	StaticMediaDir    string `envconfig:"MEDIA_DIR" default:"../static"`
 	RecycleDir        string `envconfig:"RECYCLE_DIR" default:"../recyclebin"`
+	Telegram_API_ID   string `envconfig:"TG_API_ID" default:""`
+	Telegram_API_Hash string `envconfig:"TG_API_HASH" default:""`
 }
 
 func loadConfig() (*Config, error) {

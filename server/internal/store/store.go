@@ -1,7 +1,7 @@
 package store
 
 import (
-	"time"
+	. "time"
 )
 
 type User struct {
@@ -28,24 +28,26 @@ type SessionStore interface {
 }
 
 type Channel struct {
-	ID    uint64 `gorm:"primaryKey"`
+	ID    int64 `gorm:"primaryKey"`
 	Title string
 }
 
 type MediaItem struct {
-	ID        uint64 `gorm:"primaryKey"`
-	ChannelID uint64
-	MessageID uint64
-	Date      time.Time
-	Text      string
-	Type      string
-	/* 	Path      string */
-	FileName    string
-	FileSize    int64
-	URL         string
-	Seen        bool
-	Favorite    bool
-	UserDeleted bool
+	ID          int64   `gorm:"primaryKey"`   // id
+	FileID      int     `json:"file_id"`      // file_id
+	ChannelID   int     `json:"channel_id"`   // channel_id
+	MessageID   int     `json:"message_id"`   // message_id
+	Date        Time    `json:"date"`         // date
+	Text        string  `json:"text"`         // text
+	Type        string  `json:"type"`         // type
+	FileName    string  `json:"file_name"`    // file_name
+	FileSize    int     `json:"file_size"`    // file_size
+	URL         string  `json:"url"`          // url
+	Seen        float64 `json:"seen"`         // seen
+	Favorite    bool    `json:"favorite"`     // favorite
+	UserDeleted bool    `json:"user_deleted"` // user_deleted
+	// xo fields
+	_exists, _deleted bool
 }
 
 type MediaItemWithChannel struct {
@@ -64,7 +66,7 @@ type MediaStore interface {
 	GetTotalMediaItems(videos bool) int64
 	GetPaginatedMediaItems(page, itemsPerPage int, P SearchPrefs) ([]MediaItemWithChannel, error)
 	GetAllMediaItems() ([]MediaItemWithChannel, error)
-	ToggleFavorite(id uint64) (*MediaItemWithChannel, error)
-	GetMediaItem(id uint64) (*MediaItemWithChannel, error)
+	ToggleFavorite(id int64) (*MediaItemWithChannel, error)
+	GetMediaItem(id int64) (*MediaItemWithChannel, error)
 	MarkDeleted(item *MediaItem) error
 }
