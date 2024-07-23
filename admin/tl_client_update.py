@@ -13,7 +13,7 @@ from telethon.helpers import TotalList
 from telethon.errors import FloodWaitError
 from tqdm import tqdm
 from dotenv import load_dotenv
-from typing import AsyncGenerator, List, Dict, Any, Optional, Tuple
+from typing import AsyncGenerator, List, Dict, Any, Optional, Tuple, cast
 import os
 import asyncio
 import json
@@ -335,7 +335,9 @@ async def message_task_producer(ctx: TLContext, channels: List[Channel], queue: 
 
 async def message_task_consumer(ctx: TLContext, queue: asyncio.Queue):
     while True:
-        channel, message = await queue.get()
+        task = await queue.get()
+        channel = cast(Channel, task[0])
+        message = cast(Message, task[1])
         try:
             await message_task_wrapper(ctx, message, channel)
         except Exception as e:
@@ -343,6 +345,8 @@ async def message_task_consumer(ctx: TLContext, queue: asyncio.Queue):
             print("******Failed to process message: ", e)
             print(message.stringify())
             print(traceback.format_exc())
+            link = await get_message_link(ctx, channel, message)
+            print("Message link: ", link.stringify())
         queue.task_done()
 
 async def get_channel_messages(ctx: TLContext, channel: Channel) -> AsyncGenerator[Message, None]:
