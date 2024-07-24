@@ -1,19 +1,19 @@
 package store
 
 import (
-	. "time"
+	"time"
 )
 
 type User struct {
-	ID       uint   `gorm:"primaryKey" json:"id"`
-	Email    string `json:"email"`
-	Password string `json:"-"`
+	ID       uint   `gorm:"column:id;primaryKey" json:"id"`
+	Email    string `gorm:"column:email;not null" json:"email"`
+	Password string `gorm:"column:password;not null" json:"password"`
 }
 
 type Session struct {
-	ID        uint   `gorm:"primaryKey" json:"id"`
-	SessionID string `json:"session_id"`
-	UserID    uint   `json:"user_id"`
+	ID        uint   `gorm:"column:id;primaryKey" json:"id"`
+	SessionID string `gorm:"column:session_id;not null" json:"session_id"`
+	UserID    uint   `gorm:"column:user_id;primaryKey" json:"user_id"`
 	User      User   `gorm:"foreignKey:UserID" json:"user"`
 }
 
@@ -27,32 +27,90 @@ type SessionStore interface {
 	GetUserFromSession(sessionID string, userID string) (*User, error)
 }
 
-type Channel struct {
-	ID    int64 `gorm:"primaryKey"`
-	Title string
+type Source struct {
+	ID   int    `gorm:"column:id;type:INTEGER" json:"id"`
+	Name string `gorm:"column:name;type:VARCHAR" json:"name"`
 }
 
+type MediaType struct {
+	ID   int    `gorm:"column:id;type:INTEGER" json:"id"`
+	Type string `gorm:"column:type;type:VARCHAR" json:"type"`
+}
+
+// https://stackoverflow.com/questions/36486511/how-do-you-do-uuid-in-golangs-gorm
 type MediaItem struct {
-	ID          int64   `gorm:"primaryKey"`   // id
-	FileID      int     `json:"file_id"`      // file_id
-	ChannelID   int     `json:"channel_id"`   // channel_id
-	MessageID   int     `json:"message_id"`   // message_id
-	Date        Time    `json:"date"`         // date
-	Text        string  `json:"text"`         // text
-	Type        string  `json:"type"`         // type
-	FileName    string  `json:"file_name"`    // file_name
-	FileSize    int     `json:"file_size"`    // file_size
-	URL         string  `json:"url"`          // url
-	Seen        float64 `json:"seen"`         // seen
-	Favorite    bool    `json:"favorite"`     // favorite
-	UserDeleted bool    `json:"user_deleted"` // user_deleted
-	// xo fields
-	_exists, _deleted bool
+	ID           string    `gorm:"column:id;type:VARCHAR(36)" json:"id"`
+	SourceID     int       `gorm:"column:source_id;type:INTEGER" json:"source_id"`
+	SequentialID int       `gorm:"column:sequential_id;type:INTEGER;autoincrement" json:"sequential_id"`
+	MediaTypeID  int       `gorm:"column:media_type_id;type:INTEGER" json:"media_type_id"`
+	FileName     string    `gorm:"column:file_name;type:VARCHAR" json:"file_name"`
+	FileSize     int       `gorm:"column:file_size;type:INTEGER" json:"file_size"`
+	CreatedAt    time.Time `gorm:"column:created_at;type:DATETIME" json:"created_at"`
+	UpdatedAt    time.Time `gorm:"column:updated_at;type:DATETIME" json:"updated_at"`
+	Seen         bool      `gorm:"column:seen;type:BOOLEAN" json:"seen"`
+	Favorite     bool      `gorm:"column:favorite;type:BOOLEAN" json:"favorite"`
+	UserDeleted  bool      `gorm:"column:user_deleted;type:BOOLEAN" json:"user_deleted"`
 }
 
-type MediaItemWithChannel struct {
+type Channel struct {
+	ID    int    `gorm:"column:id;primaryKey" json:"id"`
+	Title string `gorm:"column:title;not null" json:"title"`
+}
+
+type MediaItemDuplicate struct {
+	First_ string `gorm:"column:first;type:VARCHAR(36)" json:"first"`
+	Second string `gorm:"column:second;type:VARCHAR(36)" json:"second"`
+}
+
+type MediaItemTag struct {
+	MediaItemID string  `gorm:"column:media_item_id;type:VARCHAR(36)" json:"media_item_id"`
+	TagID       int     `gorm:"column:tag_id;type:INTEGER" json:"tag_id"`
+	Weight      float32 `gorm:"column:weight;type:FLOAT" json:"weight"`
+	Tag         string  `gorm:"foreignKey:TagID"`
+}
+
+type TelegramMetadatum struct {
+	MediaItemID string    `gorm:"column:media_item_id;type:VARCHAR(36)" json:"media_item_id"`
+	ChannelID   int       `gorm:"column:channel_id;type:INTEGER" json:"channel_id"`
+	MessageID   int       `gorm:"column:message_id;type:INTEGER" json:"message_id"`
+	FileID      int       `gorm:"column:file_id;type:INTEGER" json:"file_id"`
+	FromPreview int       `gorm:"column:from_preview;type:INTEGER" json:"from_preview"`
+	Date        time.Time `gorm:"column:date;type:DATETIME" json:"date"`
+	Text        string    `gorm:"column:text;type:TEXT" json:"text"`
+	URL         string    `gorm:"column:url;type:VARCHAR" json:"url"`
+}
+
+// TableName TelegramMetadatum's table name
+func (*TelegramMetadatum) TableName() string {
+	return "telegram_metadata"
+}
+
+type TwitterMetadatum struct {
+	MediaItemID string    `gorm:"column:media_item_id;type:VARCHAR(36)" json:"media_item_id"`
+	TweetID     string    `gorm:"column:tweet_id;type:VARCHAR(36)" json:"tweet_id"`
+	Username    string    `gorm:"column:username;type:VARCHAR" json:"username"`
+	Date        time.Time `gorm:"column:date;type:DATETIME" json:"date"`
+	Text        string    `gorm:"column:text;type:TEXT" json:"text"`
+	URL         string    `gorm:"column:url;type:VARCHAR" json:"url"`
+}
+
+// TableName TwitterMetadatum's table name
+func (*TwitterMetadatum) TableName() string {
+	return "twitter_metadata"
+}
+
+// TODO: Figure out better handling
+type MediaItemWithMetadata struct {
 	MediaItem
-	ChannelTitle string
+	ChannelID      int       `gorm:"column:channel_id"`
+	MessageID      int       `gorm:"column:message_id"`
+	TelegramFileID int       `gorm:"column:file_id"`
+	FromPreview    int       `gorm:"column:from_preview"`
+	TelegramDate   time.Time `gorm:"column:date"`
+	TelegramText   string    `gorm:"column:text"`
+	TelegramURL    string    `gorm:"column:url"`
+	MediaType      string    `gorm:"column:media_type"`
+	ChannelTitle   string    `gorm:"column:channel_title"`
 }
 
 type SearchPrefs struct {
@@ -65,9 +123,9 @@ type SearchPrefs struct {
 type MediaStore interface {
 	GetTotalMediaItems() int64
 	GetMediaItemCount(P SearchPrefs) int64
-	GetPaginatedMediaItems(page, itemsPerPage int, P SearchPrefs) ([]MediaItemWithChannel, error)
-	GetAllMediaItems() ([]MediaItemWithChannel, error)
-	ToggleFavorite(id int64) (*MediaItemWithChannel, error)
-	GetMediaItem(id int64) (*MediaItemWithChannel, error)
+	GetPaginatedMediaItems(page, itemsPerPage int, P SearchPrefs) ([]MediaItemWithMetadata, error)
+	GetAllMediaItems() ([]MediaItemWithMetadata, error)
+	ToggleFavorite(id string) (*MediaItemWithMetadata, error)
+	GetMediaItem(id string) (*MediaItemWithMetadata, error)
 	MarkDeleted(item *MediaItem) error
 }
