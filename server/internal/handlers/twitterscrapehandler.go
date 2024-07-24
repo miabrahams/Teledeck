@@ -1,5 +1,7 @@
 package handlers
 
+/*
+
 import (
 	"encoding/json"
 	"goth/internal/services"
@@ -21,3 +23,5 @@ func (h *TwitterScrapeHandler) ScrapeUser(w http.ResponseWriter, r *http.Request
 
 	json.NewEncoder(w).Encode(data)
 }
+
+*/
