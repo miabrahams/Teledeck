@@ -3,26 +3,24 @@ import time
 from io import BytesIO
 from typing import List
 import os
+import traceback
 
 import torch
-from fastapi import FastAPI, File, UploadFile
+from fastapi import FastAPI, File, UploadFile, HTTPException
 from PIL import Image
-from pydantic import BaseModel, model_serializer, Field
-from typing import Dict
-from decimal import Decimal
+from pydantic import BaseModel
 from torchvision.transforms import transforms
+from dotenv import load_dotenv
 
-TAGGER_PORT = 8081
+load_dotenv()
+
+TAGGER_PORT = int(os.getenv("TAGGER_PORT", 8081))
 DEBUG = os.getenv("env", "production") == "development"
-
+MODEL_PATH = os.path.join(os.path.dirname(__file__), "model")
 
 class PredictionResult(BaseModel):
     tag: str
-    probability: Decimal = Field(max_digits=3, decimal_places=2)
-
-    @model_serializer
-    def ser_model(self) -> Dict[str, Decimal]:
-        return {self.tag: self.probability}
+    prob: float
 
 
 class Tagger:
@@ -33,29 +31,22 @@ class Tagger:
 
     def __init__(self):
         print("Loading model.")
-        self.model = torch.load("model/model.pth").to("cuda")
+        self.model = torch.load(os.path.join(MODEL_PATH, "model.pth")).to("cuda")
         self.model.eval()
 
-        with open("model/tags_8041.json", "r") as file:
+        with open(os.path.join(MODEL_PATH, "tags_8041.json"), "r") as file:
             tags = json.load(file)
         allowed_tags = sorted(tags)
-        allowed_tags.insert(0, "placeholder0")
-        allowed_tags.append("placeholder1")
-        allowed_tags.append("explicit")
-        allowed_tags.append("questionable")
-        allowed_tags.append("safe")
-        print(f"Allowed tags: {len(allowed_tags)}")
-        self.allowed_tags = allowed_tags
-
-        """
-        with open("model/tags_extra.json", "r") as file:
+        with open(os.path.join(MODEL_PATH, "tags_extra.json"), "r") as file:
             extra_tags = json.load(file)
             for position, tag in extra_tags:
                 if position == -1:
                     allowed_tags.append(tag)
                 else:
                     allowed_tags.insert(position, tag)
-        """
+
+        self.allowed_tags = allowed_tags
+
 
         # Define transform
         self.transform = transforms.Compose(
@@ -70,15 +61,16 @@ class Tagger:
         pass
 
 
-    def run_inference(self, img: Image):
+    def run_inference(self, img: Image, cutoff = 0.3):
         start = time.time()
 
         tensor = self.transform(img).unsqueeze(0).to("cuda")
         with torch.no_grad():
             out = self.model(tensor)
         probabilities = torch.nn.functional.sigmoid(out[0])
-        indices = torch.where(probabilities > 0.3)[0]
-        results = [PredictionResult(tag=self.allowed_tags[idx], probability=f"{probabilities[idx].item():0.2f}") for idx in indices]
+        indices = torch.where(probabilities > cutoff)[0]
+        results = [PredictionResult(tag=self.allowed_tags[idx], prob=probabilities[idx].item()) for idx in indices]
+        results.sort(key=lambda x: x.prob, reverse=True)
         end = time.time()
         print(f"Executed in {end - start} seconds")
 
@@ -87,13 +79,6 @@ class Tagger:
 
 
 TAGGER = Tagger()
-
-if DEBUG:
-    image_path = "../static/media/photo_2024-07-20_15-31-52.jpg"
-    img = Image.open(image_path).convert('RGB')
-    results = TAGGER.run_inference(img)
-    for (tag, prob) in results:
-        print(f"{tag}: {prob}")
 
 
 app = FastAPI()
@@ -113,10 +98,16 @@ async def predict(file: UploadFile = File(...), cutoff: float = 0.3):
 @app.post("/predict/url", response_model=List[PredictionResult])
 async def predict_url(image_path: str, cutoff: float = 0.3):
     # Process image from URL
+	# TODO: Make these paths independent of where the test is run
+    print(f"Image path: {image_path}  -  cutoff: {cutoff}")
     print(f"Processing image from URL: {image_path}")
-    img = Image.open(image_path).convert("RGB")
-
-    results = TAGGER.run_inference(img)
+    try:
+        img = Image.open(image_path).convert("RGB")
+        results = TAGGER.run_inference(img, cutoff)
+    except Exception as e:
+        print("Error processing image")
+        print(traceback.format_exc(e))
+        raise HTTPException(status_code=500, detail=str(e))
 
     return results
 

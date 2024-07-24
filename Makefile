@@ -17,9 +17,12 @@ update:
 recycle:
 	rm recyclebin/media/*
 
-.PHONY: server
+make-schema:
+	sqlite3 teledeck.db '.schema' > data/schema.sql
+
+.PHONY: server tagger
 server:
 	@cd server && make dev
 
-make-schema:
-	sqlite3 teledeck.db '.schema' > data/schema.sql
+tagger:
+	python tagger/server.py
