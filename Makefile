@@ -13,3 +13,10 @@ xo:
 
 update:
 	python admin/tl_client_update.py
+
+recycle:
+	rm recyclebin/media/*
+
+.PHONY: server
+server:
+	@cd server && make dev
