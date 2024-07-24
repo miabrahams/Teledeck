@@ -42,3 +42,6 @@ staticcheck:
 .PHONY: test
 test:
 	  go test -race -v -timeout 30s ./...
+
+.PHONY: gendb
+	go run ./cmd/gendb/main.go

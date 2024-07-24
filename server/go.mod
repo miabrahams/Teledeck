@@ -10,15 +10,23 @@ require (
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/crypto v0.25.0
 	gorm.io/driver/sqlite v1.5.5
-	gorm.io/gorm v1.25.8
+	gorm.io/gorm v1.25.9
 )
 
 require (
 	github.com/AlexEidt/Vidio v1.5.1 // indirect
+	github.com/go-sql-driver/mysql v1.7.0 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/zelenin/go-tdlib v0.7.2 // indirect
+	golang.org/x/mod v0.17.0 // indirect
 	golang.org/x/net v0.24.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
+	golang.org/x/tools v0.17.0 // indirect
+	gorm.io/datatypes v1.1.1-0.20230130040222-c43177d3cf8c // indirect
+	gorm.io/driver/mysql v1.4.4 // indirect
+	gorm.io/gen v0.3.26 // indirect
+	gorm.io/hints v1.1.0 // indirect
+	gorm.io/plugin/dbresolver v1.5.0 // indirect
 )
 
 require (
