@@ -120,6 +120,10 @@ func (s *MediaStore) GetPaginatedMediaItems(page, itemsPerPage int, P store.Sear
 		query = query.Order("media_items.id ASC")
 	case "id_desc":
 		query = query.Order("media_items.id DESC")
+	case "size_asc":
+		query = query.Order("media_items.file_size ASC")
+	case "size_desc":
+		query = query.Order("media_items.file_size DESC")
 	case "random":
 		query = query.Order("RANDOM()")
 	default:
