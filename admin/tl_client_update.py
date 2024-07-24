@@ -21,7 +21,7 @@ import uuid
 from datetime import datetime
 from sqlmodel import create_engine, Session, select
 from sqlalchemy.engine.base import Engine
-from models.telegram import MediaItem
+from models.telegram import MediaItem, Channel as ChannelModel
 
 engine = create_engine("sqlite:///teledeck.db")
 
@@ -379,6 +379,13 @@ async def main(load_saved_tasks=False, start_task=0):
     target_channels = await get_target_channels(ctx)
     print("Found channels:")
     [print(f"{n}: {channel.title}") for n, channel in enumerate(target_channels)]
+    with Session(engine) as session:
+        for channel in target_channels:
+            if session.exec(select(ChannelModel).where(ChannelModel.id == channel.id)).first():
+                continue
+            session.add(ChannelModel(id=channel.id, title=channel.title))
+            session.commit()
+        # print(channel.stringify)
 
     queue = asyncio.Queue()
     # One producer is fine!
