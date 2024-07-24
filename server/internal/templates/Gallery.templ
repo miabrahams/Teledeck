@@ -5,7 +5,7 @@ import (
 	"strconv"
 )
 
-templ Gallery(mediaItems []store.MediaItemWithChannel, currentPage, totalPages int) {
+templ Gallery(mediaItems []store.MediaItemWithMetadata, currentPage, totalPages int) {
 	<div class="media-gallery">
 		for _, item := range mediaItems {
 			@GalleryItem(&item)
@@ -26,27 +26,30 @@ templ EmptyGalleryItem() {
 	<div></div>
 }
 
-func IDStr(item *store.MediaItem) string {
-	return strconv.FormatInt(item.ID, 10)
-}
-
 func itemID(item *store.MediaItem) string {
-	return "media-item-" + IDStr(item)
+	return "media-item-" + item.ID
 }
 
-templ GalleryItem(item *store.MediaItemWithChannel) {
+func isPhoto(typename string) bool {
+	return typename == "photo" || typename == "image" || typename == "png" || typename == "gif" || typename == "jpeg" || typename == "webp"
+}
+func isVideo(typename string) bool {
+	return typename == "video" || typename == "gif" || typename == "webm" || typename == "document" || typename == "mp4"
+}
+
+templ GalleryItem(item *store.MediaItemWithMetadata) {
 
     <div
         class={ favoriteClass(&item.MediaItem) }
         id={ itemID(&item.MediaItem) }
-        data-id={ strconv.FormatInt(item.ID, 10) }
+        data-id={ item.ID }
         data-filename={ item.FileName }
     >
 		<div class="media-item-content cursor-pointer" data-fullscreen="true">
 			/* Todo: handle mp3, pdf */
-			if item.Type == "photo" || item.Type == "image" || item.Type == "png" || item.Type == "gif" || item.Type == "jpeg" || item.Type == "webp" {
+			if isPhoto(item.MediaType) {
 				<img src={ "/media/" + item.FileName } alt={ item.FileName }/>
-			} else if item.Type == "video" || item.Type == "gif" || item.Type == "webm" || item.Type == "document" {
+			} else if isVideo(item.MediaType) {
 				<video controls loop >
 					<source src={ "/media/" + item.FileName } type="video/mp4"/>
 					Your browser does not support the video tag.
@@ -55,14 +58,14 @@ templ GalleryItem(item *store.MediaItemWithChannel) {
 		</div>
 		<div class="media-info">
 			<h2 class="media-meta media-filename">
-				{ item.FileName } ({ item.Type })
+				{ item.FileName } ({ item.MediaType })
 				if item.Favorite {
 					<span class="favorite-star">&#9733;</span>
 				}
 			</h2>
 			<p class="media-meta media-channel">Channel: { item.ChannelTitle }</p>
-			<p class="media-meta media-date">Date: { item.Date.Format("2006-01-02 15:04:05") }</p>
-			<p class="media-meta media-text">{ item.Text }</p>
+			<p class="media-meta media-date">Date: { item.CreatedAt.Format("2006-01-02 15:04:05") }</p>
+			<p class="media-meta media-text">{ item.TelegramText }</p>
 		</div>
 		<div class="controls">
 			<a
@@ -75,7 +78,7 @@ templ GalleryItem(item *store.MediaItemWithChannel) {
 			<button
 				hx-trigger="click"
 				hx-swap="outerHTML"
-				hx-delete={ "/mediaItem/" + strconv.FormatUint(uint64(item.ID), 10) }
+				hx-delete={ "/mediaItem/" + item.ID }
 				hx-target={ "#" + itemID(&item.MediaItem) }
 				class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded delete-button"
 			>
@@ -84,7 +87,7 @@ templ GalleryItem(item *store.MediaItemWithChannel) {
 			<button
 				hx-trigger="click"
 				hx-swap="outerHTML"
-				hx-post={ "/mediaItem/" + strconv.FormatUint(uint64(item.ID), 10) + "/favorite" }
+				hx-post={ "/mediaItem/" + item.ID + "/favorite" }
 				hx-target={ "#" + itemID(&item.MediaItem) }
 				class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded favorite-button"
 			>

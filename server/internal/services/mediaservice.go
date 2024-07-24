@@ -33,18 +33,18 @@ func (s *MediaService) GetMediaItemCount(P store.SearchPrefs) int64 {
 	return s.store.GetMediaItemCount(P)
 }
 
-func (s *MediaService) GetPaginatedMediaItems(page, itemsPerPage int, P store.SearchPrefs) ([]store.MediaItemWithChannel, error) {
+func (s *MediaService) GetPaginatedMediaItems(page, itemsPerPage int, P store.SearchPrefs) ([]store.MediaItemWithMetadata, error) {
 	return s.store.GetPaginatedMediaItems(page, itemsPerPage, P)
 }
 
-func (s *MediaService) GetAllMediaItems() ([]store.MediaItemWithChannel, error) {
+func (s *MediaService) GetAllMediaItems() ([]store.MediaItemWithMetadata, error) {
 	return s.store.GetAllMediaItems()
 }
 
-func (s *MediaService) ToggleFavorite(id int64) (*store.MediaItemWithChannel, error) {
+func (s *MediaService) ToggleFavorite(id string) (*store.MediaItemWithMetadata, error) {
 	return s.store.ToggleFavorite(id)
 }
 
-func (s *MediaService) GetMediaItem(id int64) (*store.MediaItemWithChannel, error) {
+func (s *MediaService) GetMediaItem(id string) (*store.MediaItemWithMetadata, error) {
 	return s.store.GetMediaItem(id)
 }

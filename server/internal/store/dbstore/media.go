@@ -11,20 +11,18 @@ import (
 )
 
 type MediaStore struct {
-	db    *gorm.DB
-	total int64
+	db     *gorm.DB
+	logger *slog.Logger
+	total  int64
 }
 
-type NewMediaStoreParams struct {
-	DB *gorm.DB
-}
-
-func NewMediaStore(params NewMediaStoreParams) *MediaStore {
+func NewMediaStore(DB *gorm.DB, logger *slog.Logger) *MediaStore {
 	var count int64
-	params.DB.Model(&store.MediaItem{}).Count(&count)
+	DB.Model(&store.MediaItem{}).Count(&count)
 	return &MediaStore{
-		db:    params.DB,
-		total: count,
+		db:     DB,
+		logger: logger,
+		total:  count,
 	}
 }
 
@@ -33,8 +31,6 @@ type ErrFavorite struct{}
 func (e ErrFavorite) Error() string {
 	return "Cannot delete a favorite item"
 }
-
-const VIDEOS_SELECTOR = "media_items.type = 'video' OR media_items.type = 'gif' OR media_items.type = 'webm'"
 
 func (s *MediaStore) GetTotalMediaItems() int64 {
 	var count int64
@@ -48,7 +44,7 @@ func applySearchFilters(P store.SearchPrefs, query *gorm.DB) *gorm.DB {
 	query = query.Where("media_items.user_deleted = false")
 
 	if P.VideosOnly {
-		query = query.Where(VIDEOS_SELECTOR)
+		query = query.Where("media_types.type = 'video' OR media_types.type = 'gif' OR media_types.type = 'webm'")
 	}
 
 	if P.Search != "" {
@@ -75,51 +71,56 @@ func (s *MediaStore) GetMediaItemCount(P store.SearchPrefs) int64 {
 	return count
 }
 
-func (s *MediaStore) GetMediaItem(id int64) (*store.MediaItemWithChannel, error) {
+func (s *MediaStore) GetMediaWithMetadataQuery() *gorm.DB {
 	query := s.db.Model(&store.MediaItem{}).
-		Joins("LEFT JOIN channels ON media_items.channel_id = channels.id")
-	query = query.Where("media_items.id = ?", id)
-	item := store.MediaItemWithChannel{}
-	result := query.Scan(&item)
-	return &item, result.Error
+		Select("media_items.*, telegram_metadata.*, sources.name as source_name, media_types.type as media_type, channels.title as channel_title").
+		Joins("LEFT JOIN media_types ON media_items.media_type_id = media_types.id").
+		Joins("LEFT JOIN sources ON media_items.source_id = sources.id").
+		Joins("LEFT JOIN telegram_metadata ON media_items.id = telegram_metadata.media_item_id").
+		Joins("LEFT JOIN channels ON telegram_metadata.channel_id = channels.id").
+		Where("user_deleted = false")
+	return query
 }
 
-func (s *MediaStore) ToggleFavorite(id int64) (*store.MediaItemWithChannel, error) {
-	logger := slog.Default()
-	var itemWithChannel store.MediaItemWithChannel
-	result := s.db.Model(&store.MediaItem{}).Where("media_items.id = ?", id).Joins("LEFT JOIN channels ON media_items.channel_id = channels.id").Scan(&itemWithChannel)
-	if result.Error != nil {
-		return nil, result.Error
-	}
+func (s *MediaStore) GetMediaItem(id string) (*store.MediaItemWithMetadata, error) {
+	// TODO: Handle multiple data sources
+	result := store.MediaItemWithMetadata{}
+	query := s.GetMediaWithMetadataQuery().Where(&store.MediaItem{ID: id})
+	err := query.Scan(&result).Error
+	return &result, err
+}
 
-	itemWithChannel.Favorite = !itemWithChannel.Favorite
-
-	var item store.MediaItem = itemWithChannel.MediaItem
-	logger.Info("New fav status: ", "New status:", strconv.FormatBool(item.Favorite), "File", item.FileName)
-	err := s.db.Save(&item).Error
+func (s *MediaStore) ToggleFavorite(id string) (*store.MediaItemWithMetadata, error) {
+	item, err := s.GetMediaItem(id)
 	if err != nil {
 		return nil, err
 	}
 
-	return &itemWithChannel, nil
+	item.Favorite = !item.Favorite
+
+	s.logger.Info("New fav status: ", "New status:", strconv.FormatBool(item.Favorite), "File", item.FileName)
+	err = s.db.Save(&item.MediaItem).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return item, nil
 }
 
-func (s *MediaStore) GetPaginatedMediaItems(page, itemsPerPage int, P store.SearchPrefs) ([]store.MediaItemWithChannel, error) {
+func (s *MediaStore) GetPaginatedMediaItems(page, itemsPerPage int, P store.SearchPrefs) ([]store.MediaItemWithMetadata, error) {
 	offset := (page - 1) * itemsPerPage
-	var mediaItems []store.MediaItemWithChannel
-	query := s.db.Table("media_items").
-		Select("media_items.*, channels.title as channel_title").
-		Joins("LEFT JOIN channels ON media_items.channel_id = channels.id")
+	var mediaItems []store.MediaItemWithMetadata
+	query := s.GetMediaWithMetadataQuery()
 
 	switch P.Sort {
 	case "date_asc":
-		query = query.Order("media_items.date ASC")
+		query = query.Order("media_items.created_at ASC")
 	case "date_desc":
-		query = query.Order("media_items.date DESC")
+		query = query.Order("media_items.created_at DESC")
 	case "id_asc":
-		query = query.Order("media_items.id ASC")
+		query = query.Order("telegram_metadata.message_id ASC")
 	case "id_desc":
-		query = query.Order("media_items.id DESC")
+		query = query.Order("telegram_metadata.message_id DESC")
 	case "size_asc":
 		query = query.Order("media_items.file_size ASC")
 	case "size_desc":
@@ -136,14 +137,16 @@ func (s *MediaStore) GetPaginatedMediaItems(page, itemsPerPage int, P store.Sear
 
 	query = query.Limit(itemsPerPage)
 
-	result := query.Scan(&mediaItems)
-	return mediaItems, result.Error
+	err := query.Scan(&mediaItems).Error
+	s.logger.Info("Media items", "Items", mediaItems[0])
+	return mediaItems, err
 }
 
-func (s *MediaStore) GetAllMediaItems() ([]store.MediaItemWithChannel, error) {
-	var mediaItems []store.MediaItemWithChannel
-	result := s.db.Order("date DESC").Joins("LEFT JOIN channels ON media_items.channel_id = channels.id").Where("user_deleted = false").Scan(&mediaItems)
-	return mediaItems, result.Error
+func (s *MediaStore) GetAllMediaItems() ([]store.MediaItemWithMetadata, error) {
+	var mediaItems []store.MediaItemWithMetadata
+	query := s.GetMediaWithMetadataQuery()
+	err := query.Scan(&mediaItems).Error
+	return mediaItems, err
 }
 
 func (s *MediaStore) MarkDeleted(item *store.MediaItem) error {

@@ -90,11 +90,7 @@ func main() {
 		},
 	)
 
-	mediaStore := dbstore.NewMediaStore(
-		dbstore.NewMediaStoreParams{
-			DB: db,
-		},
-	)
+	mediaStore := dbstore.NewMediaStore(db, logger)
 
 	/* Services */
 	// twitterScrapeServce := services.NewTwitterScraper()

@@ -99,7 +99,7 @@ func (*TwitterMetadatum) TableName() string {
 	return "twitter_metadata"
 }
 
-// TODO: Figure out better handling
+// TODO: Figure out better handling; look into struct embedding
 type MediaItemWithMetadata struct {
 	MediaItem
 	ChannelID      int       `gorm:"column:channel_id"`
