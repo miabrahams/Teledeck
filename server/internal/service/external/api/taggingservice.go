@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"goth/internal/models"
+	"image"
 	"io"
 	"log/slog"
 	"net/http"
@@ -12,19 +13,23 @@ import (
 type TaggingService struct {
 	logger *slog.Logger
 	client *http.Client
+	host   string
 }
 
-func NewTaggingService(logger *slog.Logger) *TaggingService {
+func NewTaggingService(logger *slog.Logger, port string) *TaggingService {
+
 	return &TaggingService{
 		logger: logger,
 		client: &http.Client{},
+		host:   "http://localhost:" + port,
 	}
 }
 
-func (s *TaggingService) TagImage(imagePath string, cutoff float64) ([]models.TagWeight, error) {
+func (s *TaggingService) TagImage(imagePath string, cutoff float32) ([]models.TagWeight, error) {
 
 	// TODO: Allow configurable server address
-	req, _ := http.NewRequest("POST", "http://localhost:8081/predict/url", nil)
+
+	req, _ := http.NewRequest("POST", s.host+"/predict/url", nil)
 
 	q := req.URL.Query()
 	q.Add("image_path", imagePath)
@@ -44,7 +49,7 @@ func (s *TaggingService) TagImage(imagePath string, cutoff float64) ([]models.Ta
 		return nil, err
 	}
 
-	s.logger.Info("Received response", "Body:", rawBody)
+	// s.logger.Info("Received response", "Body:", rawBody)
 	var result []models.TagWeight
 	err = json.Unmarshal(rawBody, &result)
 	if err != nil {
@@ -53,4 +58,8 @@ func (s *TaggingService) TagImage(imagePath string, cutoff float64) ([]models.Ta
 	}
 
 	return result, nil
+}
+
+func (s *TaggingService) TagImageData(image image.Image, cutoff float32) ([]models.TagWeight, error) {
+	return nil, fmt.Errorf("not implemented")
 }

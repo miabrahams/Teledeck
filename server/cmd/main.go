@@ -6,6 +6,7 @@ import (
 	"goth/internal/config"
 	"goth/internal/controllers"
 	"goth/internal/handlers"
+	external "goth/internal/service/external/api"
 	"goth/internal/service/files/localfile"
 	"goth/internal/service/hash/passwordhash"
 	database "goth/internal/service/store/db"
@@ -92,16 +93,21 @@ func main() {
 
 	mediaStore := dbstore.NewMediaStore(db, logger)
 
-	/* Services */
+	tagsStore := dbstore.NewTagsStore(db, logger)
+
+	/* External services */
 	// twitterScrapeServce := services.NewTwitterScraper()
+	// telegramService := services.NewTelegramService(cfg.Telegram_API_ID, cfg.Telegram_API_Hash)
+	// TODO: Handle gracefully if service is unavailable
+	taggingService := external.NewTaggingService(logger, cfg.TagServicePort)
 
 	mediaFileOperator := localfile.NewLocalMediaFileOperator(cfg.StaticMediaDir, cfg.RecycleDir, logger)
 	mediaController := controllers.NewMediaController(mediaStore, mediaFileOperator)
-
-	// telegramService := services.NewTelegramService(cfg.Telegram_API_ID, cfg.Telegram_API_Hash)
+	tagsController := controllers.NewTagsController(tagsStore, mediaStore, taggingService)
 
 	// Middleware
 	authMiddleware := m.NewAuthMiddleware(sessionStore, cfg.SessionCookieName)
+	mediaItemMiddleware := m.NewMediaItemMiddleware(mediaController)
 
 	/* Serve static media */
 	fileServer := http.FileServer(http.Dir(cfg.StaticDir))
@@ -113,8 +119,9 @@ func main() {
 	MediaFileServer(r, "/media", http.Dir(mediaDir), logger)
 
 	/* Handlers */
-	MediaHandler := handlers.NewMediaItemHandler(*mediaController)
 	GlobalHandler := handlers.NewGlobalHandler()
+	MediaHandler := handlers.NewMediaItemHandler(*mediaController)
+	TagsHandler := handlers.NewTagsHandler(*tagsController)
 	// TwitterScrapeHandler := handlers.NewTwitterScrapeHandler(twitterScrapeServce)
 
 	r.Group(func(r chi.Router) {
@@ -142,9 +149,14 @@ func main() {
 		}).ServeHTTP)
 
 		// r.Get("/scrape", TwitterScrapeHandler.ScrapeUser)
+		r.Route("/tags/{mediaItemID}", func(r chi.Router) {
+			r.Use(mediaItemMiddleware)
+			r.Get("/", TagsHandler.GetTagsImage)
+			r.Get("/generate", TagsHandler.GenerateTagsImage)
+		})
 
 		r.Route("/mediaItem/{mediaItemID}", func(r chi.Router) {
-			r.Use(MediaHandler.MediaItemCtx)
+			r.Use(mediaItemMiddleware)
 			r.Get("/", MediaHandler.GetMediaItem)
 			r.Delete("/", MediaHandler.RecycleMediaItem)
 			r.Post("/favorite", MediaHandler.PostFavorite)

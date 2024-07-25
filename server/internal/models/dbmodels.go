@@ -56,7 +56,6 @@ type MediaItemTag struct {
 	MediaItemID string  `gorm:"column:media_item_id;type:VARCHAR(36)" json:"media_item_id"`
 	TagID       int     `gorm:"column:tag_id;type:INTEGER" json:"tag_id"`
 	Weight      float32 `gorm:"column:weight;type:FLOAT" json:"weight"`
-	Tag         string  `gorm:"foreignKey:TagID"`
 }
 
 type TelegramMetadatum struct {
@@ -76,7 +75,7 @@ func (*TelegramMetadatum) TableName() string {
 }
 
 type Tag struct {
-	ID   int32  `gorm:"column:id;type:INTEGER" json:"id"`
+	ID   int    `gorm:"column:id;type:INTEGER" json:"id"`
 	Name string `gorm:"column:name;type:VARCHAR" json:"name"`
 }
 

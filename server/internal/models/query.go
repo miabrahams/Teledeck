@@ -24,6 +24,6 @@ type MediaItemWithMetadata struct {
 }
 
 type TagWeight struct {
-	Tag         string  `json:"tag"`
-	Probability float64 `json:"prob"`
+	Name   string  `gorm:"column:name" json:"tag"`
+	Weight float32 `gorm:"column:weight" json:"prob"`
 }

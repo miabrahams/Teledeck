@@ -7,9 +7,10 @@ import (
 	"testing"
 )
 
+// TODO: Configurable
 func setupTaggingService() *TaggingService {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	return NewTaggingService(logger)
+	return NewTaggingService(logger, "8081")
 }
 
 var taggingService *TaggingService
@@ -23,9 +24,9 @@ func TestTagImage(t *testing.T) {
 	tests := []struct {
 		name      string
 		imagePath string
-		cutoff    float64
+		cutoff    float32
 		wantTag   string
-		wantProb  float64
+		wantProb  float32
 		wantErr   bool
 	}{
 		{
@@ -43,11 +44,11 @@ func TestTagImage(t *testing.T) {
 		t.Fatalf("Error tagging image: %v", err)
 	}
 
-	rating := -1.0
+	rating := float32(-1.0)
 	for _, r := range result {
-		t.Logf("Tag: %s, Probability: %.2f", r.Tag, r.Probability)
-		if r.Tag == tests[0].wantTag {
-			rating = r.Probability
+		t.Logf("Tag: %s, Probability: %.2f", r.Name, r.Weight)
+		if r.Name == tests[0].wantTag {
+			rating = r.Weight
 		}
 	}
 	if rating < tests[0].wantProb {

@@ -1,0 +1,15 @@
+package templates
+
+import (
+    "goth/internal/models"
+    "fmt"
+)
+
+
+templ Tags(tags []models.TagWeight) {
+	<div class="media-gallery">
+		for _, tag := range tags {
+			<div>{tag.Name} ({fmt.Sprintf("%.2f", tag.Weight)})</div>
+		}
+	</div>
+}

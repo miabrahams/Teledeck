@@ -1,9 +1,8 @@
 package handlers
 
 import (
-	"context"
 	"goth/internal/controllers"
-	"goth/internal/middleware"
+	m "goth/internal/middleware"
 	"goth/internal/models"
 	"goth/internal/templates"
 	"net/http"
@@ -19,31 +18,9 @@ func NewMediaItemHandler(controller controllers.MediaController) *MediaItemHandl
 	return &MediaItemHandler{controller: controller}
 }
 
-type ContextKey string
-
-const (
-	MediaItemKey ContextKey = "mediaItem"
-)
-
-func (h *MediaItemHandler) MediaItemCtx(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		id := chi.URLParam(r, "mediaItemID")
-
-		mediaItem, err := h.controller.GetMediaItem(id)
-		if err != nil {
-			http.Error(w, "Error fetching media item", http.StatusNotFound)
-			return
-		}
-
-		ctx := context.WithValue(r.Context(), MediaItemKey, mediaItem)
-
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
-}
-
 func (h *MediaItemHandler) GetMediaItem(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	mediaItem, ok := ctx.Value(MediaItemKey).(*models.MediaItemWithMetadata)
+	mediaItem, ok := ctx.Value(m.MediaItemKey).(*models.MediaItemWithMetadata)
 	if !ok {
 		status := http.StatusUnprocessableEntity
 		http.Error(w, http.StatusText(status), status)
@@ -60,7 +37,7 @@ func (h *MediaItemHandler) GetMediaItem(w http.ResponseWriter, r *http.Request) 
 func (h *MediaItemHandler) PostFavorite(w http.ResponseWriter, r *http.Request) {
 	// What are the risks to not error checking here?
 	ctx := r.Context()
-	mediaItem, ok := ctx.Value(MediaItemKey).(*models.MediaItemWithMetadata)
+	mediaItem, ok := ctx.Value(m.MediaItemKey).(*models.MediaItemWithMetadata)
 	if !ok {
 		status := http.StatusUnprocessableEntity
 		http.Error(w, http.StatusText(status), status)
@@ -76,7 +53,7 @@ func (h *MediaItemHandler) PostFavorite(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h *MediaItemHandler) DeleteFavorite(w http.ResponseWriter, r *http.Request) {
-	logger := middleware.GetLogger(r.Context())
+	logger := m.GetLogger(r.Context())
 	id := chi.URLParam(r, "id")
 	logger.Info("Toggling favorite", "id", id)
 	item, err := h.controller.ToggleFavorite(id)
@@ -90,7 +67,7 @@ func (h *MediaItemHandler) DeleteFavorite(w http.ResponseWriter, r *http.Request
 
 func (h *MediaItemHandler) RecycleMediaItem(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	mediaItem, ok := ctx.Value(MediaItemKey).(*models.MediaItemWithMetadata)
+	mediaItem, ok := ctx.Value(m.MediaItemKey).(*models.MediaItemWithMetadata)
 	if !ok {
 		status := http.StatusUnprocessableEntity
 		http.Error(w, http.StatusText(status), status)
