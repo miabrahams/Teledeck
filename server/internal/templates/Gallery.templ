@@ -30,13 +30,6 @@ func itemID(item *models.MediaItem) string {
 	return "media-item-" + item.ID
 }
 
-func isPhoto(typename string) bool {
-	return typename == "photo" || typename == "image" || typename == "png" || typename == "gif" || typename == "jpeg" || typename == "webp"
-}
-func isVideo(typename string) bool {
-	return typename == "video" || typename == "gif" || typename == "webm" || typename == "document" || typename == "mp4"
-}
-
 templ GalleryItem(item *models.MediaItemWithMetadata) {
 
     <div
@@ -47,9 +40,9 @@ templ GalleryItem(item *models.MediaItemWithMetadata) {
     >
 		<div class="media-item-content cursor-pointer" data-fullscreen="true">
 			/* Todo: handle mp3, pdf */
-			if isPhoto(item.MediaType) {
+			if models.IsImgElement(item.MediaType) {
 				<img src={ "/media/" + item.FileName } alt={ item.FileName }/>
-			} else if isVideo(item.MediaType) {
+			} else if models.IsVideoElement(item.MediaType) {
 				<video controls loop >
 					<source src={ "/media/" + item.FileName } type="video/mp4"/>
 					Your browser does not support the video tag.

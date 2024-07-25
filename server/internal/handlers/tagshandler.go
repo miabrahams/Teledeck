@@ -49,7 +49,7 @@ func (h *TagsHandler) GenerateTagsImage(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	tags, err := h.tagsController.TagImageItem(&mediaItem.MediaItem, 0.5)
+	tags, err := h.tagsController.TagImageItem(&mediaItem.MediaItem, 0.4)
 
 	if err != nil {
 		http.Error(w, "Error tagging image", http.StatusInternalServerError)
