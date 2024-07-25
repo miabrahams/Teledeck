@@ -54,11 +54,9 @@ class MediaItem(SQLModel, table=True):
 
     id: str = Field(primary_key=True)
     source_id: int = Field(foreign_key="sources.id", nullable=False)
-    sequential_id: int = Field(nullable=False)
     media_type_id: int = Field(foreign_key="media_types.id", nullable=False)
     file_name: str = Field(nullable=False)
     file_size: int = Field(nullable=False)
-    file_path: str = Field(nullable=False)
     created_at: datetime = Field(nullable=False)
     updated_at: datetime = Field(nullable=False)
     seen: bool = Field(nullable=False)
