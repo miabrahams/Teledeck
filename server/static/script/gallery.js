@@ -108,12 +108,13 @@ function setupModalView() {
       console.log('Clicked on media content');
       const fullscreenView = document.createElement('div');
       fullscreenView.className = 'fullscreen-view';
-      fullscreenView.innerHTML = `<div class="fullscreen-content"></div>`;
-      console.log(fullscreenView.innerHTML);
-
+      fullscreenContent = document.createElement('div');
+      fullscreenContent.className = 'fullscreen-content';
+      fullscreenView.appendChild(fullscreenContent)
       document.body.appendChild(fullscreenView);
+
       const mediaItem = mediaContainer.children[0];
-      fullscreenView.appendChild(mediaItem);
+      fullscreenContent.appendChild(mediaItem);
       fullscreenView.restoreTarget = mediaContainer;
       fullscreenView.mediaItem = mediaItem;
       window.fullscreenView = fullscreenView;

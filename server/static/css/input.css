@@ -62,12 +62,12 @@
   }
 
   .fullscreen-content {
-    @apply max-w-[90vh] max-h-[90vh] overflow-auto bg-white dark:bg-slate-700 rounded-lg flex justify-center items-center;
+    @apply max-w-[90vh] overflow-auto bg-white dark:bg-slate-700 rounded-lg flex justify-center items-center;
   }
 
   .fullscreen-content img,
   .fullscreen-content video {
-    @apply max-w-full max-h-[80vh] object-contain;
+    @apply max-w-full max-h-[100vh] object-contain;
   }
 
   .fullscreen-content .download-button {
