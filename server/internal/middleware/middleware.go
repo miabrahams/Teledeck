@@ -5,7 +5,8 @@ import (
 	"crypto/rand"
 	b64 "encoding/base64"
 	"encoding/hex"
-	"goth/internal/store"
+	"goth/internal/models"
+	"goth/internal/service/store"
 	"log"
 	"net/http"
 	"strings"
@@ -167,11 +168,11 @@ func (m *AuthMiddleware) AddUserToContext(next http.Handler) http.Handler {
 	})
 }
 
-func GetUser(ctx context.Context) *store.User {
+func GetUser(ctx context.Context) *models.User {
 	user := ctx.Value(UserKey)
 	if user == nil {
 		return nil
 	}
 
-	return user.(*store.User)
+	return user.(*models.User)
 }

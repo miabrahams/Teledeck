@@ -2,7 +2,7 @@ package dbstore
 
 import (
 	"fmt"
-	"goth/internal/store"
+	"goth/internal/models"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -22,7 +22,7 @@ func NewSessionStore(params NewSessionStoreParams) *SessionStore {
 	}
 }
 
-func (s *SessionStore) CreateSession(session *store.Session) (*store.Session, error) {
+func (s *SessionStore) CreateSession(session *models.Session) (*models.Session, error) {
 
 	session.SessionID = uuid.New().String()
 
@@ -34,8 +34,8 @@ func (s *SessionStore) CreateSession(session *store.Session) (*store.Session, er
 	return session, nil
 }
 
-func (s *SessionStore) GetUserFromSession(sessionID string, userID string) (*store.User, error) {
-	var session store.Session
+func (s *SessionStore) GetUserFromSession(sessionID string, userID string) (*models.User, error) {
+	var session models.Session
 
 	err := s.db.Preload("User", func(db *gorm.DB) *gorm.DB {
 		return db.Select("ID", "Email")

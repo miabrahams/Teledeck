@@ -1,17 +1,13 @@
-package services
+package external
 
 import (
 	"encoding/json"
 	"fmt"
+	"goth/internal/models"
 	"io"
 	"log/slog"
 	"net/http"
 )
-
-type PredictionResult struct {
-	Tag         string  `json:"tag"`
-	Probability float64 `json:"prob"`
-}
 
 type TaggingService struct {
 	logger *slog.Logger
@@ -25,7 +21,7 @@ func NewTaggingService(logger *slog.Logger) *TaggingService {
 	}
 }
 
-func (s *TaggingService) TagImage(imagePath string, cutoff float64) ([]PredictionResult, error) {
+func (s *TaggingService) TagImage(imagePath string, cutoff float64) ([]models.TagWeight, error) {
 
 	// TODO: Allow configurable server address
 	req, _ := http.NewRequest("POST", "http://localhost:8081/predict/url", nil)
@@ -49,7 +45,7 @@ func (s *TaggingService) TagImage(imagePath string, cutoff float64) ([]Predictio
 	}
 
 	s.logger.Info("Received response", "Body:", rawBody)
-	var result []PredictionResult
+	var result []models.TagWeight
 	err = json.Unmarshal(rawBody, &result)
 	if err != nil {
 		s.logger.Error("Error decoding response body: %v", "Error", err)

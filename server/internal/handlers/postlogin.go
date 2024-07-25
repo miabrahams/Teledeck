@@ -3,8 +3,9 @@ package handlers
 import (
 	b64 "encoding/base64"
 	"fmt"
-	"goth/internal/hash"
-	"goth/internal/store"
+	"goth/internal/models"
+	"goth/internal/service/hash"
+	"goth/internal/service/store"
 	"goth/internal/templates"
 	"net/http"
 	"time"
@@ -56,7 +57,7 @@ func (h *PostLoginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session, err := h.sessionStore.CreateSession(&store.Session{
+	session, err := h.sessionStore.CreateSession(&models.Session{
 		UserID: user.ID,
 	})
 

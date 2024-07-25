@@ -1,8 +1,8 @@
 package dbstore
 
 import (
-	"goth/internal/hash"
-	"goth/internal/store"
+	"goth/internal/models"
+	"goth/internal/service/hash"
 
 	"gorm.io/gorm"
 )
@@ -31,15 +31,15 @@ func (s *UserStore) CreateUser(email string, password string) error {
 		return err
 	}
 
-	return s.db.Create(&store.User{
+	return s.db.Create(&models.User{
 		Email:    email,
 		Password: hashedPassword,
 	}).Error
 }
 
-func (s *UserStore) GetUser(email string) (*store.User, error) {
+func (s *UserStore) GetUser(email string) (*models.User, error) {
 
-	var user store.User
+	var user models.User
 	err := s.db.Where("email = ?", email).First(&user).Error
 
 	if err != nil {

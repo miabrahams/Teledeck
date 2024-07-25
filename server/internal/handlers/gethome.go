@@ -2,7 +2,8 @@ package handlers
 
 import (
 	"goth/internal/middleware"
-	"goth/internal/store"
+	"goth/internal/models"
+	store "goth/internal/service/store"
 	"goth/internal/templates"
 	"math"
 	"net/http"
@@ -28,7 +29,7 @@ func NewHomeHandler(params NewHomeHandlerParams) *HomeHandler {
 }
 
 func (h *HomeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	user, _ := r.Context().Value(middleware.UserKey).(*store.User)
+	user, _ := r.Context().Value(middleware.UserKey).(*models.User)
 	h.logger.Info("Handling request: ", "URL", r.URL, "Query", r.URL.Query())
 
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
@@ -51,7 +52,7 @@ func (h *HomeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	favorites := r.URL.Query().Get("favorites")
 	search := r.URL.Query().Get("search")
 
-	searchPrefs := store.SearchPrefs{
+	searchPrefs := models.SearchPrefs{
 		Sort:       sort,
 		VideosOnly: videosOnly,
 		Favorites:  favorites,

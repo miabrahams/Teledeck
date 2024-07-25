@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 	"goth/internal/config"
-	"goth/internal/fileops/localfile"
+	"goth/internal/controllers"
 	"goth/internal/handlers"
-	"goth/internal/hash/passwordhash"
-	"goth/internal/services"
-	database "goth/internal/store/db"
-	"goth/internal/store/dbstore"
+	"goth/internal/service/files/localfile"
+	"goth/internal/service/hash/passwordhash"
+	database "goth/internal/service/store/db"
+	"goth/internal/service/store/dbstore"
 	"log/slog"
 	"net/http"
 	"os"
@@ -96,7 +96,7 @@ func main() {
 	// twitterScrapeServce := services.NewTwitterScraper()
 
 	mediaFileOperator := localfile.NewLocalMediaFileOperator(cfg.StaticMediaDir, cfg.RecycleDir, logger)
-	mediaService := services.NewMediaService(mediaStore, mediaFileOperator)
+	mediaController := controllers.NewMediaController(mediaStore, mediaFileOperator)
 
 	// telegramService := services.NewTelegramService(cfg.Telegram_API_ID, cfg.Telegram_API_Hash)
 
@@ -113,7 +113,7 @@ func main() {
 	MediaFileServer(r, "/media", http.Dir(mediaDir), logger)
 
 	/* Handlers */
-	MediaHandler := handlers.NewMediaItemHandler(*mediaService)
+	MediaHandler := handlers.NewMediaItemHandler(*mediaController)
 	GlobalHandler := handlers.NewGlobalHandler()
 	// TwitterScrapeHandler := handlers.NewTwitterScrapeHandler(twitterScrapeServce)
 

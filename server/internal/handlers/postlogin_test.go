@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"encoding/base64"
 
-	hashmock "goth/internal/hash/mock"
-	"goth/internal/store"
-	storemock "goth/internal/store/mock"
+	"goth/internal/models"
+	hashmock "goth/internal/service/hash/mock"
+	storemock "goth/internal/service/store/mock"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -17,17 +17,17 @@ import (
 
 func TestLogin(t *testing.T) {
 
-	user := &store.User{ID: 1, Email: "test@example.com", Password: "password"}
+	user := &models.User{ID: 1, Email: "test@example.com", Password: "password"}
 
 	testCases := []struct {
 		name                         string
 		email                        string
 		password                     string
 		expectedStatusCode           int
-		getUserResult                *store.User
+		getUserResult                *models.User
 		comparePasswordAndHashResult bool
 		getUserError                 error
-		createSessionResult          *store.Session
+		createSessionResult          *models.Session
 		expectedCookie               *http.Cookie
 	}{
 		{
@@ -36,7 +36,7 @@ func TestLogin(t *testing.T) {
 			password:                     user.Password,
 			comparePasswordAndHashResult: true,
 			getUserResult:                user,
-			createSessionResult:          &store.Session{UserID: 1, SessionID: "sessionId"},
+			createSessionResult:          &models.Session{UserID: 1, SessionID: "sessionId"},
 			expectedStatusCode:           http.StatusOK,
 			expectedCookie: &http.Cookie{
 				Name:     "session",
@@ -76,7 +76,7 @@ func TestLogin(t *testing.T) {
 			}
 
 			if tc.getUserResult != nil && tc.comparePasswordAndHashResult {
-				sessionStore.On("CreateSession", &store.Session{UserID: tc.getUserResult.ID}).Return(tc.createSessionResult, nil)
+				sessionStore.On("CreateSession", &models.Session{UserID: tc.getUserResult.ID}).Return(tc.createSessionResult, nil)
 			}
 
 			handler := NewPostLoginHandler(PostLoginHandlerParams{

@@ -2,7 +2,7 @@ package dbstore
 
 import (
 	"fmt"
-	"goth/internal/store"
+	"goth/internal/models"
 
 	"log/slog"
 	"strconv"
@@ -18,7 +18,7 @@ type MediaStore struct {
 
 func NewMediaStore(DB *gorm.DB, logger *slog.Logger) *MediaStore {
 	var count int64
-	DB.Model(&store.MediaItem{}).Count(&count)
+	DB.Model(&models.MediaItem{}).Count(&count)
 	return &MediaStore{
 		db:     DB,
 		logger: logger,
@@ -34,13 +34,13 @@ func (e ErrFavorite) Error() string {
 
 func (s *MediaStore) GetTotalMediaItems() int64 {
 	var count int64
-	query := s.db.Model(&store.MediaItem{})
+	query := s.db.Model(&models.MediaItem{})
 	query = query.Where("media_items.user_deleted = false")
 	query.Count(&count)
 	return count
 }
 
-func applySearchFilters(P store.SearchPrefs, query *gorm.DB) *gorm.DB {
+func applySearchFilters(P models.SearchPrefs, query *gorm.DB) *gorm.DB {
 	query = query.Where("media_items.user_deleted = false")
 
 	if P.VideosOnly {
@@ -62,9 +62,9 @@ func applySearchFilters(P store.SearchPrefs, query *gorm.DB) *gorm.DB {
 	return query
 }
 
-func (s *MediaStore) GetMediaItemCount(P store.SearchPrefs) int64 {
+func (s *MediaStore) GetMediaItemCount(P models.SearchPrefs) int64 {
 	var count int64
-	query := s.db.Model(&store.MediaItem{})
+	query := s.db.Model(&models.MediaItem{})
 	query = applySearchFilters(P, query)
 	query.Count(&count)
 	fmt.Printf("Count: %d\n", count)
@@ -72,7 +72,7 @@ func (s *MediaStore) GetMediaItemCount(P store.SearchPrefs) int64 {
 }
 
 func (s *MediaStore) GetMediaWithMetadataQuery() *gorm.DB {
-	query := s.db.Model(&store.MediaItem{}).
+	query := s.db.Model(&models.MediaItem{}).
 		Select("media_items.*, telegram_metadata.*, sources.name as source_name, media_types.type as media_type, channels.title as channel_title").
 		Joins("LEFT JOIN media_types ON media_items.media_type_id = media_types.id").
 		Joins("LEFT JOIN sources ON media_items.source_id = sources.id").
@@ -82,15 +82,15 @@ func (s *MediaStore) GetMediaWithMetadataQuery() *gorm.DB {
 	return query
 }
 
-func (s *MediaStore) GetMediaItem(id string) (*store.MediaItemWithMetadata, error) {
+func (s *MediaStore) GetMediaItem(id string) (*models.MediaItemWithMetadata, error) {
 	// TODO: Handle multiple data sources
-	result := store.MediaItemWithMetadata{}
-	query := s.GetMediaWithMetadataQuery().Where(&store.MediaItem{ID: id})
+	result := models.MediaItemWithMetadata{}
+	query := s.GetMediaWithMetadataQuery().Where(&models.MediaItem{ID: id})
 	err := query.Scan(&result).Error
 	return &result, err
 }
 
-func (s *MediaStore) ToggleFavorite(id string) (*store.MediaItemWithMetadata, error) {
+func (s *MediaStore) ToggleFavorite(id string) (*models.MediaItemWithMetadata, error) {
 	item, err := s.GetMediaItem(id)
 	if err != nil {
 		return nil, err
@@ -107,9 +107,9 @@ func (s *MediaStore) ToggleFavorite(id string) (*store.MediaItemWithMetadata, er
 	return item, nil
 }
 
-func (s *MediaStore) GetPaginatedMediaItems(page, itemsPerPage int, P store.SearchPrefs) ([]store.MediaItemWithMetadata, error) {
+func (s *MediaStore) GetPaginatedMediaItems(page, itemsPerPage int, P models.SearchPrefs) ([]models.MediaItemWithMetadata, error) {
 	offset := (page - 1) * itemsPerPage
-	var mediaItems []store.MediaItemWithMetadata
+	var mediaItems []models.MediaItemWithMetadata
 	query := s.GetMediaWithMetadataQuery()
 
 	switch P.Sort {
@@ -142,14 +142,14 @@ func (s *MediaStore) GetPaginatedMediaItems(page, itemsPerPage int, P store.Sear
 	return mediaItems, err
 }
 
-func (s *MediaStore) GetAllMediaItems() ([]store.MediaItemWithMetadata, error) {
-	var mediaItems []store.MediaItemWithMetadata
+func (s *MediaStore) GetAllMediaItems() ([]models.MediaItemWithMetadata, error) {
+	var mediaItems []models.MediaItemWithMetadata
 	query := s.GetMediaWithMetadataQuery()
 	err := query.Scan(&mediaItems).Error
 	return mediaItems, err
 }
 
-func (s *MediaStore) MarkDeleted(item *store.MediaItem) error {
+func (s *MediaStore) MarkDeleted(item *models.MediaItem) error {
 	if item.Favorite {
 		return ErrFavorite{}
 	}

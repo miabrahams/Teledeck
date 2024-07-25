@@ -1,4 +1,4 @@
-package store
+package models
 
 import (
 	"time"
@@ -15,16 +15,6 @@ type Session struct {
 	SessionID string `gorm:"column:session_id;not null" json:"session_id"`
 	UserID    uint   `gorm:"column:user_id;primaryKey" json:"user_id"`
 	User      User   `gorm:"foreignKey:UserID" json:"user"`
-}
-
-type UserStore interface {
-	CreateUser(email string, password string) error
-	GetUser(email string) (*User, error)
-}
-
-type SessionStore interface {
-	CreateSession(session *Session) (*Session, error)
-	GetUserFromSession(sessionID string, userID string) (*User, error)
 }
 
 type Source struct {
@@ -85,6 +75,11 @@ func (*TelegramMetadatum) TableName() string {
 	return "telegram_metadata"
 }
 
+type Tag struct {
+	ID   int32  `gorm:"column:id;type:INTEGER" json:"id"`
+	Name string `gorm:"column:name;type:VARCHAR" json:"name"`
+}
+
 type TwitterMetadatum struct {
 	MediaItemID string    `gorm:"column:media_item_id;type:VARCHAR(36)" json:"media_item_id"`
 	TweetID     string    `gorm:"column:tweet_id;type:VARCHAR(36)" json:"tweet_id"`
@@ -97,35 +92,4 @@ type TwitterMetadatum struct {
 // TableName TwitterMetadatum's table name
 func (*TwitterMetadatum) TableName() string {
 	return "twitter_metadata"
-}
-
-// TODO: Figure out better handling; look into struct embedding
-type MediaItemWithMetadata struct {
-	MediaItem
-	ChannelID      int       `gorm:"column:channel_id"`
-	MessageID      int       `gorm:"column:message_id"`
-	TelegramFileID int       `gorm:"column:file_id"`
-	FromPreview    int       `gorm:"column:from_preview"`
-	TelegramDate   time.Time `gorm:"column:date"`
-	TelegramText   string    `gorm:"column:text"`
-	TelegramURL    string    `gorm:"column:url"`
-	MediaType      string    `gorm:"column:media_type"`
-	ChannelTitle   string    `gorm:"column:channel_title"`
-}
-
-type SearchPrefs struct {
-	Sort       string
-	Favorites  string
-	VideosOnly bool
-	Search     string
-}
-
-type MediaStore interface {
-	GetTotalMediaItems() int64
-	GetMediaItemCount(P SearchPrefs) int64
-	GetPaginatedMediaItems(page, itemsPerPage int, P SearchPrefs) ([]MediaItemWithMetadata, error)
-	GetAllMediaItems() ([]MediaItemWithMetadata, error)
-	ToggleFavorite(id string) (*MediaItemWithMetadata, error)
-	GetMediaItem(id string) (*MediaItemWithMetadata, error)
-	MarkDeleted(item *MediaItem) error
 }

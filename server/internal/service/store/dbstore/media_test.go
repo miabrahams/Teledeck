@@ -2,7 +2,7 @@ package dbstore
 
 import (
 	"encoding/json"
-	database "goth/internal/store/db"
+	database "goth/internal/service/store/db"
 	"io"
 	"testing"
 

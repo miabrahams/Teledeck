@@ -1,11 +1,11 @@
 package templates
 
 import (
-	"goth/internal/store"
+	"goth/internal/models"
 	"strconv"
 )
 
-templ Gallery(mediaItems []store.MediaItemWithMetadata, currentPage, totalPages int) {
+templ Gallery(mediaItems []models.MediaItemWithMetadata, currentPage, totalPages int) {
 	<div class="media-gallery">
 		for _, item := range mediaItems {
 			@GalleryItem(&item)
@@ -14,7 +14,7 @@ templ Gallery(mediaItems []store.MediaItemWithMetadata, currentPage, totalPages 
 	@Pagination(currentPage, totalPages)
 }
 
-func favoriteClass(item *store.MediaItem) string {
+func favoriteClass(item *models.MediaItem) string {
 	if item.Favorite {
 		return "media-item relative favorite"
 	} else {
@@ -26,7 +26,7 @@ templ EmptyGalleryItem() {
 	<div></div>
 }
 
-func itemID(item *store.MediaItem) string {
+func itemID(item *models.MediaItem) string {
 	return "media-item-" + item.ID
 }
 
@@ -37,7 +37,7 @@ func isVideo(typename string) bool {
 	return typename == "video" || typename == "gif" || typename == "webm" || typename == "document" || typename == "mp4"
 }
 
-templ GalleryItem(item *store.MediaItemWithMetadata) {
+templ GalleryItem(item *models.MediaItemWithMetadata) {
 
     <div
         class={ favoriteClass(&item.MediaItem) }
