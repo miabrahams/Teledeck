@@ -40,15 +40,12 @@ func (s *MediaStore) GetTotalMediaItems() int64 {
 	return count
 }
 
-func applySearchFilters(P models.SearchPrefs, query *gorm.DB) *gorm.DB {
+func (s *MediaStore) applySearchFilters(P models.SearchPrefs, query *gorm.DB) *gorm.DB {
+
 	query = query.Where("media_items.user_deleted = false")
 
 	if P.VideosOnly {
 		query = query.Where("media_types.type = 'video' OR media_types.type = 'gif' OR media_types.type = 'webm'")
-	}
-
-	if P.Search != "" {
-		query = query.Where("media_items.text LIKE ?", "%"+P.Search+"%")
 	}
 
 	switch P.Favorites {
@@ -59,13 +56,21 @@ func applySearchFilters(P models.SearchPrefs, query *gorm.DB) *gorm.DB {
 	default:
 	}
 
+	if P.Search != "" {
+		// query = query.Where("media_items.text LIKE ?", "%"+P.Search+"%")
+
+		matching_tags := s.db.Select("id").Model(&models.Tag{}).Where("name LIKE ?", P.Search+"%")
+		matching_ids := s.db.Select("media_item_id").Model(&models.MediaItemTag{}).Where("tag_id IN (?)", matching_tags).Distinct()
+		query = query.Where("media_items.id IN (?)", matching_ids)
+	}
+
 	return query
 }
 
 func (s *MediaStore) GetMediaItemCount(P models.SearchPrefs) int64 {
 	var count int64
 	query := s.db.Model(&models.MediaItem{})
-	query = applySearchFilters(P, query)
+	query = s.applySearchFilters(P, query)
 	query.Count(&count)
 	fmt.Printf("Count: %d\n", count)
 	return count
@@ -133,7 +138,7 @@ func (s *MediaStore) GetPaginatedMediaItems(page, itemsPerPage int, P models.Sea
 
 	query = query.Order("media_items.id").Offset(offset)
 
-	query = applySearchFilters(P, query)
+	query = s.applySearchFilters(P, query)
 
 	query = query.Limit(itemsPerPage)
 

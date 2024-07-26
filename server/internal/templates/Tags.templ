@@ -13,3 +13,11 @@ templ Tags(tags []models.TagWeight) {
 		}
 	</div>
 }
+
+templ TagsDatalist(tags []models.Tag) {
+	<datalist id="tags">
+		for _, tag := range tags {
+			<option value={tag.Name}></option>
+		}
+	</datalist>
+}

@@ -25,6 +25,7 @@ type MediaStore interface {
 }
 
 type TagsStore interface {
+	GetAllTags() ([]models.Tag, error)
 	GetTagID(name string) (models.Tag, error)
 	GetTagIDs(names []string) ([]models.Tag, error)
 	GetItemTags(itemid string) ([]models.TagWeight, error)

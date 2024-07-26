@@ -45,6 +45,12 @@ func (s *TagsStore) GetItemTags(itemid string) ([]models.TagWeight, error) {
 	return tags, nil
 }
 
+func (s *TagsStore) GetAllTags() ([]models.Tag, error) {
+	tags := []models.Tag{}
+	result := s.db.Model(&models.Tag{}).Find(&tags)
+	return tags, result.Error
+}
+
 func (s *TagsStore) SetItemTags(tags []models.TagWeight, itemid string) error {
 
 	for _, tag := range tags {

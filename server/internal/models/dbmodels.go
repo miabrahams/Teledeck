@@ -29,17 +29,16 @@ type MediaType struct {
 
 // https://stackoverflow.com/questions/36486511/how-do-you-do-uuid-in-golangs-gorm
 type MediaItem struct {
-	ID           string    `gorm:"column:id;type:VARCHAR(36)" json:"id"`
-	SourceID     int       `gorm:"column:source_id;type:INTEGER" json:"source_id"`
-	SequentialID int       `gorm:"column:sequential_id;type:INTEGER;autoincrement" json:"sequential_id"`
-	MediaTypeID  int       `gorm:"column:media_type_id;type:INTEGER" json:"media_type_id"`
-	FileName     string    `gorm:"column:file_name;type:VARCHAR" json:"file_name"`
-	FileSize     int       `gorm:"column:file_size;type:INTEGER" json:"file_size"`
-	CreatedAt    time.Time `gorm:"column:created_at;type:DATETIME" json:"created_at"`
-	UpdatedAt    time.Time `gorm:"column:updated_at;type:DATETIME" json:"updated_at"`
-	Seen         bool      `gorm:"column:seen;type:BOOLEAN" json:"seen"`
-	Favorite     bool      `gorm:"column:favorite;type:BOOLEAN" json:"favorite"`
-	UserDeleted  bool      `gorm:"column:user_deleted;type:BOOLEAN" json:"user_deleted"`
+	ID          string    `gorm:"column:id;type:VARCHAR(36)" json:"id"`
+	SourceID    int       `gorm:"column:source_id;type:INTEGER" json:"source_id"`
+	MediaTypeID int       `gorm:"column:media_type_id;type:INTEGER" json:"media_type_id"`
+	FileName    string    `gorm:"column:file_name;type:VARCHAR" json:"file_name"`
+	FileSize    int       `gorm:"column:file_size;type:INTEGER" json:"file_size"`
+	CreatedAt   time.Time `gorm:"column:created_at;type:DATETIME" json:"created_at"`
+	UpdatedAt   time.Time `gorm:"column:updated_at;type:DATETIME" json:"updated_at"`
+	Seen        bool      `gorm:"column:seen;type:BOOLEAN" json:"seen"`
+	Favorite    bool      `gorm:"column:favorite;type:BOOLEAN" json:"favorite"`
+	UserDeleted bool      `gorm:"column:user_deleted;type:BOOLEAN" json:"user_deleted"`
 }
 
 type Channel struct {

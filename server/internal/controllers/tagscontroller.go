@@ -10,6 +10,7 @@ type TagsController struct {
 	tagsStore   store.TagsStore
 	mediaStore  store.MediaStore
 	tagsService external.TaggingService
+	allTags     []models.Tag
 }
 
 func NewTagsController(tagsStore store.TagsStore, mediaStore store.MediaStore, tagsService external.TaggingService) *TagsController {
@@ -17,18 +18,31 @@ func NewTagsController(tagsStore store.TagsStore, mediaStore store.MediaStore, t
 		tagsStore:   tagsStore,
 		mediaStore:  mediaStore,
 		tagsService: tagsService,
+		allTags:     nil,
 	}
 }
+
+func (c *TagsController) GetAllTags() ([]models.Tag, error) {
+	if c.allTags != nil {
+		return c.allTags, nil
+	}
+	allTags, error := c.tagsStore.GetAllTags()
+	c.allTags = allTags
+	return c.allTags, error
+}
+
 func (c *TagsController) TagImageByID(itemid string, cutoff float32) ([]models.TagWeight, error) {
 	mediaItem, err := c.mediaStore.GetMediaItem(itemid)
 
 	if err != nil {
 		return nil, err
 	}
+	c.allTags = nil
 	return c.TagImageItem(&mediaItem.MediaItem, cutoff)
 }
 
 func (c *TagsController) TagImageItem(item *models.MediaItem, cutoff float32) ([]models.TagWeight, error) {
+	c.allTags = nil
 
 	// TODO: If tags already exist, return them
 

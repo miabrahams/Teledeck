@@ -31,7 +31,7 @@ templ header(title string) {
 templ footer() {
 	<footer class="bg-neutral-200 dark:bg-dark-surface text-neutral-600 dark:text-neutral-400 p-4 mt-8">
 		<div class="main-container text-center">
-			© 2024 Media Gallery
+			© 2024 Teledeck
 		</div>
 	</footer>
 }
@@ -93,6 +93,9 @@ templ nav() {
 						placeholder="Search"
 					></input>
 				</li>
+/* 				<li>
+					@TagsDatalist(tags)
+				</li> */
 			</ol>
 			<ol class="flex space-x-4">
 				if middleware.GetUser(ctx) != nil {
