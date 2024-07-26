@@ -2,8 +2,12 @@ import os
 import hashlib
 import pathlib
 import re
+from os import DirEntry
+from typing import List, Dict, Optional
 
-def get_file_hash(file_path, chunk_size=2 * 1024 * 1024):
+
+
+def get_file_hash(file_path: DirEntry[str], chunk_size: int=2 * 1024 * 1024):
     """Compute SHA-256 hash of a file. If the file is larger than 2MB, only the first 2MB is hashed."""
     hash_sha256 = hashlib.sha256()
     with open(file_path, 'rb') as f:
@@ -12,9 +16,9 @@ def get_file_hash(file_path, chunk_size=2 * 1024 * 1024):
         hash_sha256.update(data)
     return hash_sha256.hexdigest()
 
-def handle_duplicates(file1, file2, file_hash):
-    name1, ext1 = os.path.splitext(file1.name)
-    name2, ext2 = os.path.splitext(file2.name)
+def handle_duplicates(file1: DirEntry[str], file2: DirEntry[str], file_hash: str):
+    name1, _ = os.path.splitext(file1.name)
+    name2, _ = os.path.splitext(file2.name)
     print(f"{name1} and {name2}")
     if name1[0:6] == "photo_" and name2[0:6] == "photo_":
         print("**************PHOTO***************")
@@ -31,7 +35,7 @@ def handle_duplicates(file1, file2, file_hash):
 
 
 
-def delete_lower_number_extension(name1, name2):
+def delete_lower_number_extension(name1: str, name2: str) -> Optional[str]:
     # Try to match documents like '1abq2325b083aW.mp4' '1abq2325b083aW (2).mp4'
     name_re = re.compile(r"^(.+) \(([0-9]+)\)$")
     match1 = re.match(name_re, name1)
@@ -54,14 +58,14 @@ def delete_lower_number_extension(name1, name2):
 
 
 
-def find_duplicates(directory):
+def find_duplicates(directory: str):
     """Find and print duplicates in the specified directory."""
-    files_by_size = {}
-    duplicates = []
+    files_by_size: Dict[int, List[DirEntry[str]]] = {}
+    duplicates: List[str] = []
     n = 0
 
-    raise NotImplementedError("Implement better handling of favorites please!")
 
+    raise NotImplementedError("Implement better handling of favorites please!")
     # Group files by their size
     for item in os.scandir(directory):
         if not item.is_file():
@@ -78,9 +82,9 @@ def find_duplicates(directory):
 
     # Compare files with the same size using SHA-256
     d = 0
-    for size, same_size_files in files_by_size.items():
+    for _, same_size_files in files_by_size.items():
         if len(same_size_files) > 1:
-            hashes = {}
+            hashes: Dict[str, DirEntry[str]] = {}
             for file in same_size_files:
                 try:
                     file_hash = get_file_hash(file)
