@@ -8,33 +8,33 @@ from telethon.tl.types import (
     InputChannel,
     PeerChannel,
     InputPeerChannel,
-    Photo,
     Document,
+    DialogFilter,
     TypeMessageMedia,
     InputMessagesFilterUrl,
     InputMessagesFilterVideo,
+    ExportedMessageLink
 )
-from telethon.tl.types.messages import DialogFilters
-from telethon.helpers import TotalList
 from telethon.errors import FloodWaitError
-from telethon.tl.types.messages import ChatFull as ChatFullMessage, WebPage
+from telethon.tl.types.messages import ChatFull as ChatFullMessage, WebPage, DialogFilters
 from tqdm import tqdm
 from dotenv import load_dotenv
 from typing import AsyncGenerator, Coroutine, List, Dict, Any, NoReturn, Optional, Tuple, cast, AsyncIterable
-import os
+from os import environ
+import pathlib
 import asyncio
 import json
 import uuid
 from datetime import datetime
-from sqlmodel import create_engine, Session, select
+from sqlmodel import create_engine, Session, select, Column, Integer
 from models.telegram import MediaItem, MediaType, Channel as ChannelModel, TelegramMetadata
 
 engine = create_engine("sqlite:///teledeck.db", pool_timeout=60)
 
 load_dotenv()  # take environment variables from .env.
-api_id = os.environ["TG_API_ID"]
-api_hash = os.environ["TG_API_HASH"]
-phone = os.environ["TG_PHONE"]
+api_id = environ["TG_API_ID"]
+api_hash = environ["TG_API_HASH"]
+phone = environ["TG_PHONE"]
 session_file = "user"
 
 QueueItem = Tuple[Channel, Message]
@@ -42,9 +42,10 @@ MessageTaskQueue = asyncio.Queue[QueueItem]
 Downloadable = Document | File
 
 # Paths
-MEDIA_PATH = "./static/media/"
-DB_PATH = "./teledeck.db"
-UPDATE_PATH = "./data/update_info"
+MEDIA_PATH = pathlib.Path("./static/media/")
+ORPHAN_PATH = pathlib.Path("./recyclebin/orphan/")
+DB_PATH = pathlib.Path("./teledeck.db")
+UPDATE_PATH = pathlib.Path("./data/update_info")
 NEST_TQDM = True
 DEFAULT_FETCH_LIMIT = 65
 
@@ -128,28 +129,36 @@ class DownloadProgressBar(tqdm):
         self.update(current - self.n)
 
 
-async def download_media(ctx: TLContext, downloadable: Downloadable) -> str | bytes | None:
+async def download_media(ctx: TLContext, downloadable: Message | TypeMessageMedia | Document) -> Optional[pathlib.Path]:
     if NEST_TQDM:
         with DownloadProgressBar(unit="B", unit_scale=True, desc="Download") as pb:
-            return await ctx.tclient.download_media(downloadable, MEDIA_PATH, progress_callback=pb.update_to)
+            result = await ctx.tclient.download_media(downloadable, str(MEDIA_PATH), progress_callback=pb.update_to)
     else:
-        return await ctx.tclient.download_media(downloadable, MEDIA_PATH)
+        result = await ctx.tclient.download_media(downloadable, str(MEDIA_PATH))
+
+    if isinstance(result, str):
+        return pathlib.Path(result)
+    return None
 
 
 def save_to_json(data: Any):
-    os.makedirs(UPDATE_PATH, exist_ok=True)
+    UPDATE_PATH.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M")
     unique_id = str(uuid.uuid4())[:4]
-    filename = os.path.join(UPDATE_PATH, f"data_{timestamp}_{unique_id}.json")
+    filename = UPDATE_PATH / f"data_{timestamp}_{unique_id}.json"
+
     with open(filename, "w") as f:
         json.dump(data, f)
 
     return filename
 
 
-async def get_message_link(ctx: TLContext, channel: InputChannel, message: Message) -> str:
+async def get_message_link(ctx: TLContext, channel: InputChannel, message: Message) -> Optional[ExportedMessageLink]:
     messageLinkRequest = functions.channels.ExportMessageLinkRequest(channel, message.id)
-    return await ctx.tclient(messageLinkRequest)
+    result: Any = await ctx.tclient(messageLinkRequest)
+    if isinstance(result, ExportedMessageLink):
+        return result
+    return None
 
 def find_web_preview(message: Message) -> (Tuple[Document, int, int] | None):
 
@@ -192,9 +201,9 @@ def extract_media(ctx: TLContext, message: Message) -> Tuple[Downloadable, int, 
 async def extract_forwards(ctx: TLContext, forward: Forward) -> None:
     if forward.is_channel:
         # fwd_channel: Channel = await forward.get_input_chat()
-        fwd_channel = await ctx.tclient.get_entity(forward.chat_id)
+        fwd_channel = await ctx.tclient.get_entity(getattr(forward, "chat_id"))
         if not isinstance(fwd_channel, Channel):
-            print(f"*************Unexpected non-channel forward: {forward.chat_id}")
+            print(f"*************Unexpected non-channel forward: {getattr(forward, 'chat_id')}")
             return
 
         with Session(ctx.engine) as session:
@@ -209,9 +218,10 @@ async def extract_forwards(ctx: TLContext, forward: Forward) -> None:
 
 async def process_message(ctx: TLContext, message: Message, channel: Channel) -> None:
 
-    if getattr(message, "forward", None):
+    forward = getattr(message, "forward")
+    if isinstance(forward, Forward):
         print(f"Found forward: {message.id}")
-        await extract_forwards(ctx, message.forward)
+        await extract_forwards(ctx, forward)
 
     extracted = extract_media(ctx, message)
     if not extracted:
@@ -239,73 +249,74 @@ async def process_message(ctx: TLContext, message: Message, channel: Channel) ->
         print(f"Skipping download for existing file_id: {file_id}")
         return
 
-    mime_type = download_target.mime_type
-    if not mime_type:
-        print(download_target.stringify())
-        raise ValueError("No MIME info.")
+
     if isinstance(download_target, Document):
+        mime_type = download_target.mime_type
         file_path = await download_media(ctx, download_target)
     else:
+        mime_type = download_target.mime_type
         file_path = await download_media(ctx, download_target.media)
     if not file_path:
         print(download_target)
         raise ValueError(f"Failed to download file: {file_id}")
-    file_name: str = os.path.basename(str(file_path))
-    filestat = os.stat(file_path)
-    file_size = filestat.st_size
 
+    file_path = pathlib.Path(file_path)
+    new_item_id = uuid.uuid4().hex
+    file_name = file_path.parts[-1]
+    file_size = file_path.stat().st_size
+
+    if mime_type is None:
+        print("WARNING: No MIME info.")
+        mime_type = "unknown/unknown"
 
     [mtype, _] = mime_type.split("/")
-
-    match mtype:
-        case "video":
-            media_type = "video"
-        case "image":
-            media_type = "image"
-        case _:
-            media_type = None
+    media_type = {"video": "video", "image": "image"}.get(mtype, None)
 
     if media_type is None:
         if message.photo:
             media_type = "photo"
         else:
             media_type = "document"
-            raise ValueError(f"Unknown media type: {mime_type}")
+    print(f"mime_type: {mime_type}   -  Media type: {media_type}")
 
-    with Session(engine) as session:
-        media_type_id = session.exec(select(MediaType).where(MediaType.type == media_type)).first().id
-
-    print(f"Media type: {media_type} media_type_id: {media_type_id}")
-    new_item_id = uuid.uuid4()
-    with Session(engine) as session:
-        session.add(
-            MediaItem(
-                id = new_item_id.hex,
-                created_at=datetime.now(),
-                updated_at=datetime.now(),
-                source_id=1,
-                seen = False,
-                media_type_id=media_type_id,
-                file_size=file_size,
-                file_name=file_name,
+    try:
+        with Session(engine) as session:
+            media_type_query = session.exec(select(MediaType).where(MediaType.type == media_type)).first()
+            if not media_type_query:
+                raise ValueError(f"Media type not found: {media_type}")
+            session.add(
+                MediaItem(
+                    id = new_item_id,
+                    created_at=datetime.now(),
+                    updated_at=datetime.now(),
+                    source_id=1,
+                    seen = False,
+                    media_type_id=media_type_query.id,
+                    file_size=file_size,
+                    file_name=file_name,
+                )
             )
-        )
 
-        session.add(
-            TelegramMetadata(
-                media_item_id = new_item_id.hex,
-                file_id=file_id,
-                channel_id=channel.id,
-                date=message.date,
-                text=message.text,
-                url=f"/media/{file_name}",
-                message_id=message.id,
-                from_preview=from_preview,
+            session.add(
+                TelegramMetadata(
+                    media_item_id = new_item_id,
+                    file_id=file_id,
+                    channel_id=channel.id,
+                    date=getattr(message, "date", datetime.now()),
+                    text=getattr(message, "text", ""),
+                    url=f"/media/{file_name}",
+                    message_id=message.id,
+                    from_preview=from_preview,
+                )
             )
-        )
 
-        session.commit()
-        # await message.mark_read()
+            session.commit()
+    except Exception as e:
+        print(f"Database insertion failed: {e}")
+        file_path.rename(ORPHAN_PATH / file_name)
+        print(f"Moved {file_name} to orphans directory.")
+
+    await message.mark_read()
 
 
 async def message_task_wrapper(ctx: TLContext, message: Message, channel: Channel):
@@ -335,13 +346,14 @@ def get_all_videos(ctx: TLContext, channel: Channel):
 
 
 async def get_unread_messages(ctx: TLContext, channel: Channel) -> AsyncIterable[Message]:
-    full: Any = await ctx.tclient(functions.channels.GetFullChannelRequest(channel))
+    full: Any = await ctx.tclient(functions.channels.GetFullChannelRequest(cast(InputChannel, channel)))
     if not isinstance(full, ChatFullMessage):
         raise ValueError("Full channel cannot be retrieved")
     full_channel = full.full_chat
-    if not isinstance(full_channel.unread_count, int):
+    unread_count = getattr(full_channel, "unread_count")
+    if not isinstance(unread_count, int):
         raise ValueError("Unread count not available: ", full_channel.stringify())
-    return ctx.tclient.iter_messages(channel, limit=full_channel.unread_count)
+    return ctx.tclient.iter_messages(channel, limit=unread_count)
 
 
 def get_new_messages(ctx: TLContext, channel: Channel, limit: int):
@@ -349,7 +361,7 @@ def get_new_messages(ctx: TLContext, channel: Channel, limit: int):
         query = (
             select(TelegramMetadata.message_id)
             .where(TelegramMetadata.channel_id == channel.id)
-            .order_by(TelegramMetadata.message_id.desc())  # Find the last message_id
+            .order_by(Column("message_id", Integer).desc())  # Find the last message_id
         )
         last_seen_post = session.exec(query).first()
 
@@ -365,7 +377,7 @@ def get_earlier_messages(ctx: TLContext, channel: Channel, limit: int):
         query = (
             select(TelegramMetadata.message_id)
             .where(TelegramMetadata.channel_id == channel.id)
-            .order_by(TelegramMetadata.message_id)
+            .order_by(Column("message_id", Integer))
         )
         oldest_seen_post = session.exec(query).first()
 
@@ -377,23 +389,23 @@ def get_earlier_messages(ctx: TLContext, channel: Channel, limit: int):
 
 
 async def get_target_channels(ctx: TLContext) -> List[Channel]:
-    chat_folders = await ctx.tclient(functions.messages.GetDialogFiltersRequest())
+    chat_folders: Any  = await ctx.tclient(functions.messages.GetDialogFiltersRequest())
     if not isinstance(chat_folders, DialogFilters):
         raise ValueError("Could not find folders")
 
     try:
         media_folder = next(
-            (folder for folder in chat_folders.filters if getattr(folder, "title", "") == "MediaView")
+            (folder for folder in chat_folders.filters if isinstance(folder, DialogFilter) and folder.title == "MediaView")
         )
     except StopIteration:
         raise NameError("MediaView folder not found.")
 
-    target_channels = await asyncio.gather(
-        *[ctx.tclient.get_entity(peer) for peer in media_folder.include_peers if isinstance(peer, InputPeerChannel)]
-    )
+    peer_channels = [peer for peer in media_folder.include_peers if isinstance(peer, InputPeerChannel)]
+
+    target_channels = await asyncio.gather( *[ctx.tclient.get_entity(peer) for peer in peer_channels])
     print(f"{len(target_channels)} channels found")
 
-    return target_channels
+    return cast(List[Channel], target_channels)
 
 
 async def message_task_producer(ctx: TLContext, channels: List[Channel], queue: MessageTaskQueue) -> int:
