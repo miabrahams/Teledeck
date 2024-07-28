@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"goth/internal/config"
 	"goth/internal/controllers"
 	"goth/internal/handlers"
@@ -15,16 +16,11 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
 	m "goth/internal/middleware"
-
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
-
-	"path/filepath"
-	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -41,24 +37,28 @@ func init() {
 
 // FileServer conveniently sets up a http.FileServer handler to serve
 // static files from a http.FileSystem.
-func MediaFileServer(r chi.Router, path string, root http.FileSystem, logger *slog.Logger) {
+func MediaFileServer(mux *http.ServeMux, path string, root http.FileSystem) {
 	if strings.ContainsAny(path, "{}*") {
 		panic("FileServer does not permit any URL parameters.")
 	}
 
+	// Ensure path ends with "/"
 	if path != "/" && path[len(path)-1] != '/' {
-		r.Get(path, http.RedirectHandler(path+"/", http.StatusMovedPermanently).ServeHTTP)
+		mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
+			fmt.Println("~~~~URL Path: ", r.URL.Path)
+			http.Redirect(w, r, path+"/", http.StatusMovedPermanently)
+		})
 		path += "/"
 	}
 	path += "*"
 
 	rootServer := http.FileServer(root)
 
-	r.Get(path, func(w http.ResponseWriter, r *http.Request) {
-		rctx := chi.RouteContext(r.Context())
-		pathPrefix := strings.TrimSuffix(rctx.RoutePattern(), "/*")
-		fs := http.StripPrefix(pathPrefix, rootServer)
-		fs.ServeHTTP(w, r)
+	mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
+		r.URL.Path = strings.TrimSuffix(r.URL.Path, path)
+		fmt.Println("~~~~URL Path: ", r.URL.Path)
+		fmt.Println("Root: " + path)
+		rootServer.ServeHTTP(w, r)
 	})
 }
 
@@ -70,7 +70,9 @@ func main() {
 		return
 	}
 
-	r := chi.NewRouter()
+	htmlMux := http.NewServeMux()
+	staticMux := http.NewServeMux()
+	globalMux := http.NewServeMux()
 
 	cfg := config.MustLoadConfig()
 
@@ -98,6 +100,7 @@ func main() {
 	/* External services */
 	// twitterScrapeServce := services.NewTwitterScraper()
 	// telegramService := services.NewTelegramService(cfg.Telegram_API_ID, cfg.Telegram_API_Hash)
+
 	// TODO: Handle gracefully if service is unavailable
 	taggingService := external.NewTaggingService(logger, cfg.TagServicePort)
 
@@ -110,79 +113,86 @@ func main() {
 	mediaItemMiddleware := m.NewMediaItemMiddleware(mediaController)
 
 	/* Serve static media */
-	fileServer := http.FileServer(http.Dir(cfg.StaticDir))
-	r.Handle("/static/*", http.StripPrefix("/static/", fileServer))
+	MediaFileServer(staticMux, "/static/", http.Dir(cfg.StaticDir))
 
-	workDir, _ := os.Getwd()
-	mediaDir := filepath.Join(workDir, cfg.StaticMediaDir, "media") // Adjust this path as needed
-	logger.Info("downloadsDir", "dir", http.Dir(mediaDir))
-	MediaFileServer(r, "/media", http.Dir(mediaDir), logger)
+	MediaFileServer(staticMux, "/media/", http.Dir(cfg.StaticMediaDir))
 
 	/* Handlers */
 	GlobalHandler := handlers.NewGlobalHandler()
 	MediaHandler := handlers.NewMediaItemHandler(*mediaController)
 	TagsHandler := handlers.NewTagsHandler(*tagsController)
+	homeHandler := handlers.NewHomeHandler(handlers.NewHomeHandlerParams{
+		MediaStore: mediaStore,
+		Logger:     logger})
+	notFoundHandler := handlers.NewNotFoundHandler()
 	// TwitterScrapeHandler := handlers.NewTwitterScrapeHandler(twitterScrapeServce)
 
-	r.Group(func(r chi.Router) {
-		r.Use(
-			middleware.Logger,
-			m.TextHTMLMiddleware,
-			m.CSPMiddleware,
-			authMiddleware.AddUserToContext,
-			m.WithLogger(logger),
-		)
+	/* text/plain */
+	// 404
+	htmlMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		logger.Info("home", slog.String("path", r.URL.Path))
+		if r.URL.Path != "/" {
+			notFoundHandler.ServeHTTP(w, r)
+			logger.Info("404", slog.String("path", r.URL.Path))
 
-		r.NotFound(handlers.NewNotFoundHandler().ServeHTTP)
-
-		r.Get("/", handlers.NewHomeHandler(handlers.NewHomeHandlerParams{
-			MediaStore: mediaStore,
-			Logger:     logger,
-		}).ServeHTTP)
-
-		r.Get("/about", GlobalHandler.GetAbout)
-		r.Get("/register", GlobalHandler.GetRegister)
-		r.Get("/login", GlobalHandler.GetLogin)
-
-		r.Post("/register", handlers.NewPostRegisterHandler(handlers.PostRegisterHandlerParams{
-			UserStore: userStore,
-		}).ServeHTTP)
-
-		// r.Get("/scrape", TwitterScrapeHandler.ScrapeUser)
-		r.Route("/tags/{mediaItemID}", func(r chi.Router) {
-			r.Use(mediaItemMiddleware)
-			r.Get("/", TagsHandler.GetTagsImage)
-			r.Get("/generate", TagsHandler.GenerateTagsImage)
-		})
-
-		r.Route("/mediaItem/{mediaItemID}", func(r chi.Router) {
-			r.Use(mediaItemMiddleware)
-			r.Get("/", MediaHandler.GetMediaItem)
-			r.Delete("/", MediaHandler.RecycleMediaItem)
-			r.Post("/favorite", MediaHandler.PostFavorite)
-			r.Delete("/favorite", MediaHandler.DeleteFavorite)
-		})
-
-		r.Post("/login", handlers.NewPostLoginHandler(handlers.PostLoginHandlerParams{
-			UserStore:         userStore,
-			SessionStore:      sessionStore,
-			PasswordHash:      passwordhash,
-			SessionCookieName: cfg.SessionCookieName,
-		}).ServeHTTP)
-
-		r.Post("/logout", handlers.NewPostLogoutHandler(handlers.PostLogoutHandlerParams{
-			SessionCookieName: cfg.SessionCookieName,
-		}).ServeHTTP)
+		} else {
+			homeHandler.ServeHTTP(w, r)
+		}
 	})
+	logger.Info("Hi!")
+
+	htmlMux.HandleFunc("GET /about", GlobalHandler.GetAbout)
+	// r.Get("/scrape", TwitterScrapeHandler.ScrapeUser)
+
+	// Tags routes
+	tagsRouter := http.NewServeMux()
+	tagsRouter.HandleFunc("GET /", TagsHandler.GetTagsImage)
+	tagsRouter.HandleFunc("GET /generate", TagsHandler.GenerateTagsImage)
+	htmlMux.Handle("/tags/", mediaItemMiddleware(http.StripPrefix("/tags", tagsRouter)))
+
+	// Media Item routes
+	mediaItemRouter := http.NewServeMux()
+	mediaItemRouter.HandleFunc("GET /{mediaItemID}", MediaHandler.GetMediaItem)
+	mediaItemRouter.HandleFunc("DELETE /{mediaItemID}", MediaHandler.RecycleMediaItem)
+	mediaItemRouter.HandleFunc("POST /{mediaItemID}/favorite", MediaHandler.PostFavorite)
+	mediaItemRouter.HandleFunc("DELETE /{mediaItemID}/favorite", MediaHandler.DeleteFavorite)
+	htmlMux.Handle("/mediaItem/", mediaItemMiddleware(http.StripPrefix("/mediaItem", mediaItemRouter)))
+
+	// Auth routes
+	htmlMux.HandleFunc("GET /register", GlobalHandler.GetRegister)
+	htmlMux.HandleFunc("GET /login", GlobalHandler.GetLogin)
+	htmlMux.HandleFunc("POST /register", handlers.NewPostRegisterHandler(handlers.PostRegisterHandlerParams{
+		UserStore: userStore,
+	}).ServeHTTP)
+
+	htmlMux.HandleFunc("POST /login", handlers.NewPostLoginHandler(handlers.PostLoginHandlerParams{
+		UserStore:         userStore,
+		SessionStore:      sessionStore,
+		PasswordHash:      passwordhash,
+		SessionCookieName: cfg.SessionCookieName,
+	}).ServeHTTP)
+
+	htmlMux.HandleFunc("POST /logout", handlers.NewPostLogoutHandler(handlers.PostLogoutHandlerParams{
+		SessionCookieName: cfg.SessionCookieName,
+	}).ServeHTTP)
+
+	// Apply middleware
+	htmlHandler := m.TextHTMLMiddleware(htmlMux)
+	htmlHandler = m.CSPMiddleware(htmlHandler)
+	htmlHandler = authMiddleware.AddUserToContext(htmlHandler)
+	htmlHandler = m.WithLogger(logger)(htmlHandler)
+
+	globalMux.Handle("/static/", staticMux)
+	globalMux.Handle("/media/", staticMux)
+	globalMux.Handle("/", htmlHandler)
 
 	// Listen for kill signal
 	killSig := make(chan os.Signal, 1)
-
 	signal.Notify(killSig, os.Interrupt, syscall.SIGTERM)
 
 	srv := &http.Server{
 		Addr:    "0.0.0.0" + cfg.Port,
-		Handler: r,
+		Handler: globalMux,
 	}
 
 	go func() {

@@ -4,8 +4,6 @@ import (
 	"context"
 	"goth/internal/controllers"
 	"net/http"
-
-	"github.com/go-chi/chi/v5"
 )
 
 type ContextKey string
@@ -18,7 +16,7 @@ func NewMediaItemMiddleware(controller *controllers.MediaController) func(http.H
 	c := controller
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			id := chi.URLParam(r, "mediaItemID")
+			id := r.PathValue("mediaItemID")
 
 			mediaItem, err := c.GetMediaItem(id)
 			if err != nil {

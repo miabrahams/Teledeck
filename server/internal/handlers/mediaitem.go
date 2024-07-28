@@ -6,8 +6,6 @@ import (
 	"goth/internal/models"
 	"goth/internal/templates"
 	"net/http"
-
-	"github.com/go-chi/chi/v5"
 )
 
 type MediaItemHandler struct {
@@ -54,7 +52,7 @@ func (h *MediaItemHandler) PostFavorite(w http.ResponseWriter, r *http.Request) 
 
 func (h *MediaItemHandler) DeleteFavorite(w http.ResponseWriter, r *http.Request) {
 	logger := m.GetLogger(r.Context())
-	id := chi.URLParam(r, "id")
+	id := r.PathValue("id")
 	logger.Info("Toggling favorite", "id", id)
 	item, err := h.controller.ToggleFavorite(id)
 	if err != nil {
