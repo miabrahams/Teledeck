@@ -1,13 +1,11 @@
-from telethon import functions
-from telethon.client.telegramclient import TelegramClient
-from telethon.tl.custom.message import Message
-from telethon.tl.custom.file import File
-from telethon.tl.custom.forward import Forward
-from telethon.tl.types import (
+from telethon import functions # type: ignore
+from telethon.client.telegramclient import TelegramClient # type: ignore
+from telethon.tl.custom.message import Message # type: ignore
+from telethon.tl.custom.file import File # type: ignore
+from telethon.tl.custom.forward import Forward # type: ignore
+from telethon.tl.types import ( # type: ignore
     Channel,
     InputChannel,
-    TypeInputPeer,
-    TypePeer,
     InputPeerChannel,
     Document,
     DialogFilter,
@@ -16,12 +14,12 @@ from telethon.tl.types import (
     InputMessagesFilterVideo,
     ExportedMessageLink
 )
-from telethon.hints import Entity
-from telethon.errors import FloodWaitError
-from telethon.tl.types.messages import ChatFull as ChatFullMessage, WebPage, DialogFilters
+from telethon.hints import Entity # type: ignore
+from telethon.errors import FloodWaitError # type: ignore
+from telethon.tl.types.messages import ChatFull as ChatFullMessage, WebPage, DialogFilters # type: ignore
 from tqdm import tqdm
 from dotenv import load_dotenv
-from typing import AsyncGenerator, Coroutine, List, Dict, Any, NoReturn, Optional, Tuple, cast, AsyncIterable
+from typing import AsyncGenerator, Coroutine, List, Any, NoReturn, Optional, Tuple, cast, AsyncIterable
 from os import environ
 import pathlib
 import asyncio
@@ -132,15 +130,16 @@ async def process_with_backoff(callback: Coroutine[Any, Any, None], task_label: 
                     return
 
 
-class DownloadProgressBar(tqdm):
+class DownloadProgressBar(tqdm): # type: ignore
     def __init__(self, *args: Any, **kwargs: Any):
-        super().__init__(*args, **kwargs, leave=False)
+        super().__init__(*args, **kwargs, leave=False) # type: ignore
 
     def update_to(self, current: int, total: int):
         self.total = total
         self.update(current - self.n)
 
 
+# download_media accepts Message, Media or Document. (Jul 2024)
 async def download_media(ctx: TLContext, downloadable: Message | TypeMessageMedia | Document) -> Optional[pathlib.Path]:
     if NEST_TQDM:
         with DownloadProgressBar(unit="B", unit_scale=True, desc="Download") as pb:
