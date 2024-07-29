@@ -92,3 +92,12 @@ type TwitterMetadatum struct {
 func (*TwitterMetadatum) TableName() string {
 	return "twitter_metadata"
 }
+
+type ImageScore struct {
+	MediaItemID string  `gorm:"column:media_item_id;type:VARCHAR(36)"`
+	Score       float32 `gorm:"column:score"`
+}
+
+func (*ImageScore) TableName() string {
+	return "aesthetic_score"
+}

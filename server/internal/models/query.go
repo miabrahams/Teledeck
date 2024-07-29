@@ -27,3 +27,7 @@ type TagWeight struct {
 	Name   string  `gorm:"column:name" json:"tag"`
 	Weight float32 `gorm:"column:weight" json:"prob"`
 }
+
+type ScoreResult struct {
+	Score float32 `json:"score"`
+}

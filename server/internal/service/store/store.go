@@ -31,3 +31,8 @@ type TagsStore interface {
 	GetItemTags(itemid string) ([]models.TagWeight, error)
 	SetItemTags(weights []models.TagWeight, itemid string) error
 }
+
+type AestheticsStore interface {
+	GetImageScore(id string) (float32, error)
+	SetImageScore(id string, score float32) error
+}
