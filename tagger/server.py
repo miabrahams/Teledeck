@@ -9,8 +9,9 @@ import torch
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from PIL import Image
 from pydantic import BaseModel
-from torchvision.transforms import transforms
+from torchvision.transforms import transforms # type: ignore
 from dotenv import load_dotenv
+from typing import Any
 
 load_dotenv()
 
@@ -24,14 +25,17 @@ class PredictionResult(BaseModel):
 
 
 class Tagger:
-    model: torch.nn.Module = None
-    allowed_tags: List[str] = None
-    transform: transforms.Compose = None
+    model: torch.nn.Module
+    allowed_tags: List[str]
+    transform: transforms.Compose
 
 
     def __init__(self):
         print("Loading model.")
-        self.model = torch.load(os.path.join(MODEL_PATH, "model.pth")).to("cuda")
+        loadedModel: Any = torch.load(os.path.join(MODEL_PATH, "model.pth")).to("cuda") # type: ignore
+        if not isinstance(loadedModel, torch.nn.Module):
+            raise ValueError("Model failed to load.")
+        self.model = loadedModel
         self.model.eval()
 
         with open(os.path.join(MODEL_PATH, "tags_8041.json"), "r") as file:
@@ -57,14 +61,12 @@ class Tagger:
             ]
         )
 
-    async def load_model():
-        pass
 
 
-    def run_inference(self, img: Image, cutoff = 0.3):
+    def run_inference(self, img: Image.Image, cutoff: float = 0.3):
         start = time.time()
 
-        tensor = self.transform(img).unsqueeze(0).to("cuda")
+        tensor = self.transform(img).unsqueeze(0).to("cuda") # type: ignore
         with torch.no_grad():
             out = self.model(tensor)
         probabilities = torch.nn.functional.sigmoid(out[0])
@@ -86,11 +88,14 @@ app = FastAPI()
 @app.post("/predict/file", response_model=List[PredictionResult])
 async def predict(file: UploadFile = File(...), cutoff: float = 0.3):
     # Process uploaded image
-    contents = await file.read()
-    img = Image.open(BytesIO(contents)).convert("RGB")
-
-    results = TAGGER.run_inference(img)
-    results = results.where(lambda x: x.probability > cutoff)
+    try:
+        contents = await file.read()
+        img = Image.open(BytesIO(contents)).convert("RGB")
+        results = TAGGER.run_inference(img, cutoff)
+    except Exception as e:
+        print("Error processing image")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
 
     return results
 
@@ -106,7 +111,7 @@ async def predict_url(image_path: str, cutoff: float = 0.3):
         results = TAGGER.run_inference(img, cutoff)
     except Exception as e:
         print("Error processing image")
-        print(traceback.format_exc(e))
+        print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
     return results
