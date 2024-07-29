@@ -86,6 +86,14 @@ templ GalleryItem(item *models.MediaItemWithMetadata) {
 			>
 				Favorite
 			</button>
+			<button
+				hx-trigger="click"
+				hx-swap="innerHTML"
+				hx-get={ "/score/" + item.ID + "/generate" }
+				class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded favorite-button"
+			>
+				Score
+			</button>
 		</div>
 	</div>
 }

@@ -94,34 +94,38 @@ func main() {
 	mediaStore := dbstore.NewMediaStore(db, logger)
 
 	tagsStore := dbstore.NewTagsStore(db, logger)
+	aestheticsStore := dbstore.NewAestheticsStore(db, logger)
+
+	/* Static file paths */
+	workDir, _ := os.Getwd()
+	mediaDir := filepath.Join(workDir, cfg.StaticMediaDir, "media") // Adjust this path as needed
+	logger.Info("downloadsDir", "dir", http.Dir(mediaDir))
+	fileServer := http.FileServer(http.Dir(cfg.StaticDir))
+	r.Handle("/static/*", http.StripPrefix("/static/", fileServer))
+
+	MediaFileServer(r, "/media", http.Dir(mediaDir), logger)
 
 	/* External services */
 	// twitterScrapeServce := services.NewTwitterScraper()
 	// telegramService := services.NewTelegramService(cfg.Telegram_API_ID, cfg.Telegram_API_Hash)
 	// TODO: Handle gracefully if service is unavailable
 	taggingService := external.NewTaggingService(logger, cfg.TagServicePort)
+	aestheticsService := external.NewAestheticsService(logger, cfg.TagServicePort)
 
 	mediaFileOperator := localfile.NewLocalMediaFileOperator(cfg.StaticMediaDir, cfg.RecycleDir, logger)
-	mediaController := controllers.NewMediaController(mediaStore, mediaFileOperator)
+	mediaController := controllers.NewMediaController(mediaStore, mediaFileOperator, mediaDir)
 	tagsController := controllers.NewTagsController(tagsStore, mediaStore, taggingService)
+	scoreController := controllers.NewAestheticsController(aestheticsStore, mediaController, aestheticsService)
 
 	// Middleware
 	authMiddleware := m.NewAuthMiddleware(sessionStore, cfg.SessionCookieName)
 	mediaItemMiddleware := m.NewMediaItemMiddleware(mediaController)
 
-	/* Serve static media */
-	fileServer := http.FileServer(http.Dir(cfg.StaticDir))
-	r.Handle("/static/*", http.StripPrefix("/static/", fileServer))
-
-	workDir, _ := os.Getwd()
-	mediaDir := filepath.Join(workDir, cfg.StaticMediaDir, "media") // Adjust this path as needed
-	logger.Info("downloadsDir", "dir", http.Dir(mediaDir))
-	MediaFileServer(r, "/media", http.Dir(mediaDir), logger)
-
 	/* Handlers */
 	GlobalHandler := handlers.NewGlobalHandler()
 	MediaHandler := handlers.NewMediaItemHandler(*mediaController)
 	TagsHandler := handlers.NewTagsHandler(*tagsController)
+	ScoreHandler := handlers.NewScoreHandler(*scoreController)
 	// TwitterScrapeHandler := handlers.NewTwitterScrapeHandler(twitterScrapeServce)
 
 	r.Group(func(r chi.Router) {
@@ -153,6 +157,12 @@ func main() {
 			r.Use(mediaItemMiddleware)
 			r.Get("/", TagsHandler.GetTagsImage)
 			r.Get("/generate", TagsHandler.GenerateTagsImage)
+		})
+
+		r.Route("/score/{mediaItemID}", func(r chi.Router) {
+			r.Use(mediaItemMiddleware)
+			r.Get("/", ScoreHandler.GetImageScore)
+			r.Get("/generate", ScoreHandler.GenerateImageScore)
 		})
 
 		r.Route("/mediaItem/{mediaItemID}", func(r chi.Router) {

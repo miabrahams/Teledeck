@@ -7,14 +7,16 @@ import (
 )
 
 type MediaController struct {
-	store   store.MediaStore
-	fileOps files.LocalFileOperator
+	store    store.MediaStore
+	fileOps  files.LocalFileOperator
+	fileRoot string
 }
 
-func NewMediaController(store store.MediaStore, fileOps files.LocalFileOperator) *MediaController {
+func NewMediaController(store store.MediaStore, fileOps files.LocalFileOperator, fileRoot string) *MediaController {
 	return &MediaController{
-		store:   store,
-		fileOps: fileOps,
+		store:    store,
+		fileOps:  fileOps,
+		fileRoot: fileRoot,
 	}
 }
 
@@ -24,6 +26,10 @@ func (s *MediaController) RecycleMediaItem(mediaItem models.MediaItem) error {
 	}
 
 	return s.fileOps.Recycle(mediaItem.FileName)
+}
+
+func (s *MediaController) GetAbsolutePath(mediaItem *models.MediaItem) string {
+	return s.fileRoot + "/" + mediaItem.FileName
 }
 
 func (s *MediaController) GetTotalMediaItems() int64 {

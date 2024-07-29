@@ -1,0 +1,12 @@
+package templates
+
+import (
+    "fmt"
+)
+
+
+templ Score(score float32) {
+	<div class="Score">
+		{fmt.Sprintf("%.2f", score)}
+	</div>
+}

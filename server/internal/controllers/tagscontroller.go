@@ -44,8 +44,6 @@ func (c *TagsController) TagImageByID(itemid string, cutoff float32) ([]models.T
 func (c *TagsController) TagImageItem(item *models.MediaItem, cutoff float32) ([]models.TagWeight, error) {
 	c.allTags = nil
 
-	// TODO: If tags already exist, return them
-
 	// TODO: Configure file paths
 	tags, err := c.tagsService.TagImage("static/media/"+item.FileName, cutoff)
 
