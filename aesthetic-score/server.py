@@ -201,7 +201,7 @@ app = FastAPI()
 print('\tinit models')
 predictor = AP25Processor("cuda")
 
-@app.post("/predict/url", response_model=ScoreResult)
+@app.post("/score/url", response_model=ScoreResult)
 async def predict_url(image_path: str):
     print(f"Processing image from URL: {image_path}")
     try:
