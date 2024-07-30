@@ -10,7 +10,7 @@ function getPreferences() {
 
   const page = new URLSearchParams(window.location.search).get('page', 1);
   const updatedPrefs = Object.assign({}, defaultPreferences, {page})
-  for (const key in defaultPreferences) {
+  for (const key in storedPrefs) {
     updatedPrefs[key] = storedPrefs[key];
   }
   return updatedPrefs;
