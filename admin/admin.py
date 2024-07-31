@@ -6,12 +6,12 @@ from models.telegram import Tag, MediaItem
 import argparse
 from os import environ
 from tqdm import tqdm
-from lib.tl_client import get_context, get_messages, extract_forward, channel_check_list_sync
+from lib.tl_client import get_context, get_messages, extract_forward, channel_check_list_sync, client_update
 from telethon.utils import resolve_id, get_peer_id
 from telethon import functions, types, hints, tl
 from telethon.tl.custom.dialog import Dialog
 import asyncio
-from typing import cast
+from typing import cast, Callable, Awaitable, Any
 
 
 load_dotenv()
@@ -81,12 +81,22 @@ async def update_channels():
     ctx.save_data()
 
 
+def run_with_context(func: Callable[[Any], Awaitable[Any]]):
+    async def task():
+        ctx = await get_context()
+        await func(ctx)
+        ctx.save_data()
+
+    asyncio.get_event_loop().run_until_complete(task())
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Custom commands')
     parser.add_argument('--add-tags', action='store_true', help='Add tags to the database')
     parser.add_argument('--find-orphans', action='store_true', help='Find files not associated with an entry.')
     parser.add_argument('--save-forwards', help='Find files not associated with an entry.')
     parser.add_argument('--update-channels', action='store_true', help='Update list of channels to check.')
+    parser.add_argument('--client-update', action='store_true', help='Pull updates from selected channels')
     args = parser.parse_args()
 
     if args.add_tags:
@@ -101,4 +111,7 @@ if __name__ == '__main__':
         asyncio.get_event_loop().run_until_complete(save_forwards(args.save_forwards))
 
     elif args.update_channels:
-        asyncio.get_event_loop().run_until_complete(update_channels())
+        run_with_context(channel_check_list_sync)
+
+    elif args.client_update:
+        run_with_context(client_update)

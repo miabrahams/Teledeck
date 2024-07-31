@@ -12,7 +12,7 @@ xo:
 	xo schema -o ./data/xo $(DB_NAME)
 
 update:
-	python admin/tl_client_update.py
+	python admin/admin.py --client-update
 
 recycle:
 	rm recyclebin/media/*
