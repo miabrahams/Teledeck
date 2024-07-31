@@ -1,7 +1,11 @@
+torchvision
+timm==0.9.12
+fastapi
+uvicorn
 ftfy
 regex
 git+https://github.com/openai/CLIP.git
 gradio
 torch
 pytorch-lightning
-pip install aesthetic-predictor-v2-5
+aesthetic-predictor-v2-5

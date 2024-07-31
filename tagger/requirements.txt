@@ -1,4 +1,0 @@
-torchvision
-timm==0.9.12
-fastapi
-uvicorn
