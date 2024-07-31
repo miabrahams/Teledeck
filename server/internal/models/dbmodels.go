@@ -42,8 +42,9 @@ type MediaItem struct {
 }
 
 type Channel struct {
-	ID    int    `gorm:"column:id;primaryKey" json:"id"`
-	Title string `gorm:"column:title;not null" json:"title"`
+	ID    int    `gorm:"column:id;primaryKey"`
+	Title string `gorm:"column:title;not null"`
+	Check bool   `gorm:"column:check;not null"`
 }
 
 type MediaItemDuplicate struct {

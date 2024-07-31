@@ -26,6 +26,7 @@ class Channel(SQLModel, table=True):
 
     id: int = Field(primary_key=True)
     title: str = Field(nullable=False)
+    check: int = Field(nullable=False, default=False)
 
 class Source(SQLModel, table=True):
     __tablename__ = 'sources'
