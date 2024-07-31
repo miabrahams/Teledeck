@@ -401,7 +401,26 @@ def get_earlier_messages(ctx: TLContext, channel: Channel, limit: int):
         return get_messages(ctx, channel, limit)
 
 
-async def get_target_channels(ctx: TLContext) -> List[Channel]:
+async def get_target_channels(ctx: TLContext) -> AsyncGenerator[Channel, None]:
+    with Session(ctx.engine) as session:
+        channel_ids = session.exec(select(ChannelModel).where(ChannelModel.check == True)).all()
+
+
+    for channel_id in channel_ids:
+        input_id = await ctx.tclient.get_input_entity(channel_id.id)
+        channel = await ctx.tclient.get_entity(input_id)
+        if not isinstance(channel, Channel):
+            raise ValueError(f"Channel not found: {channel_id.id}. Got {channel}")
+        yield channel
+
+
+    # channelTasks = [ctx.tclient.get_entity() for channel_id in channel_ids]
+    # target_channels = await asyncio.gather(*channelTasks)
+    # print(f"{len(target_channels)} channels found")
+    # return cast(List[Channel], target_channels)
+
+
+async def get_update_folder_channels(ctx: TLContext) -> List[Channel]:
     chat_folders: Any  = await ctx.tclient(functions.messages.GetDialogFiltersRequest())
     if not isinstance(chat_folders, DialogFilters):
         raise ValueError("Could not find folders")
@@ -421,9 +440,30 @@ async def get_target_channels(ctx: TLContext) -> List[Channel]:
     return cast(List[Channel], target_channels)
 
 
-async def message_task_producer(ctx: TLContext, channels: List[Channel], queue: MessageTaskQueue) -> int:
+async def channel_check_list_sync(ctx: TLContext):
+    target_channels = await get_update_folder_channels(ctx)
+    print("Found channels:")
+    [print(f"{n}: {channel.title}") for n, channel in enumerate(target_channels)]
+    with Session(ctx.engine) as session:
+        for channel in session.exec(select(ChannelModel)).all():
+            channel.check = False
+        session.commit()
+
+    with Session(ctx.engine) as session:
+        for channel in target_channels:
+            existingChannel = session.get(ChannelModel, {"id": channel.id})
+            if existingChannel:
+                existingChannel.check = True
+                session.commit()
+            else:
+                session.add(ChannelModel(id=channel.id, title=channel.title, check=True))
+                session.commit()
+
+
+
+async def message_task_producer(ctx: TLContext, channels: AsyncGenerator[Channel, None], queue: MessageTaskQueue) -> int:
     total_tasks = 0
-    for channel in channels:
+    async for channel in channels:
         async for message in get_channel_messages(ctx, channel):
             total_tasks += 1
             await queue.put((channel, message))
