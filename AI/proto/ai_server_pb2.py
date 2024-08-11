@@ -14,7 +14,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0f\x61i_server.proto\x12\x0cimage_scorer\"$\n\x0fImageUrlRequest\x12\x11\n\timage_url\x18\x01 \x01(\t\"\x1c\n\x0bScoreResult\x12\r\n\x05score\x18\x01 \x01(\x02\x32W\n\x0bImageScorer\x12H\n\nPredictUrl\x12\x1d.image_scorer.ImageUrlRequest\x1a\x19.image_scorer.ScoreResult\"\x00\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0f\x61i_server.proto\x12\x0cimage_scorer\"$\n\x0fImageUrlRequest\x12\x11\n\timage_url\x18\x01 \x01(\t\"\x1c\n\x0bScoreResult\x12\r\n\x05score\x18\x01 \x01(\x02\",\n\tTagResult\x12\x1f\n\x04tags\x18\x01 \x03(\x0b\x32\x11.image_scorer.Tag\"%\n\x03Tag\x12\x0e\n\x06tag_id\x18\x01 \x01(\x05\x12\x0e\n\x06weight\x18\x02 \x01(\x02\x32\x9b\x01\n\x0bImageScorer\x12H\n\nPredictUrl\x12\x1d.image_scorer.ImageUrlRequest\x1a\x19.image_scorer.ScoreResult\"\x00\x12\x42\n\x06TagUrl\x12\x1d.image_scorer.ImageUrlRequest\x1a\x17.image_scorer.TagResult\"\x00\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -25,6 +25,10 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _globals['_IMAGEURLREQUEST']._serialized_end=69
   _globals['_SCORERESULT']._serialized_start=71
   _globals['_SCORERESULT']._serialized_end=99
-  _globals['_IMAGESCORER']._serialized_start=101
-  _globals['_IMAGESCORER']._serialized_end=188
+  _globals['_TAGRESULT']._serialized_start=101
+  _globals['_TAGRESULT']._serialized_end=145
+  _globals['_TAG']._serialized_start=147
+  _globals['_TAG']._serialized_end=184
+  _globals['_IMAGESCORER']._serialized_start=187
+  _globals['_IMAGESCORER']._serialized_end=342
 # @@protoc_insertion_point(module_scope)

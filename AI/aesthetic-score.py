@@ -18,7 +18,9 @@ import os
 import traceback
 
 import torch
-from fastapi import FastAPI, File, UploadFile, HTTPException
+# from fastapi import FastAPI, File, UploadFile, HTTPException
+from proto import ai_server_pb2_grpc, ai_server_pb2
+import grpc
 from PIL import Image
 from pydantic import BaseModel
 from torchvision.transforms import transforms # type: ignore
@@ -101,7 +103,10 @@ class AestheticProcessor():
 
     def predict(self, image: Image.Image):
         # Process image using CLIP processor
-        image_input: BatchEncoding = self.clip_processor(images=image, return_tensors="pt").to(self.device)
+        processor: BatchEncoding = self.clip_processor(images=image, return_tensors="pt")
+        if processor is None:
+            return {'score': -1.0}
+        image_input: BatchEncoding = processor.to(self.device)
 
         with torch.no_grad():
             # Get image features from CLIP model
@@ -196,23 +201,30 @@ class ScoreResult(BaseModel):
     score: float
 
 
-app = FastAPI()
-# Todo: create model loader dependency
-print('\tinit models')
-predictor = AP25Processor("cuda")
 
-@app.post("/score/url", response_model=ScoreResult)
-async def predict_url(image_path: str):
-    print(f"Processing image from URL: {image_path}")
-    try:
-        img = Image.open(image_path)
-        results = predictor.predict(img)
-    except Exception as e:
-        print("Error processing image")
-        print(traceback.format_exc())
-        raise HTTPException(status_code=500, detail=str(e))
+class ImageScorerServicer(ai_server_pb2_grpc.ImageScorerServicer):
+    def __init__(self):
+        # Todo: create model loader dependency
+        print('\tinit models')
+        self.predictor = AP25Processor("cuda")
 
-    return results
+    def PredictUrl(self, request: ai_server_pb2.ImageUrlRequest, context: grpc.ServicerContext) -> ai_server_pb2.ScoreResult:
+        print(f"Processing image from URL: {request.image_url}")
+        try:
+            img = Image.open(request.image_url)
+            results = self.predictor.predict(img)
+            return ai_server_pb2.ScoreResult(score=results['score'])
+        except Exception as e:
+            print("Error processing image")
+            print(traceback.format_exc())
+            context.set_code(grpc.StatusCode.INTERNAL)
+            context.set_details(str(e))
+            return ai_server_pb2.ScoreResult()
+
+def serve():
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    ai_server_pb2_grpc.add_ImageScorerServicer_to_server(ImageScorerServicer(), server)
+
 
 SCORE_PORT = int(os.getenv("SCORE_PORT", 8081))
 

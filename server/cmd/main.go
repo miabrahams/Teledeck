@@ -18,6 +18,9 @@ import (
 	"teledeck/internal/service/store/dbstore"
 	"time"
 
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+
 	m "teledeck/internal/middleware"
 
 	"github.com/go-chi/chi/v5"
@@ -108,9 +111,17 @@ func main() {
 	/* External services */
 	// twitterScrapeServce := services.NewTwitterScraper()
 	// telegramService := services.NewTelegramService(cfg.Telegram_API_ID, cfg.Telegram_API_Hash)
-	// TODO: Handle gracefully if service is unavailable
-	taggingService := external.NewTaggingService(logger, cfg.TagServicePort)
-	aestheticsService := external.NewAestheticsService(logger, cfg.TagServicePort)
+
+	// TODO: Better handling for unavailable services
+	conn, err := grpc.NewClient(cfg.TaggerURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	var taggingService *external.TaggingService
+	var aestheticsService *external.AestheticsService
+	if err != nil {
+		logger.Info("Could not connect to AI services.")
+	} else {
+		taggingService = external.NewTaggingService(logger, conn)
+		aestheticsService = external.NewAestheticsService(logger, conn)
+	}
 
 	mediaFileOperator := localfile.NewLocalMediaFileOperator(cfg.StaticMediaDir, cfg.RecycleDir, logger)
 	mediaController := controllers.NewMediaController(mediaStore, mediaFileOperator, mediaDir)

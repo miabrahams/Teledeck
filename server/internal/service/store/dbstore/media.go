@@ -69,7 +69,8 @@ func (s *MediaStore) applySearchFilters(P models.SearchPrefs, query *gorm.DB) *g
 
 func (s *MediaStore) GetMediaItemCount(P models.SearchPrefs) int64 {
 	var count int64
-	query := s.db.Model(&models.MediaItem{})
+	query := s.db.Model(&models.MediaItem{}).
+		Joins("LEFT JOIN media_types ON media_items.media_type_id = media_types.id")
 	query = s.applySearchFilters(P, query)
 	query.Count(&count)
 	fmt.Printf("Count: %d\n", count)

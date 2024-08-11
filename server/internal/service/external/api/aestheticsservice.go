@@ -1,59 +1,38 @@
 package external
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
 	"image"
-	"io"
 	"log/slog"
-	"net/http"
-	"teledeck/internal/models"
+	"teledeck/internal/genproto/ai_server"
+
+	"google.golang.org/grpc"
 )
 
 type AestheticsService struct {
 	logger *slog.Logger
-	client *http.Client
-	host   string
+	client ai_server.ImageScorerClient
 }
 
-func NewAestheticsService(logger *slog.Logger, port string) *AestheticsService {
-
+func NewAestheticsService(logger *slog.Logger, conn *grpc.ClientConn) *AestheticsService {
 	return &AestheticsService{
 		logger: logger,
-		client: &http.Client{},
-		host:   "http://localhost:" + port,
+		client: ai_server.NewImageScorerClient(conn),
 	}
 }
 
 func (s *AestheticsService) ScoreImage(imagePath string) (float32, error) {
+	req := &ai_server.ImageUrlRequest{ImageUrl: imagePath}
 
-	req, _ := http.NewRequest("POST", s.host+"/score/url", nil)
-
-	q := req.URL.Query()
-	q.Add("image_path", imagePath)
-
-	req.URL.RawQuery = q.Encode()
-	req.Header.Add("Accept", "application/json")
-
-	res, err := s.client.Do(req)
+	ctx := context.Background()
+	res, err := s.client.PredictUrl(ctx, req)
 	if err != nil {
+		s.logger.Error("Error calling PredictUrl", "Error", err)
 		return 0, err
 	}
 
-	rawBody, err := io.ReadAll(res.Body)
-	if err != nil {
-		s.logger.Error("Error reading response body", "Error", err)
-		return 0, err
-	}
-
-	var result models.ScoreResult
-	err = json.Unmarshal(rawBody, &result)
-	if err != nil {
-		s.logger.Error("Error decoding response body: %v", "Error", err)
-		return 0, err
-	}
-
-	return result.Score, nil
+	return res.Score, nil
 }
 
 func (s *AestheticsService) ScoreImageData(image image.Image) (float32, error) {
