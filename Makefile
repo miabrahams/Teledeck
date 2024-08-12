@@ -26,3 +26,7 @@ server:
 
 tagger:
 	python tagger/server.py
+
+.PHONY: grpc-update
+grpc-update:
+	python -m grpc_tools.protoc -I./AI/grpc --python_out=./AI/grpc --grpc_python_out=./AI/grpc ./AI/grpc/ai_server.proto

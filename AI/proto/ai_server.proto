@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package image_scorer;
+
+service ImageScorer {
+  rpc PredictUrl(ImageUrlRequest) returns (ScoreResult) {}
+}
+
+message ImageUrlRequest {
+  string image_url = 1;
+}
+
+message ScoreResult {
+  float score = 1;
+}
