@@ -25,19 +25,28 @@ templ-watch:
 dev:
 	go build -o ./tmp/$(APP_NAME) ./cmd/$(APP_NAME)/main.go && air
 
-.PHONY: build
-build:
-	make tailwind-build
-	make templ-generate
-	go build -ldflags "-X main.Environment=production" -o ./bin/$(APP_NAME) ./cmd/$(APP_NAME)/main.go
+.PHONY:fmt
+fmt:
+	go fmt ./...
 
 .PHONY: vet
-vet:
+vet: fmt
 	go vet ./...
+
+.PHONY:lint
+lint: fmt
+	golint ./...
 
 .PHONY: staticcheck
 staticcheck:
 	staticcheck ./...
+
+.PHONY: build
+build: vet
+	make tailwind-build
+	make templ-generate
+	go build -ldflags "-X main.Environment=production" -o ./bin/$(APP_NAME) ./cmd/$(APP_NAME)/main.go
+
 
 .PHONY: test
 test:

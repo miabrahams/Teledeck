@@ -26,3 +26,16 @@ server:
 
 tagger:
 	python tagger/server.py
+
+.PHONY: grpc-update
+grpc-update:
+	python -m grpc_tools.protoc -I./AI/proto --python_out=./AI/proto --grpc_python_out=./AI/proto ./AI/proto/ai_server.proto
+	protoc --go_out=./server/internal/genproto --go-grpc_out=./server/internal/genproto AI/proto/ai_server.proto
+
+.PHONY: deploy-classifier
+deploy-classifier:
+	@cd AI && ./launch-classifier.sh
+
+.PHONY: stop-classifier
+stop-classifier:
+	@cd AI && ./stop-classifier.sh

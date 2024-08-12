@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+option go_package = "ai_server/";
+package image_scorer;
+
+service ImageScorer {
+  rpc PredictUrl(ImageUrlRequest) returns (ScoreResult) {}
+  rpc TagUrl(TagImageUrlRequest) returns (TagResult) {}
+}
+
+message ImageUrlRequest {
+  string image_url = 1;
+}
+
+
+message TagImageUrlRequest {
+  string image_url = 1;
+  float cutoff = 2;
+}
+
+
+message ScoreResult {
+  float score = 1;
+}
+
+message TagResult {
+    repeated Tag tags = 1;
+}
+
+message Tag {
+    float weight = 1;
+    string tag = 2;
+}

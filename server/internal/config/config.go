@@ -11,7 +11,7 @@ type Config struct {
 	RecycleDir        string `envconfig:"RECYCLE_DIR" default:"../recyclebin"`
 	Telegram_API_ID   string `envconfig:"TG_API_ID" default:""`
 	Telegram_API_Hash string `envconfig:"TG_API_HASH" default:""`
-	TagServicePort    string `envconfig:"TAGGER_PORT" default:""`
+	TaggerURL         string `envconfig:"TAGGER_URL" default:""`
 }
 
 func loadConfig() (*Config, error) {

@@ -1,60 +1,52 @@
 package external
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
 	"goth/internal/models"
 	"image"
-	"io"
+	"log"
 	"log/slog"
-	"net/http"
+	"time"
+
+	"google.golang.org/grpc"
+
+	"teledeck/internal/genproto/ai_server"
 )
 
 type TaggingService struct {
 	logger *slog.Logger
-	client *http.Client
-	host   string
+	client ai_server.ImageScorerClient
 }
 
-func NewTaggingService(logger *slog.Logger, port string) *TaggingService {
+func NewTaggingService(logger *slog.Logger, conn *grpc.ClientConn) *TaggingService {
+
+	client := ai_server.NewImageScorerClient(conn)
 
 	return &TaggingService{
 		logger: logger,
-		client: &http.Client{},
-		host:   "http://localhost:" + port,
+		client: client,
 	}
 }
 
 func (s *TaggingService) TagImage(imagePath string, cutoff float32) ([]models.TagWeight, error) {
 
 	// TODO: Allow configurable server address
+	q := &ai_server.TagImageUrlRequest{ImageUrl: imagePath, Cutoff: cutoff}
 
-	req, _ := http.NewRequest("POST", s.host+"/predict/url", nil)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
 
-	q := req.URL.Query()
-	q.Add("image_path", imagePath)
-
-	q.Add("cutoff", fmt.Sprintf("%.2f", cutoff))
-	req.URL.RawQuery = q.Encode()
-	req.Header.Add("Accept", "application/json")
-
-	res, err := s.client.Do(req)
+	// Call the TagUrl RPC
+	resp, err := s.client.TagUrl(ctx, q)
 	if err != nil {
-		return nil, err
+		log.Fatalf("could not tag image: %v", err)
 	}
 
-	rawBody, err := io.ReadAll(res.Body)
-	if err != nil {
-		s.logger.Error("Error reading response body", "Error", err)
-		return nil, err
-	}
-
-	// s.logger.Info("Received response", "Body:", rawBody)
+	// Process and print the tags
 	var result []models.TagWeight
-	err = json.Unmarshal(rawBody, &result)
-	if err != nil {
-		s.logger.Error("Error decoding response body: %v", "Error", err)
-		return nil, err
+	for _, tag := range resp.Tags {
+		result = append(result, models.TagWeight{Name: tag.Tag, Weight: tag.Weight})
 	}
 
 	return result, nil

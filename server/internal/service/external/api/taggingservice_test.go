@@ -1,16 +1,27 @@
 package external
 
 import (
+	"goth/internal/config"
 	"io"
 	"log/slog"
 	"os"
 	"testing"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 // TODO: Configurable
 func setupTaggingService() *TaggingService {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	return NewTaggingService(logger, "8081")
+	cfg := config.MustLoadConfig()
+
+	conn, err := grpc.NewClient(cfg.TaggerURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		logger.Info("Could not connect to AI services.")
+		return nil
+	}
+	return NewTaggingService(logger, conn)
 }
 
 var taggingService *TaggingService
