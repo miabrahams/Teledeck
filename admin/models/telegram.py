@@ -99,7 +99,7 @@ class TwitterMetadata(SQLModel, table=True):
 class Tag(SQLModel, table=True):
     __tablename__ = 'tags'
 
-    id: int = Field(primary_key=True)
+    id: int = Field(default=None, primary_key=True)
     name: str = Field(nullable=False, unique=True)
     media_items: List[MediaItem] = Relationship(back_populates="tags", link_model=MediaItemTag)
 

@@ -6,9 +6,8 @@ from models.telegram import Tag, MediaItem
 import argparse
 from os import environ
 from tqdm import tqdm
-from lib.tl_client import get_context, get_messages, extract_forward, channel_check_list_sync, client_update
-from telethon.utils import resolve_id, get_peer_id
-from telethon import functions, types, hints, tl
+from lib.tl_client import TLContext, get_context, extract_forward, channel_check_list_sync, client_update
+from telethon import hints
 from telethon.tl.custom.dialog import Dialog
 import asyncio
 from typing import cast, Callable, Awaitable, Any
@@ -54,11 +53,11 @@ def find_orphans(media_path: pathlib.Path, orphan_path: pathlib.Path):
 async def save_forwards(chat_name: str):
     ctx = await get_context()
     # resolved = get_peer_id(chat_id)
-    entity: Optional[hints.Entity] = None
+    entity: hints.Entity | None = None
     async for d in ctx.tclient.iter_dialogs():
         dialog = cast(Dialog, d)
         if dialog.name == chat_name:
-            entity: hints.Entity = dialog.entity
+            entity = dialog.entity
             break
     if not entity:
         print("Could not find chat.")
@@ -72,12 +71,6 @@ async def save_forwards(chat_name: str):
         n += 1
         print(n)
 
-    ctx.save_data()
-
-
-async def update_channels():
-    ctx = await get_context()
-    await channel_check_list_sync(ctx)
     ctx.save_data()
 
 
