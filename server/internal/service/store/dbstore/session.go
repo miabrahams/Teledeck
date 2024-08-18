@@ -2,7 +2,7 @@ package dbstore
 
 import (
 	"fmt"
-	"goth/internal/models"
+	"teledeck/internal/models"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"

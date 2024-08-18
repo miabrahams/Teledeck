@@ -5,11 +5,11 @@ import (
 	"crypto/rand"
 	b64 "encoding/base64"
 	"encoding/hex"
-	"goth/internal/models"
-	"goth/internal/service/store"
 	"log"
 	"net/http"
 	"strings"
+	"teledeck/internal/models"
+	"teledeck/internal/service/store"
 )
 
 type key string

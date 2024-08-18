@@ -1,7 +1,7 @@
 package mock
 
 import (
-	"goth/internal/models"
+	"teledeck/internal/models"
 
 	"github.com/stretchr/testify/mock"
 )

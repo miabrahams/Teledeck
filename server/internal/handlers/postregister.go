@@ -1,9 +1,9 @@
 package handlers
 
 import (
-	"goth/internal/service/store"
-	"goth/internal/templates"
 	"net/http"
+	"teledeck/internal/service/store"
+	"teledeck/internal/templates"
 )
 
 type PostRegisterHandler struct {

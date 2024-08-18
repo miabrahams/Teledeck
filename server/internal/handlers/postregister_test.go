@@ -3,9 +3,9 @@ package handlers
 import (
 	"bytes"
 
-	storemock "goth/internal/service/store/mock"
 	"net/http"
 	"net/http/httptest"
+	storemock "teledeck/internal/service/store/mock"
 	"testing"
 
 	"github.com/stretchr/testify/assert"

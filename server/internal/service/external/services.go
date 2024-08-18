@@ -1,8 +1,8 @@
 package external
 
 import (
-	"goth/internal/models"
 	"image"
+	"teledeck/internal/models"
 )
 
 type TelegramService interface {

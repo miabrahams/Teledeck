@@ -3,9 +3,9 @@ package handlers
 import (
 	"bytes"
 	"context"
-	"goth/internal/middleware"
 	"net/http"
 	"net/http/httptest"
+	"teledeck/internal/middleware"
 	"testing"
 
 	"github.com/stretchr/testify/assert"

@@ -4,7 +4,7 @@ package handlers
 
 import (
 	"encoding/json"
-	"goth/internal/services"
+	"teledeck/internal/services"
 	"net/http"
 )
 

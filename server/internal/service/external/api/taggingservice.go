@@ -3,11 +3,11 @@ package external
 import (
 	"encoding/json"
 	"fmt"
-	"goth/internal/models"
 	"image"
 	"io"
 	"log/slog"
 	"net/http"
+	"teledeck/internal/models"
 )
 
 type TaggingService struct {

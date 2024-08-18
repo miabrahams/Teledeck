@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"goth/internal/templates"
+	"teledeck/internal/templates"
 
 	"net/http"
 )

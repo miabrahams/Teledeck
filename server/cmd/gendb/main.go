@@ -1,8 +1,8 @@
 package main
 
 import (
-	"goth/internal/config"
-	database "goth/internal/service/store/db"
+	"teledeck/internal/config"
+	database "teledeck/internal/service/store/db"
 
 	"gorm.io/gen"
 )

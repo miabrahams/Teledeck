@@ -1,13 +1,13 @@
 package main
 
 import (
-	"goth/internal/config"
-	"goth/internal/controllers"
-	"goth/internal/models"
-	external "goth/internal/service/external/api"
-	"goth/internal/service/store/db"
-	"goth/internal/service/store/dbstore"
 	"log/slog"
+	"teledeck/internal/config"
+	"teledeck/internal/controllers"
+	"teledeck/internal/models"
+	external "teledeck/internal/service/external/api"
+	"teledeck/internal/service/store/db"
+	"teledeck/internal/service/store/dbstore"
 )
 
 func main() {

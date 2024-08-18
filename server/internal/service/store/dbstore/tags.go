@@ -1,8 +1,8 @@
 package dbstore
 
 import (
-	"goth/internal/models"
 	"log/slog"
+	"teledeck/internal/models"
 
 	"gorm.io/gorm"
 )

@@ -1,11 +1,11 @@
 package handlers
 
 import (
-	"goth/internal/controllers"
-	m "goth/internal/middleware"
-	"goth/internal/models"
-	"goth/internal/templates"
 	"net/http"
+	"teledeck/internal/controllers"
+	m "teledeck/internal/middleware"
+	"teledeck/internal/models"
+	"teledeck/internal/templates"
 )
 
 type TagsHandler struct {
