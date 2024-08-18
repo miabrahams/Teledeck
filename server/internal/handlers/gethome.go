@@ -1,13 +1,13 @@
 package handlers
 
 import (
-	"goth/internal/middleware"
-	"goth/internal/models"
-	store "goth/internal/service/store"
-	"goth/internal/templates"
 	"math"
 	"net/http"
 	"strconv"
+	"teledeck/internal/middleware"
+	"teledeck/internal/models"
+	store "teledeck/internal/service/store"
+	"teledeck/internal/templates"
 
 	"log/slog"
 

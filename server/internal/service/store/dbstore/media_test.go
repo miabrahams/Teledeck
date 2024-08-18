@@ -2,8 +2,8 @@ package dbstore
 
 import (
 	"encoding/json"
-	database "goth/internal/service/store/db"
 	"io"
+	database "teledeck/internal/service/store/db"
 	"testing"
 
 	"log/slog"

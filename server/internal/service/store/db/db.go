@@ -1,7 +1,7 @@
 package db
 
 import (
-	// "goth/internal/store"
+	// "teledeck/internal/store"
 	"log"
 	"os"
 	"time"

@@ -1,4 +1,4 @@
-module goth
+module teledeck
 
 go 1.22
 

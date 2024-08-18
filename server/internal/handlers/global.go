@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	"goth/internal/templates"
 	"net/http"
+	"teledeck/internal/templates"
 )
 
 type GlobalHandler struct{}

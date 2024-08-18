@@ -1,10 +1,10 @@
 package external
 
 import (
-	"goth/internal/config"
 	"io"
 	"log/slog"
 	"os"
+	"teledeck/internal/config"
 	"testing"
 
 	"google.golang.org/grpc"

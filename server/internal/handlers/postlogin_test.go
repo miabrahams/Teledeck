@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"encoding/base64"
 
-	"goth/internal/models"
-	hashmock "goth/internal/service/hash/mock"
-	storemock "goth/internal/service/store/mock"
 	"net/http"
 	"net/http/httptest"
+	"teledeck/internal/models"
+	hashmock "teledeck/internal/service/hash/mock"
+	storemock "teledeck/internal/service/store/mock"
 	"testing"
 
 	"github.com/stretchr/testify/assert"

@@ -1,7 +1,7 @@
 package store
 
 import (
-	"goth/internal/models"
+	"teledeck/internal/models"
 )
 
 type UserStore interface {

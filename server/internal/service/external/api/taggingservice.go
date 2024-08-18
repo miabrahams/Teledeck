@@ -3,7 +3,6 @@ package external
 import (
 	"context"
 	"fmt"
-	"goth/internal/models"
 	"image"
 	"log"
 	"log/slog"
@@ -12,6 +11,7 @@ import (
 	"google.golang.org/grpc"
 
 	"teledeck/internal/genproto/ai_server"
+	"teledeck/internal/models"
 )
 
 type TaggingService struct {

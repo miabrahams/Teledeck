@@ -1,9 +1,9 @@
 package controllers
 
 import (
-	"goth/internal/models"
-	"goth/internal/service/files"
-	"goth/internal/service/store"
+	"teledeck/internal/models"
+	"teledeck/internal/service/files"
+	"teledeck/internal/service/store"
 )
 
 type MediaController struct {

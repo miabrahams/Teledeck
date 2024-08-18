@@ -3,11 +3,11 @@ package handlers
 import (
 	b64 "encoding/base64"
 	"fmt"
-	"goth/internal/models"
-	"goth/internal/service/hash"
-	"goth/internal/service/store"
-	"goth/internal/templates"
 	"net/http"
+	"teledeck/internal/models"
+	"teledeck/internal/service/hash"
+	"teledeck/internal/service/store"
+	"teledeck/internal/templates"
 	"time"
 )
 

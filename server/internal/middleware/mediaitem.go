@@ -2,8 +2,8 @@ package middleware
 
 import (
 	"context"
-	"goth/internal/controllers"
 	"net/http"
+	"teledeck/internal/controllers"
 
 	"github.com/go-chi/chi/v5"
 )

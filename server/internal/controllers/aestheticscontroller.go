@@ -1,9 +1,9 @@
 package controllers
 
 import (
-	"goth/internal/models"
-	"goth/internal/service/external"
-	"goth/internal/service/store"
+	"teledeck/internal/models"
+	"teledeck/internal/service/external"
+	"teledeck/internal/service/store"
 )
 
 type AestheticsController struct {
