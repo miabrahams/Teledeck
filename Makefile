@@ -30,3 +30,11 @@ tagger:
 .PHONY: grpc-update
 grpc-update:
 	python -m grpc_tools.protoc -I./AI/grpc --python_out=./AI/grpc --grpc_python_out=./AI/grpc ./AI/grpc/ai_server.proto
+
+.PHONY deploy-classifier
+deploy-classifier:
+	@cd AI && ./launch-classifier.sh
+
+.PHONY stop-classifier
+stop-classifier:
+	@cd AI && ./stop-classifier.sh
