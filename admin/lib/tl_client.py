@@ -334,6 +334,9 @@ async def message_task_wrapper(ctx: TLContext, message: Message, channel: Channe
 
 ##### Message filtering strategies
 
+async def NoMessages() -> AsyncIterable[Message]:
+    return
+    yield
 
 def get_messages(ctx: TLContext, entity: Entity, limit: int)-> AsyncIterable[Message]:
     return ctx.tclient.iter_messages(entity, limit)
@@ -359,7 +362,10 @@ async def get_unread_messages(ctx: TLContext, channel: Channel) -> AsyncIterable
     unread_count = getattr(full_channel, "unread_count")
     if not isinstance(unread_count, int):
         raise ValueError("Unread count not available: ", full_channel.stringify())
-    return ctx.tclient.iter_messages(channel, limit=unread_count)
+    if unread_count > 0:
+        return ctx.tclient.iter_messages(channel, limit=unread_count)
+    else:
+        return NoMessages()
 
 
 def get_new_messages(ctx: TLContext, channel: Channel, limit: int):
