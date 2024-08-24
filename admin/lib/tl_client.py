@@ -31,7 +31,7 @@ import json
 import uuid
 from datetime import datetime
 from sqlmodel import create_engine, Session, select, Column, Integer
-from models.telegram import MediaItem, MediaType, Channel as ChannelModel, TelegramMetadata
+from models.telegram import MediaItem, MediaType, ChannelModel, TelegramMetadata
 
 
 load_dotenv()  # take environment variables from .env.
@@ -52,6 +52,13 @@ DB_PATH = pathlib.Path("./teledeck.db")
 UPDATE_PATH = pathlib.Path("./data/update_info")
 NEST_TQDM = True
 DEFAULT_FETCH_LIMIT = 65
+
+# Flood prevention
+MAX_CONCURRENT_TASKS = 5
+DELAY = 0.1
+semaphore = asyncio.Semaphore(MAX_CONCURRENT_TASKS)
+
+
 
 # TODO: Enable cleanup using `with` statement; __enter__ and __exit__
 # TODO: Remove async from console operations
@@ -87,10 +94,10 @@ class TLContext:
     def save_data(self):
         if len(self.data) > 0:
             filename = save_to_json(self.data)
-            self.console.print(f"Exported data to {filename}")
+            self.progress.print(f"Exported data to {filename}")
 
     async def write(self, message: str):
-        self.console.print(message)
+        self.progress.print(message)
 
 async def get_context():
     tclient = TelegramClient(session_file, int(api_id), api_hash)
@@ -98,11 +105,6 @@ async def get_context():
     ctx = TLContext(tclient)
     return ctx
 
-
-# Flood prevention
-MAX_CONCURRENT_TASKS = 5
-DELAY = 0.1
-semaphore = asyncio.Semaphore(MAX_CONCURRENT_TASKS)
 
 
 async def exponential_backoff(attempt: int):
@@ -131,10 +133,12 @@ async def download_media(ctx: TLContext, downloadable: Message | TypeMessageMedi
     with ctx.progress:
         download_task = ctx.progress.add_task("[cyan]Downloading", total=100)
 
-        async def progress_callback(current: int, total: int):
+        def progress_callback(current: int, total: int):
             ctx.progress.update(download_task, completed=current, total=total)
 
         result = await ctx.tclient.download_media(downloadable, str(MEDIA_PATH), progress_callback=progress_callback)
+
+        # ctx.progress.remove_task(download_task)
 
     if isinstance(result, str):
         return pathlib.Path(result)

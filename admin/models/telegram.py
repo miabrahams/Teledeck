@@ -2,7 +2,7 @@ from sqlmodel import Field, SQLModel, Relationship, UniqueConstraint
 from typing import Optional, List
 from datetime import datetime
 
-class User(SQLModel, table=True):
+class UserModel(SQLModel, table=True):
     __tablename__ = 'users'
 
     id: int = Field(primary_key=True)
@@ -19,9 +19,9 @@ class Session(SQLModel, table=True):
     session_id: str = Field(nullable=False, unique=True)
     user_id: int = Field(foreign_key="users.id", nullable=False)
 
-    user: User = Relationship(back_populates="sessions")
+    user: UserModel = Relationship(back_populates="sessions")
 
-class Channel(SQLModel, table=True):
+class ChannelModel(SQLModel, table=True):
     __tablename__ = "channels"
 
     id: int = Field(primary_key=True)
