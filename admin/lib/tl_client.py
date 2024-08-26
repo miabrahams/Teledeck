@@ -96,7 +96,7 @@ class TLContext:
             filename = save_to_json(self.data)
             self.progress.print(f"Exported data to {filename}")
 
-    async def write(self, message: str):
+    def write(self, message: str):
         self.progress.print(message)
 
 async def get_context():
@@ -193,26 +193,26 @@ async def extract_media(ctx: TLContext, message: Message) -> Tuple[Downloadable,
             ctx.write(messageLink.stringify())
             ctx.add_data(messageLink.link)
             """
-            await ctx.write(f"*****Skipping large file*****: {file_id}")
+            ctx.write(f"*****Skipping large file*****: {file_id}")
         elif file.sticker_set:
-            await ctx.write(f"Skipping sticker: {file_id}")
+            ctx.write(f"Skipping sticker: {file_id}")
         else:
             return file, file_id, 0
     else:
-        await ctx.write(f"No media found: {message.id}")
+        ctx.write(f"No media found: {message.id}")
     return None
 
 async def extract_forward(ctx: TLContext, message: Message) -> None:
     forward = getattr(message, "forward")
     if not isinstance(forward, Forward):
         return
-    await ctx.write(f"Found forward: {message.id}")
+    ctx.write(f"Found forward: {message.id}")
 
     if forward.is_channel:
         # fwd_channel: Channel = await forward.get_input_chat()
         fwd_channel = await ctx.tclient.get_entity(getattr(forward, "chat_id"))
         if not isinstance(fwd_channel, Channel):
-            await ctx.write(f"*************Unexpected non-channel forward: {getattr(forward, 'chat_id')}")
+            ctx.write(f"*************Unexpected non-channel forward: {getattr(forward, 'chat_id')}")
             return
 
         with Session(ctx.engine) as session:
@@ -220,7 +220,7 @@ async def extract_forward(ctx: TLContext, message: Message) -> None:
                 session.add(ChannelModel(id=fwd_channel.id, title=fwd_channel.title))
                 session.commit()
                 log_msg = {"Forwarded to channel" : fwd_channel.stringify()}
-                await ctx.write(repr(log_msg))
+                ctx.write(repr(log_msg))
                 ctx.add_data(log_msg)
 
 
@@ -244,15 +244,15 @@ async def process_message(ctx: TLContext, message: Message, channel: Channel) ->
         (mediaItem, telegramMetadata) = existingResult
         fileSize = getattr(message.file, "size", None)
         if mediaItem.file_size != fileSize:
-            await ctx.write(message.stringify())
-            await ctx.write(mediaItem.file_name)
+            ctx.write(message.stringify())
+            ctx.write(mediaItem.file_name)
             raise AssertionError(f"File size mismatch: {mediaItem.file_size} vs {fileSize}")
         # Update legacy entries
         if not telegramMetadata.message_id:
             telegramMetadata.message_id = message.id
             telegramMetadata.channel_id = channel.id
             session.commit()
-        await ctx.write(f"Skipping download for existing file_id: {file_id}")
+        ctx.write(f"Skipping download for existing file_id: {file_id}")
         return
 
 
@@ -263,7 +263,7 @@ async def process_message(ctx: TLContext, message: Message, channel: Channel) ->
         mime_type = download_target.mime_type
         file_path = await download_media(ctx, download_target.media)
     if not file_path:
-        await ctx.write(repr(download_target))
+        ctx.write(repr(download_target))
         raise ValueError(f"Failed to download file: {file_id}")
 
     file_path = pathlib.Path(file_path)
@@ -272,7 +272,7 @@ async def process_message(ctx: TLContext, message: Message, channel: Channel) ->
     file_size = file_path.stat().st_size
 
     if mime_type is None:
-        await ctx.write("WARNING: No MIME info.")
+        ctx.write("WARNING: No MIME info.")
         mime_type = "unknown/unknown"
 
     [mtype, _] = mime_type.split("/")
@@ -283,7 +283,7 @@ async def process_message(ctx: TLContext, message: Message, channel: Channel) ->
             media_type = "photo"
         else:
             media_type = "document"
-    await ctx.write(f"mime_type: {mime_type}   -  Media type: {media_type}")
+    ctx.write(f"mime_type: {mime_type}   -  Media type: {media_type}")
 
     try:
         with Session(ctx.engine) as session:
@@ -318,9 +318,9 @@ async def process_message(ctx: TLContext, message: Message, channel: Channel) ->
 
             session.commit()
     except Exception as e:
-        await ctx.write(f"Database insertion failed: {e}")
+        ctx.write(f"Database insertion failed: {e}")
         file_path.rename(ORPHAN_PATH / file_name)
-        await ctx.write(f"Moved {file_name} to orphans directory.")
+        ctx.write(f"Moved {file_name} to orphans directory.")
 
     await message.mark_read()
 
@@ -331,8 +331,8 @@ async def message_task_wrapper(ctx: TLContext, message: Message, channel: Channe
         await process_with_backoff(process_message(ctx, message, channel), message_label)
         await message.mark_read()
     except Exception as e:
-        await ctx.write(f"Failed to process message: {str(message.date)} in channel {channel.title}")
-        await ctx.write(repr(e))
+        ctx.write(f"Failed to process message: {str(message.date)} in channel {channel.title}")
+        ctx.write(repr(e))
     await ctx.update_progress()
 
 
@@ -367,6 +367,7 @@ async def get_unread_messages(ctx: TLContext, channel: Channel) -> AsyncIterable
     if not isinstance(unread_count, int):
         raise ValueError("Unread count not available: ", full_channel.stringify())
     if unread_count > 0:
+        print(f"Unread messages in {channel.title}: {unread_count}")
         return ctx.tclient.iter_messages(channel, limit=unread_count)
     else:
         return NoMessages()
@@ -419,7 +420,7 @@ async def get_target_channels(ctx: TLContext) -> AsyncGenerator[Channel, None]:
 
     # channelTasks = [ctx.tclient.get_entity() for channel_id in channel_ids]
     # target_channels = await asyncio.gather(*channelTasks)
-    # await ctx.write(f"{len(target_channels)} channels found")
+    # ctx.write(f"{len(target_channels)} channels found")
     # return cast(List[Channel], target_channels)
 
 
@@ -438,16 +439,16 @@ async def get_update_folder_channels(ctx: TLContext) -> List[Channel]:
     peer_channels = [peer for peer in media_folder.include_peers if isinstance(peer, InputPeerChannel)]
 
     target_channels = await asyncio.gather( *[ctx.tclient.get_entity(peer) for peer in peer_channels])
-    await ctx.write(f"{len(target_channels)} channels found")
+    ctx.write(f"{len(target_channels)} channels found")
 
     return cast(List[Channel], target_channels)
 
 
 async def channel_check_list_sync(ctx: TLContext):
     target_channels = await get_update_folder_channels(ctx)
-    await ctx.write("Found channels:")
+    ctx.write("Found channels:")
     titles = [f"{n}: {channel.title}" for n, channel in enumerate(target_channels)]
-    await ctx.write("\n".join(titles))
+    ctx.write("\n".join(titles))
     with Session(ctx.engine) as session:
         for channel in session.exec(select(ChannelModel)).all():
             channel.check = False
@@ -481,15 +482,15 @@ async def message_task_consumer(ctx: TLContext, queue: MessageTaskQueue):
             await message_task_wrapper(ctx, message, channel)
         except Exception as e:
             import traceback
-            await ctx.write("******Failed to process message: \n" + str(e))
-            await ctx.write("\n".join(map(str, [channel.title, message.id, getattr(message, "text", ""), type(message.media)])))
-            await ctx.write(traceback.format_exc())
+            ctx.write("******Failed to process message: \n" + str(e))
+            ctx.write("\n".join(map(str, [channel.title, message.id, getattr(message, "text", ""), type(message.media)])))
+            ctx.write(traceback.format_exc())
             # link = await get_message_link(ctx, channel, message)
             # print("Message link: ", link.stringify())
         queue.task_done()
 
 async def get_channel_messages(ctx: TLContext, channel: Channel) -> AsyncGenerator[Message, None]:
-    await ctx.write(f"Processing channel: {channel.title}")
+    ctx.write(f"Processing channel: {channel.title}")
 
     # fetch_messages_task = get_messages(ctx, channel, DEFAULT_FETCH_LIMIT)
     # fetch_messages_task = get_old_messages(ctx, channel, DEFAULT_FETCH_LIMIT)
@@ -524,4 +525,4 @@ async def client_update(ctx: TLContext):
     for c in consumers:
         c.cancel()
 
-    await ctx.write(f"Processing complete. \nFinished tasks: {ctx.progress.tasks[0].completed}")
+    ctx.write(f"Processing complete. \nFinished tasks: {ctx.progress.tasks[0].completed}")
