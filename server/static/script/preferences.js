@@ -8,7 +8,9 @@ const defaultPreferences = {
 function getPreferences() {
   const storedPrefs = JSON.parse(localStorage.getItem('userPreferences'));
 
-  const page = new URLSearchParams(window.location.search).get('page', 1);
+  let page = new URLSearchParams(window.location.search).get('page');
+  page = page ? parseInt(page) : 1;
+
   const updatedPrefs = Object.assign({}, defaultPreferences, {page})
   for (const key in storedPrefs) {
     updatedPrefs[key] = storedPrefs[key];
@@ -32,18 +34,22 @@ function applyPreferences() {
   return prefs;
 }
 
-function updateGallery() {
+function getPrefValues() {
   const prefs = getPreferences();
+  return {
+    sort: prefs.sort,
+    videos: prefs.videos,
+    favorites: prefs.favorites,
+    page: prefs.page,
+    search: prefs.search,
+  };
+}
+
+function updateGallery() {
   htmx.ajax('GET', '/', {
     target: '#media-index',
     swap: 'innerHTML',
-    values: {
-      sort: prefs.sort,
-      videos: prefs.videos,
-      favorites: prefs.favorites,
-      page: prefs.page,
-      search: prefs.search
-    },
+    values: getPrefValues(),
   });
 }
 
@@ -51,4 +57,24 @@ document.addEventListener('DOMContentLoaded', () => {
   const prefs = applyPreferences();
   console.log("Preferences loaded", prefs);
   updateGallery();
+
+  // Add preference query parameters
+  document.body.addEventListener('htmx:configRequest', function(evt) {
+    console.log("Request get!");
+    console.log(evt.detail.parameters);
+    console.log(evt)
+    evt.detail.useUrlParams = true;
+    const prefs = getPrefValues();
+    for (const pref in prefs) {
+      evt.detail.parameters[pref] = prefs[pref];
+    }
+  });
+
+  document.body.addEventListener('htmx:beforeRequest', function(evt) {
+    console.log("Request sent!");
+    console.log(evt.detail.xhr);
+    console.log(evt.detail.requestConfig);
+  });
 });
+
+

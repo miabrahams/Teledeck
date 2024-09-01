@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"math"
 	"net/http"
 	"strconv"
@@ -39,29 +40,20 @@ func (h *HomeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	itemsPerPage := 100
 
-	sort := r.URL.Query().Get("sort")
-	if sort == "" {
-		err := templates.Layout(templates.IndexEmpty(), "Media Gallery").Render(r.Context(), w)
-		if err != nil {
-			http.Error(w, "Error rendering page", http.StatusInternalServerError)
-		}
-		return
+	searchPrefs, ok := r.Context().Value(middleware.SearchPrefKey).(models.SearchPrefs)
+	if !ok {
+		http.Error(w, "Error loading settings", http.StatusInternalServerError)
 	}
 
-	videosOnly := r.URL.Query().Get("videos") == "true"
-	favorites := r.URL.Query().Get("favorites")
-	search := r.URL.Query().Get("search")
-
-	searchPrefs := models.SearchPrefs{
-		Sort:       sort,
-		VideosOnly: videosOnly,
-		Favorites:  favorites,
-		Search:     search,
-	}
+	fmt.Println(searchPrefs)
 
 	mediaItems, err := h.MediaStore.GetPaginatedMediaItems(page, itemsPerPage, searchPrefs)
 
 	if err != nil {
+		err := templates.Layout(templates.IndexEmpty(), "Media Gallery").Render(r.Context(), w)
+		if err != nil {
+			http.Error(w, "Error rendering page", http.StatusInternalServerError)
+		}
 		http.Error(w, "Error fetching media items", http.StatusInternalServerError)
 		return
 	}

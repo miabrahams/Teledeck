@@ -28,6 +28,23 @@ func (s *MediaController) RecycleMediaItem(mediaItem models.MediaItem) error {
 	return s.fileOps.Recycle(mediaItem.FileName)
 }
 
+func (s *MediaController) RecycleAndGetNext(mediaItem *models.MediaItem, page int, P models.SearchPrefs) (*models.MediaItemWithMetadata, error) {
+	// TODO: 100 items per page is hardcoded here
+	nextMediaItem, err := s.store.MarkDeletedAndGetNext(mediaItem, page, 100, P)
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.fileOps.Recycle(mediaItem.FileName)
+	if err != nil {
+		// TODO: Bad if an error happens here!!
+		// Undelete??
+	}
+
+	return nextMediaItem, nil
+}
+
 func (s *MediaController) GetAbsolutePath(mediaItem *models.MediaItem) string {
 	return s.fileRoot + "/" + mediaItem.FileName
 }

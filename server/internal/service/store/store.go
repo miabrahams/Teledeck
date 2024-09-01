@@ -22,6 +22,7 @@ type MediaStore interface {
 	ToggleFavorite(id string) (*models.MediaItemWithMetadata, error)
 	GetMediaItem(id string) (*models.MediaItemWithMetadata, error)
 	MarkDeleted(item *models.MediaItem) error
+	MarkDeletedAndGetNext(item *models.MediaItem, page int, itemsPerPage int, P models.SearchPrefs) (*models.MediaItemWithMetadata, error)
 }
 
 type TagsStore interface {

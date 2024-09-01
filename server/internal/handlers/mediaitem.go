@@ -65,6 +65,35 @@ func (h *MediaItemHandler) DeleteFavorite(w http.ResponseWriter, r *http.Request
 	templates.GalleryItem(item).Render(r.Context(), w)
 }
 
+func (h *MediaItemHandler) RecycleAndGetNext(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	mediaItem, ok := ctx.Value(m.MediaItemKey).(*models.MediaItemWithMetadata)
+	page, ok2 := ctx.Value(m.PageKey).(int)
+	searchPrefs, ok3 := ctx.Value(m.SearchPrefKey).(models.SearchPrefs)
+	if !ok {
+		status := http.StatusUnprocessableEntity
+		http.Error(w, http.StatusText(status), status)
+		return
+	}
+
+	if !ok2 || !ok3 {
+		http.Error(w, "Error loading settings", http.StatusInternalServerError)
+		return
+	}
+
+	if mediaItem.Favorite {
+		http.Error(w, "Cannot delete a favorite item", http.StatusBadRequest)
+		return
+	}
+
+	nextItem, err := h.controller.RecycleAndGetNext(&mediaItem.MediaItem, page, searchPrefs)
+	if err != nil {
+		http.Error(w, "Error deleting gallery item", http.StatusInternalServerError)
+		return
+	}
+	templates.ReplacementGalleryItem(nextItem).Render(r.Context(), w)
+}
+
 func (h *MediaItemHandler) RecycleMediaItem(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	mediaItem, ok := ctx.Value(m.MediaItemKey).(*models.MediaItemWithMetadata)
@@ -83,7 +112,6 @@ func (h *MediaItemHandler) RecycleMediaItem(w http.ResponseWriter, r *http.Reque
 		http.Error(w, "Error deleting gallery item", http.StatusInternalServerError)
 		return
 	}
-	// Send status OK with empty body
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(""))
 }

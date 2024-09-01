@@ -150,11 +150,6 @@ func main() {
 
 		r.NotFound(handlers.NewNotFoundHandler().ServeHTTP)
 
-		r.Get("/", handlers.NewHomeHandler(handlers.NewHomeHandlerParams{
-			MediaStore: mediaStore,
-			Logger:     logger,
-		}).ServeHTTP)
-
 		r.Get("/about", GlobalHandler.GetAbout)
 		r.Get("/register", GlobalHandler.GetRegister)
 		r.Get("/login", GlobalHandler.GetLogin)
@@ -162,6 +157,34 @@ func main() {
 		r.Post("/register", handlers.NewPostRegisterHandler(handlers.PostRegisterHandlerParams{
 			UserStore: userStore,
 		}).ServeHTTP)
+
+		r.Post("/login", handlers.NewPostLoginHandler(handlers.PostLoginHandlerParams{
+			UserStore:         userStore,
+			SessionStore:      sessionStore,
+			PasswordHash:      passwordhash,
+			SessionCookieName: cfg.SessionCookieName,
+		}).ServeHTTP)
+
+		r.Post("/logout", handlers.NewPostLogoutHandler(handlers.PostLogoutHandlerParams{
+			SessionCookieName: cfg.SessionCookieName,
+		}).ServeHTTP)
+
+		r.Group(func(r chi.Router) {
+			r.Use(m.SearchParamsMiddleware)
+
+			r.Get("/", handlers.NewHomeHandler(handlers.NewHomeHandlerParams{
+				MediaStore: mediaStore,
+				Logger:     logger,
+			}).ServeHTTP)
+
+			r.Route("/mediaItem/{mediaItemID}", func(r chi.Router) {
+				r.Use(mediaItemMiddleware)
+				r.Get("/", MediaHandler.GetMediaItem)
+				r.Delete("/", MediaHandler.RecycleAndGetNext)
+				r.Post("/favorite", MediaHandler.PostFavorite)
+				r.Delete("/favorite", MediaHandler.DeleteFavorite)
+			})
+		})
 
 		// r.Get("/scrape", TwitterScrapeHandler.ScrapeUser)
 		r.Route("/tags/{mediaItemID}", func(r chi.Router) {
@@ -176,24 +199,6 @@ func main() {
 			r.Get("/generate", ScoreHandler.GenerateImageScore)
 		})
 
-		r.Route("/mediaItem/{mediaItemID}", func(r chi.Router) {
-			r.Use(mediaItemMiddleware)
-			r.Get("/", MediaHandler.GetMediaItem)
-			r.Delete("/", MediaHandler.RecycleMediaItem)
-			r.Post("/favorite", MediaHandler.PostFavorite)
-			r.Delete("/favorite", MediaHandler.DeleteFavorite)
-		})
-
-		r.Post("/login", handlers.NewPostLoginHandler(handlers.PostLoginHandlerParams{
-			UserStore:         userStore,
-			SessionStore:      sessionStore,
-			PasswordHash:      passwordhash,
-			SessionCookieName: cfg.SessionCookieName,
-		}).ServeHTTP)
-
-		r.Post("/logout", handlers.NewPostLogoutHandler(handlers.PostLogoutHandlerParams{
-			SessionCookieName: cfg.SessionCookieName,
-		}).ServeHTTP)
 	})
 
 	// Listen for kill signal

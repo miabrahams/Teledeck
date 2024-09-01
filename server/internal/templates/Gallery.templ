@@ -6,7 +6,7 @@ import (
 )
 
 templ Gallery(mediaItems []models.MediaItemWithMetadata, currentPage, totalPages int) {
-	<div class="media-gallery">
+	<div class="media-gallery" id="gallery">
 		for _, item := range mediaItems {
 			@GalleryItem(&item)
 		}
@@ -29,6 +29,13 @@ templ EmptyGalleryItem() {
 func itemID(item *models.MediaItem) string {
 	return "media-item-" + item.ID
 }
+
+templ ReplacementGalleryItem(item *models.MediaItemWithMetadata) {
+ <div hx-swap-oob="beforeend:#gallery">
+	@GalleryItem(item)
+ </div>
+}
+
 
 templ GalleryItem(item *models.MediaItemWithMetadata) {
 
