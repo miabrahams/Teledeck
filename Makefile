@@ -20,6 +20,10 @@ recycle:
 dump-schema:
 	sqlite3 teledeck.db '.schema' > alembic/schema.sql
 
+.PHONY: build
+build:
+	@cd server && make build
+
 .PHONY: server tagger
 server:
 	@cd server && make dev
