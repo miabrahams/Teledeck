@@ -1,0 +1,94 @@
+package templates
+
+import (
+	"teledeck/internal/models"
+)
+
+func itemID(item *models.MediaItem) string {
+	return "media-item-" + item.ID
+}
+
+templ downloadButton(item *models.MediaItemWithMetadata) {
+	<a
+		href={ templ.URL("/media/" + item.FileName) }
+		download={ item.FileName }
+		class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded download-link"
+	>
+		Download
+	</a>
+}
+
+templ deleteButton(item *models.MediaItemWithMetadata) {
+	<button
+		hx-trigger="click"
+		hx-swap="outerHTML"
+		hx-delete={ "/mediaItem/" + item.ID }
+		hx-target={ "#" + itemID(&item.MediaItem) }
+		class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded delete-button"
+	>
+		Delete
+	</button>
+}
+
+templ favoriteButton(item *models.MediaItemWithMetadata) {
+	<button
+		hx-trigger="click"
+		hx-swap="outerHTML"
+		hx-post={ "/mediaItem/" + item.ID + "/favorite" }
+		hx-target={ "#" + itemID(&item.MediaItem) }
+		class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded favorite-button"
+	>
+		Favorite
+	</button>
+}
+
+templ scoreButton(item *models.MediaItemWithMetadata) {
+	<button
+		hx-trigger="click"
+		hx-swap="innerHTML"
+		hx-get={ "/score/" + item.ID + "/generate" }
+		class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded favorite-button"
+	>
+		Score
+	</button>
+}
+
+
+templ GalleryItem(item *models.MediaItemWithMetadata) {
+
+    <div
+        class={ favoriteClass(&item.MediaItem) }
+        id={ itemID(&item.MediaItem) }
+        data-id={ item.ID }
+        data-filename={ item.FileName }
+    >
+		<div class="media-item-content cursor-pointer" data-fullscreen="true">
+			/* Todo: handle mp3, pdf */
+			if models.IsImgElement(item.MediaType) {
+				<img src={ "/media/" + item.FileName } alt={ item.FileName }/>
+			} else if models.IsVideoElement(item.MediaType) {
+				<video controls loop >
+					<source src={ "/media/" + item.FileName } type="video/mp4"/>
+					Your browser does not support the video tag.
+				</video>
+			}
+		</div>
+		<div class="media-info">
+			<h2 class="media-meta media-filename">
+				{ item.FileName } ({ item.MediaType })
+				if item.Favorite {
+					<span class="favorite-star">&#9733;</span>
+				}
+			</h2>
+			<p class="media-meta media-channel">Channel: { item.ChannelTitle }</p>
+			<p class="media-meta media-date">Date: { item.CreatedAt.Format("2006-01-02 15:04:05") }</p>
+			<p class="media-meta media-text">{ item.TelegramText }</p>
+		</div>
+		<div class="controls">
+			@downloadButton(item)
+			@deleteButton(item)
+			@favoriteButton(item)
+			@scoreButton(item)
+		</div>
+	</div>
+}
