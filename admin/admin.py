@@ -6,7 +6,7 @@ from models.telegram import Tag, MediaItem
 import argparse
 from os import environ
 from tqdm import tqdm
-from lib.tl_client import TLContext, get_context, extract_forward, channel_check_list_sync, client_update
+from lib.tl_client import get_context, extract_forward, channel_check_list_sync, client_update
 from telethon import hints
 from telethon.tl.custom.dialog import Dialog
 import asyncio

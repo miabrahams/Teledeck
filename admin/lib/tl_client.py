@@ -29,6 +29,7 @@ import pathlib
 import asyncio
 import json
 import uuid
+import random
 from datetime import datetime
 from sqlmodel import create_engine, Session, select, Column, Integer
 from models.telegram import MediaItem, MediaType, ChannelModel, TelegramMetadata
@@ -57,6 +58,13 @@ DEFAULT_FETCH_LIMIT = 65
 MAX_CONCURRENT_TASKS = 5
 DELAY = 0.1
 semaphore = asyncio.Semaphore(MAX_CONCURRENT_TASKS)
+
+
+# For SLOW_MODE
+SLOW_MODE = True
+ADDITIONAL_DELAY = [5, 10]
+if SLOW_MODE:
+    MAX_CONCURRENT_TASKS = 1
 
 
 
@@ -118,7 +126,10 @@ async def process_with_backoff(callback: Coroutine[Any, Any, None], task_label: 
         max_attempts = 5
         for attempt in range(max_attempts):
             try:
-                await asyncio.sleep(DELAY)
+                if SLOW_MODE:
+                    await asyncio.sleep(random.uniform(*ADDITIONAL_DELAY))
+                else:
+                    await asyncio.sleep(DELAY)
                 await callback
                 break
             except FloodWaitError:
@@ -138,7 +149,7 @@ async def download_media(ctx: TLContext, downloadable: Message | TypeMessageMedi
 
         result = await ctx.tclient.download_media(downloadable, str(MEDIA_PATH), progress_callback=progress_callback)
 
-        # ctx.progress.remove_task(download_task)
+        ctx.progress.remove_task(download_task)
 
     if isinstance(result, str):
         return pathlib.Path(result)
@@ -407,15 +418,21 @@ def get_earlier_messages(ctx: TLContext, channel: Channel, limit: int):
 
 async def get_target_channels(ctx: TLContext) -> AsyncGenerator[Channel, None]:
     with Session(ctx.engine) as session:
-        channel_ids = session.exec(select(ChannelModel).where(ChannelModel.check == True)).all()
+        channel_ids = session.exec(select(ChannelModel).where(ChannelModel.check)).all()
 
 
     for channel_id in channel_ids:
-        input_id = await ctx.tclient.get_input_entity(channel_id.id)
-        channel = await ctx.tclient.get_entity(input_id)
-        if not isinstance(channel, Channel):
-            raise ValueError(f"Channel not found: {channel_id.id}. Got {channel}")
-        yield channel
+        try:
+            input_id = await ctx.tclient.get_input_entity(channel_id.id)
+            channel = await ctx.tclient.get_entity(input_id)
+            if not isinstance(channel, Channel):
+                raise ValueError(f"Channel not found: {channel_id.id}. Got {channel}")
+            yield channel
+        except Exception as e:
+            err_msg = f"Failed to get channel: {channel_id.id}"
+            ctx.write(err_msg)
+            ctx.write(str(e))
+            ctx.add_data(f"Failed to get channel: {channel_id.id}. Error: {str(e)}")
 
 
     # channelTasks = [ctx.tclient.get_entity() for channel_id in channel_ids]
