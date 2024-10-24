@@ -4,6 +4,8 @@ venv
 *.session-journal
 *.db
 *.pyc
+__pycache__/
+
 
 
 static/*
@@ -12,3 +14,4 @@ data/*
 tagger/model/*
 server/static/css/style.css
 server/static/css/style.min.css
+repopack-output.txt

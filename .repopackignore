@@ -1,0 +1,15 @@
+# Add patterns to ignore here, one per line
+# Example:
+# *.log
+# tmp/
+
+playwright/
+static/
+AI/
+ai_server/
+admin/
+alembic/
+.vscode
+__pycache__
+license
+*.sum
