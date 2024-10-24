@@ -1,5 +1,6 @@
 bin
 tmp
 *.db
+.tdlib
 tailwindcss
 internal/templates/*.go
