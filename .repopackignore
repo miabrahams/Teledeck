@@ -3,13 +3,28 @@
 # *.log
 # tmp/
 
-playwright/
-static/
 AI/
 ai_server/
 admin/
+
+web/
+playwright/
+
 alembic/
+alembic.ini
+
+server/static/script/htmx.min.js
+server/static/script/response-targets.js
+
+static/media
+
+
 .vscode
-__pycache__
 license
+TODO.md
+requirements.txt
+
 *.sum
+__pycache__
+*.ipynb
+*.css
