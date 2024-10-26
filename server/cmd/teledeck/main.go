@@ -7,10 +7,13 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
+	"sync"
 	"syscall"
 	"teledeck/internal/config"
 	"teledeck/internal/controllers"
 	"teledeck/internal/handlers"
+	hx "teledeck/internal/handlers/htmx"
 	external "teledeck/internal/service/external/api"
 	"teledeck/internal/service/files/localfile"
 	"teledeck/internal/service/hash/passwordhash"
@@ -20,14 +23,10 @@ import (
 
 	m "teledeck/internal/middleware"
 
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
-
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-
-	"path/filepath"
-	"strings"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/joho/godotenv"
 )
@@ -42,29 +41,6 @@ func init() {
 	os.Setenv("env", Environment)
 }
 
-// FileServer conveniently sets up a http.FileServer handler to serve
-// static files from a http.FileSystem.
-func MediaFileServer(r chi.Router, path string, root http.FileSystem, logger *slog.Logger) {
-	if strings.ContainsAny(path, "{}*") {
-		panic("FileServer does not permit any URL parameters.")
-	}
-
-	if path != "/" && path[len(path)-1] != '/' {
-		r.Get(path, http.RedirectHandler(path+"/", http.StatusMovedPermanently).ServeHTTP)
-		path += "/"
-	}
-	path += "*"
-
-	rootServer := http.FileServer(root)
-
-	r.Get(path, func(w http.ResponseWriter, r *http.Request) {
-		rctx := chi.RouteContext(r.Context())
-		pathPrefix := strings.TrimSuffix(rctx.RoutePattern(), "/*")
-		fs := http.StripPrefix(pathPrefix, rootServer)
-		fs.ServeHTTP(w, r)
-	})
-}
-
 func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	err := godotenv.Load("../.env")
@@ -73,40 +49,32 @@ func main() {
 		return
 	}
 
-	r := chi.NewRouter()
-
 	cfg := config.MustLoadConfig()
 
 	/* Register Database Stores */
 	db := database.MustOpen(cfg.DatabaseName)
-	passwordhash := passwordhash.NewHPasswordHash()
-
-	userStore := dbstore.NewUserStore(
-		dbstore.NewUserStoreParams{
-			DB:           db,
-			PasswordHash: passwordhash,
-		},
-	)
-
-	sessionStore := dbstore.NewSessionStore(
-		dbstore.NewSessionStoreParams{
-			DB: db,
-		},
-	)
-
 	mediaStore := dbstore.NewMediaStore(db, logger)
-
 	tagsStore := dbstore.NewTagsStore(db, logger)
 	aestheticsStore := dbstore.NewAestheticsStore(db, logger)
 
-	/* Static file paths */
-	workDir, _ := os.Getwd()
-	mediaDir := filepath.Join(workDir, cfg.StaticMediaDir, "media") // Adjust this path as needed
-	logger.Info("downloadsDir", "dir", http.Dir(mediaDir))
-	fileServer := http.FileServer(http.Dir(cfg.StaticDir))
-	r.Handle("/static/*", http.StripPrefix("/static/", fileServer))
+	passwordhash := passwordhash.NewHPasswordHash()
+	userStore := dbstore.NewUserStore(
+		dbstore.NewUserStoreParams{DB: db, PasswordHash: passwordhash},
+	)
+	sessionStore := dbstore.NewSessionStore(
+		dbstore.NewSessionStoreParams{DB: db},
+	)
 
-	MediaFileServer(r, "/media", http.Dir(mediaDir), logger)
+	/* Static file paths */
+	pwd, err := os.Getwd()
+	if err != nil {
+		logger.Error("could not read working directory", slog.Any("err", err))
+		os.Exit(1)
+	}
+	mediaDir := cfg.MediaDir(pwd)
+
+	r := chi.NewMux()
+	MediaFileServer(r, "/media", mediaDir, cfg.StaticDir, logger)
 
 	/* External services */
 	// twitterScrapeServce := services.NewTwitterScraper()
@@ -133,12 +101,12 @@ func main() {
 	mediaItemMiddleware := m.NewMediaItemMiddleware(mediaController)
 
 	/* Handlers */
-	GlobalHandler := handlers.NewGlobalHandler()
-	MediaHandler := handlers.NewMediaItemHandler(*mediaController)
 	TagsHandler := handlers.NewTagsHandler(*tagsController)
 	ScoreHandler := handlers.NewScoreHandler(*scoreController)
 	// TwitterScrapeHandler := handlers.NewTwitterScrapeHandler(twitterScrapeServce)
 
+	GlobalHandler := hx.NewGlobalHandler()
+	MediaHandler := hx.NewMediaItemHandler(*mediaController)
 	r.Group(func(r chi.Router) {
 		r.Use(
 			middleware.Logger,
@@ -148,7 +116,7 @@ func main() {
 			m.WithLogger(logger),
 		)
 
-		r.NotFound(handlers.NewNotFoundHandler().ServeHTTP)
+		r.NotFound(hx.NewNotFoundHandler().ServeHTTP)
 
 		r.Get("/about", GlobalHandler.GetAbout)
 		r.Get("/register", GlobalHandler.GetRegister)
@@ -158,7 +126,7 @@ func main() {
 			UserStore: userStore,
 		}).ServeHTTP)
 
-		r.Post("/login", handlers.NewPostLoginHandler(handlers.PostLoginHandlerParams{
+		r.Post("/login", hx.NewPostLoginHandler(hx.PostLoginHandlerParams{
 			UserStore:         userStore,
 			SessionStore:      sessionStore,
 			PasswordHash:      passwordhash,
@@ -172,7 +140,7 @@ func main() {
 		r.Group(func(r chi.Router) {
 			r.Use(m.SearchParamsMiddleware)
 
-			r.Get("/", handlers.NewHomeHandler(handlers.NewHomeHandlerParams{
+			r.Get("/", hx.NewHomeHandler(hx.NewHomeHandlerParams{
 				MediaStore: mediaStore,
 				Logger:     logger,
 			}).ServeHTTP)
@@ -201,17 +169,17 @@ func main() {
 
 	})
 
-	// Listen for kill signal
-	killSig := make(chan os.Signal, 1)
-
-	signal.Notify(killSig, os.Interrupt, syscall.SIGTERM)
-
 	srv := &http.Server{
 		Addr:    "0.0.0.0" + cfg.Port,
 		Handler: r,
 	}
 
+	wg := sync.WaitGroup{}
+
+	// Listen for traffic
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		err := srv.ListenAndServe()
 
 		if errors.Is(err, http.ErrServerClosed) {
@@ -223,20 +191,54 @@ func main() {
 	}()
 
 	logger.Info("Server started", slog.String("port", cfg.Port), slog.String("env", Environment))
-	// Block until we receive a kill signal
-	<-killSig
 
-	logger.Info("Shutting down server")
+	// Kill signal will request shutdown
+	killSig := make(chan os.Signal, 1)
+	go func() {
+		signal.Notify(killSig, os.Interrupt, syscall.SIGTERM)
+		<-killSig
 
-	// Create a context with a timeout for shutdown
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+		// Attempt to gracefully shut down the server
+		logger.Info("Shutting down server")
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := srv.Shutdown(ctx); err != nil {
+			logger.Error("Server shutdown failed", slog.Any("err", err))
+			os.Exit(1)
+		}
+	}()
 
-	// Attempt to gracefully shut down the server
-	if err := srv.Shutdown(ctx); err != nil {
-		logger.Error("Server shutdown failed", slog.Any("err", err))
-		os.Exit(1)
-	}
+	// Block until shutdown
+	wg.Wait()
 
 	logger.Info("Server shutdown complete")
+}
+
+// FileServer conveniently sets up a http.FileServer handler to serve
+// static files from a http.FileSystem.
+func MediaFileServer(r chi.Router, path string, mediaDir string, staticDir string, logger *slog.Logger) {
+	mediaRoot := http.Dir(mediaDir)
+
+	logger.Info("downloadsDir", "dir", mediaRoot)
+	fileServer := http.FileServer(http.Dir(staticDir))
+	r.Handle("/static/*", http.StripPrefix("/static/", fileServer))
+
+	if strings.ContainsAny(path, "{}*") {
+		panic("FileServer does not permit any URL parameters.")
+	}
+
+	if path != "/" && path[len(path)-1] != '/' {
+		r.Get(path, http.RedirectHandler(path+"/", http.StatusMovedPermanently).ServeHTTP)
+		path += "/"
+	}
+	path += "*"
+
+	rootServer := http.FileServer(mediaRoot)
+
+	r.Get(path, func(w http.ResponseWriter, r *http.Request) {
+		rctx := chi.RouteContext(r.Context())
+		pathPrefix := strings.TrimSuffix(rctx.RoutePattern(), "/*")
+		fs := http.StripPrefix(pathPrefix, rootServer)
+		fs.ServeHTTP(w, r)
+	})
 }

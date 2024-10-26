@@ -1,6 +1,10 @@
 package config
 
-import "github.com/kelseyhightower/envconfig"
+import (
+	"path/filepath"
+
+	"github.com/kelseyhightower/envconfig"
+)
 
 type Config struct {
 	Port              string `envconfig:"PORT" default:":4000"`
@@ -12,6 +16,11 @@ type Config struct {
 	Telegram_API_ID   string `envconfig:"TG_API_ID" default:""`
 	Telegram_API_Hash string `envconfig:"TG_API_HASH" default:""`
 	TaggerURL         string `envconfig:"TAGGER_URL" default:""`
+	TagServicePort    string `envconfig:"TAGGER_PORT" default:"8081"`
+}
+
+func (cfg *Config) MediaDir(workDir string) string {
+	return filepath.Join(workDir, cfg.StaticMediaDir, "media") // Adjust this path as needed
 }
 
 func loadConfig() (*Config, error) {

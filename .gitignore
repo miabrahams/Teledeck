@@ -14,4 +14,4 @@ data/*
 tagger/model/*
 server/static/css/style.css
 server/static/css/style.min.css
-repopack-output.txt
+repopack-output*.txt

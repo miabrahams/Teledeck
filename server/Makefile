@@ -1,3 +1,6 @@
+APP_NAME = teledeck
+
+
 .PHONY: tailwind-dl
 tailwind-dl:
 	curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64
@@ -23,7 +26,7 @@ templ-watch:
 
 .PHONY: dev
 dev:
-	go build -o ./tmp/$(APP_NAME) ./cmd/$(APP_NAME)/main.go && air
+	air --build.cmd "go build -o ./tmp/$(APP_NAME) cmd/$(APP_NAME)/main.go" --build.bin "./tmp/$(APP_NAME)"
 
 .PHONY:fmt
 fmt:
