@@ -1,4 +1,4 @@
-package htmxhandlers
+package handlers
 
 import (
 	b64 "encoding/base64"
@@ -11,22 +11,23 @@ import (
 	"time"
 )
 
-type PostLoginHandler struct {
+// TODO: Extract templates side
+type UserHandler struct {
+	sessionCookieName string
 	userStore         store.UserStore
 	sessionStore      store.SessionStore
 	passwordhash      hash.PasswordHash
-	sessionCookieName string
 }
 
-type PostLoginHandlerParams struct {
+type UserHandlerParams struct {
 	UserStore         store.UserStore
 	SessionStore      store.SessionStore
 	PasswordHash      hash.PasswordHash
 	SessionCookieName string
 }
 
-func NewPostLoginHandler(params PostLoginHandlerParams) *PostLoginHandler {
-	return &PostLoginHandler{
+func NewUserHandler(params UserHandlerParams) *UserHandler {
+	return &UserHandler{
 		userStore:         params.UserStore,
 		sessionStore:      params.SessionStore,
 		passwordhash:      params.PasswordHash,
@@ -34,7 +35,43 @@ func NewPostLoginHandler(params PostLoginHandlerParams) *PostLoginHandler {
 	}
 }
 
-func (h *PostLoginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *UserHandler) PostLogout(w http.ResponseWriter, r *http.Request) {
+
+	http.SetCookie(w, &http.Cookie{
+		Name:    h.sessionCookieName,
+		MaxAge:  -1,
+		Expires: time.Now().Add(-100 * time.Hour),
+		Path:    "/",
+	})
+
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+func (h *UserHandler) PostRegister(w http.ResponseWriter, r *http.Request) {
+	email := r.FormValue("email")
+	password := r.FormValue("password")
+
+	err := h.userStore.CreateUser(email, password)
+
+	if err != nil {
+
+		w.WriteHeader(http.StatusBadRequest)
+		c := templates.RegisterError()
+		c.Render(r.Context(), w)
+		return
+	}
+
+	c := templates.RegisterSuccess()
+	err = c.Render(r.Context(), w)
+
+	if err != nil {
+		http.Error(w, "error rendering template", http.StatusInternalServerError)
+		return
+	}
+
+}
+
+func (h *UserHandler) PostLogin(w http.ResponseWriter, r *http.Request) {
 
 	email := r.FormValue("email")
 	password := r.FormValue("password")

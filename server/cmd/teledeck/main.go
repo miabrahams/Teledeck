@@ -72,9 +72,10 @@ func main() {
 		os.Exit(1)
 	}
 	mediaDir := cfg.MediaDir(pwd)
+	logger.Info("Media folder", "dir", mediaDir)
 
 	r := chi.NewMux()
-	MediaFileServer(r, "/media", mediaDir, cfg.StaticDir, logger)
+	StaticFileServer(r, "/media", mediaDir, cfg.StaticDir)
 
 	/* External services */
 	// twitterScrapeServce := services.NewTwitterScraper()
@@ -107,6 +108,14 @@ func main() {
 
 	GlobalHandler := hx.NewGlobalHandler()
 	MediaHandler := hx.NewMediaItemHandler(*mediaController)
+	UserHandler := handlers.NewUserHandler(
+		handlers.UserHandlerParams{
+			UserStore:         userStore,
+			SessionStore:      sessionStore,
+			PasswordHash:      passwordhash,
+			SessionCookieName: cfg.SessionCookieName,
+		})
+
 	r.Group(func(r chi.Router) {
 		r.Use(
 			middleware.Logger,
@@ -122,20 +131,9 @@ func main() {
 		r.Get("/register", GlobalHandler.GetRegister)
 		r.Get("/login", GlobalHandler.GetLogin)
 
-		r.Post("/register", handlers.NewPostRegisterHandler(handlers.PostRegisterHandlerParams{
-			UserStore: userStore,
-		}).ServeHTTP)
-
-		r.Post("/login", hx.NewPostLoginHandler(hx.PostLoginHandlerParams{
-			UserStore:         userStore,
-			SessionStore:      sessionStore,
-			PasswordHash:      passwordhash,
-			SessionCookieName: cfg.SessionCookieName,
-		}).ServeHTTP)
-
-		r.Post("/logout", handlers.NewPostLogoutHandler(handlers.PostLogoutHandlerParams{
-			SessionCookieName: cfg.SessionCookieName,
-		}).ServeHTTP)
+		r.Post("/register", UserHandler.PostRegister)
+		r.Post("/login", UserHandler.PostLogin)
+		r.Post("/logout", UserHandler.PostLogout)
 
 		r.Group(func(r chi.Router) {
 			r.Use(m.SearchParamsMiddleware)
@@ -214,12 +212,10 @@ func main() {
 	logger.Info("Server shutdown complete")
 }
 
-// FileServer conveniently sets up a http.FileServer handler to serve
-// static files from a http.FileSystem.
-func MediaFileServer(r chi.Router, path string, mediaDir string, staticDir string, logger *slog.Logger) {
-	mediaRoot := http.Dir(mediaDir)
+// FileServer conveniently sets up a http.FileServer handler to serve static files from a http.FileSystem.
+// Installs static files on /static (js, css etc) and media files on [path]
+func StaticFileServer(r chi.Router, path string, mediaDir string, staticDir string) {
 
-	logger.Info("downloadsDir", "dir", mediaRoot)
 	fileServer := http.FileServer(http.Dir(staticDir))
 	r.Handle("/static/*", http.StripPrefix("/static/", fileServer))
 
@@ -227,18 +223,19 @@ func MediaFileServer(r chi.Router, path string, mediaDir string, staticDir strin
 		panic("FileServer does not permit any URL parameters.")
 	}
 
+	// Ensure path is formatted correctly and ends with '/'
 	if path != "/" && path[len(path)-1] != '/' {
 		r.Get(path, http.RedirectHandler(path+"/", http.StatusMovedPermanently).ServeHTTP)
 		path += "/"
 	}
-	path += "*"
 
-	rootServer := http.FileServer(mediaRoot)
+	mediaRoot := http.Dir(mediaDir)
+	// Ensure exists??
 
-	r.Get(path, func(w http.ResponseWriter, r *http.Request) {
+	r.Get(path+"*", func(w http.ResponseWriter, r *http.Request) {
 		rctx := chi.RouteContext(r.Context())
 		pathPrefix := strings.TrimSuffix(rctx.RoutePattern(), "/*")
-		fs := http.StripPrefix(pathPrefix, rootServer)
+		fs := http.StripPrefix(pathPrefix, http.FileServer(mediaRoot))
 		fs.ServeHTTP(w, r)
 	})
 }

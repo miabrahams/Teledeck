@@ -38,6 +38,7 @@ func main() {
 		return
 	}
 
+	// TODO: This should be a test library inside of telegramservice
 	client := tdService.GetClient()
 	listener := client.GetListener()
 	defer listener.Close()
@@ -65,7 +66,7 @@ func main() {
 		log.Fatalf("GetMe error: %s", err)
 	}
 
-	log.Printf("Me: %s %s [%v]", me.FirstName, me.LastName, me.Usernames)
+	logger.Info("GetMe", "FirstName", me)
 
 	killSig := make(chan os.Signal, 2)
 	signal.Notify(killSig, os.Interrupt, syscall.SIGTERM)

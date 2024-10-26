@@ -1,4 +1,4 @@
-package htmxhandlers
+package handlers
 
 import (
 	"bytes"
