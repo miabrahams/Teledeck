@@ -1,0 +1,8 @@
+src/assets
+README.md
+
+package.json
+package-lock.json
+
+vite.config.ts
+eslint.config.ts
