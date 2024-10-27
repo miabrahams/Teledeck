@@ -1,4 +1,4 @@
-package handlers
+package htmxhandlers
 
 import (
 	"bytes"
@@ -46,15 +46,18 @@ func TestRegisterUserHandler(t *testing.T) {
 
 			userStore.On("CreateUser", tc.email, tc.password).Return(tc.createUserError)
 
-			handler := NewPostRegisterHandler(PostRegisterHandlerParams{
-				UserStore: userStore,
+			handler := NewUserHandler(UserHandlerParams{
+				UserStore:         userStore,
+				SessionStore:      nil,
+				PasswordHash:      nil,
+				SessionCookieName: "session",
 			})
 			body := bytes.NewBufferString("email=" + tc.email + "&password=" + tc.password)
 			req, _ := http.NewRequest("POST", "/", body)
 			req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 			rr := httptest.NewRecorder()
 
-			handler.ServeHTTP(rr, req)
+			handler.PostRegister(rr, req)
 
 			assert.Equal(tc.expectedStatusCode, rr.Code, "handler returned wrong status code: got %v want %v", rr.Code, tc.expectedStatusCode)
 

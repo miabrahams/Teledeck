@@ -1,4 +1,4 @@
-package apihandlers
+package webapi
 
 import (
 	"encoding/json"

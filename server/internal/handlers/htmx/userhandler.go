@@ -1,4 +1,4 @@
-package handlers
+package htmxhandlers
 
 import (
 	b64 "encoding/base64"
