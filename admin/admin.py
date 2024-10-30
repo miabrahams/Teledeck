@@ -48,12 +48,12 @@ def find_orphans(media_path: pathlib.Path, orphan_path: pathlib.Path):
             if not result:
                 print("Would like to move to: " + str(orphan_path.joinpath(name)))
                 item.rename(orphan_path.joinpath(name))
-                print(f"No file found: {name}" )
+                print(f"No file found: {name}")
 
 async def save_forwards(chat_name: str):
     ctx = await get_context()
     # resolved = get_peer_id(chat_id)
-    entity: hints.Entity | None = None
+    entity: hints.EntityLike | None = None
     async for d in ctx.tclient.iter_dialogs():
         dialog = cast(Dialog, d)
         if dialog.name == chat_name:
@@ -61,6 +61,7 @@ async def save_forwards(chat_name: str):
             break
     if not entity:
         print("Could not find chat.")
+        return
 
     n = 0
     async for message in ctx.tclient.iter_messages(entity, limit=5000):
