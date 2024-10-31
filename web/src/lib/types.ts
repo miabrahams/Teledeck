@@ -1,4 +1,3 @@
-
 // Types to match your Go models
 export type MediaItemType = {
   id: string;
@@ -22,8 +21,16 @@ export type Preferences = {
   videos: boolean;
   favorites: string;
   search: string;
-  page?: number;
+  page?: string;
   darkmode: boolean;
+};
+
+export const defaultPreferences: Preferences = {
+  sort: 'date_desc',
+  videos: true,
+  favorites: 'all',
+  search: '',
+  darkmode: true,
 };
 
 export type User = {

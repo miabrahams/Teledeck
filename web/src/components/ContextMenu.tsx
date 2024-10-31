@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react'
 import { Download, Star, Trash, Tag, BarChart2 } from 'lucide-react';
-import { MediaItemType } from '@/types/types';
+import { MediaItemType } from '@/lib/types';
 
 type ContextMenuProps = { x: number, y: number, item: MediaItemType, onClose: ()=>{},  onAction: Function }
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Moon, Sun, Search } from 'lucide-react';
-import {User, Preferences} from '@/types/types';
+import {User, Preferences} from '@/lib/types';
 
 const sortOptions = [
   { value: 'date_desc', label: 'Newest posts first' },

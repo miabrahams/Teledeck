@@ -3,7 +3,7 @@ import MediaItem from './MediaItem';
 import FullscreenView from './FullScreenView';
 import ContextMenu from './ContextMenu';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { MediaItemType } from '@/types/types';
+import { MediaItemType } from '@/lib/types';
 
 const MediaGallery = ({ currentPage, totalPages, onPageChange }) => {
   const [items, setItems] = useState<MediaItemType[]>([]);

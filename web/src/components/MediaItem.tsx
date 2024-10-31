@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Play, Pause, Download, Star, Trash } from 'lucide-react';
-import { MediaItemType } from '@/types/types';
+import { MediaItemType } from '@/lib/types';
 
 type MediaItemProps = {
   item: MediaItemType;
