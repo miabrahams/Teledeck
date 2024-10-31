@@ -3,12 +3,12 @@ import MediaItem from './MediaItem';
 import FullscreenView from './FullScreenView';
 import ContextMenu from './ContextMenu';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { MediaItemType } from '@/lib/types';
+import { defaultPreferences, MediaItemType } from '@/lib/types';
 
 const MediaGallery = ({ currentPage, totalPages, onPageChange }) => {
   const [items, setItems] = useState<MediaItemType[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null);
   const [fullscreenItem, setFullscreenItem] = useState(null);
 
@@ -22,7 +22,8 @@ const MediaGallery = ({ currentPage, totalPages, onPageChange }) => {
       setError(null);
 
       // Get preferences from localStorage for consistent filtering
-      const preferences = JSON.parse(localStorage.getItem('userPreferences')) || {};
+      const storedPrefs = localStorage.getItem('userPreferences');
+      const preferences = storedPrefs ? JSON.parse(storedPrefs) : defaultPreferences;
       const params = new URLSearchParams({
         ...preferences,
         page: currentPage.toString()
@@ -105,8 +106,8 @@ const MediaGallery = ({ currentPage, totalPages, onPageChange }) => {
   }
 
   return (
-    <div className="container mx-auto px-4">
-      <div className="media-gallery">
+    <div id="media-index">
+      <div className="media-gallery" id="gallery">
         {items.map((item) => (
           <MediaItem
             key={item.id}

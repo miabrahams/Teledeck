@@ -4,6 +4,7 @@ const colors = require('tailwindcss/colors')
 module.exports = {
   content: [
     'internal/templates/*.templ',
+    '../web/src/**/*.tsx',
   ],
   safelist: [
     'fullscreen-view',
