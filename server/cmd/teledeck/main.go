@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"teledeck/internal/config"
 	"teledeck/internal/controllers"
+	api "teledeck/internal/handlers/api"
 	hx "teledeck/internal/handlers/htmx"
 	external "teledeck/internal/service/external/api"
 	"teledeck/internal/service/files/localfile"
@@ -106,18 +107,19 @@ func main() {
 	hxGlobalHandler := hx.NewGlobalHandler()
 	hxHomeHandler := hx.NewHomeHandler(hx.NewHomeHandlerParams{
 		MediaStore: mediaStore,
-		Logger: logger,
+		Logger:     logger,
 	})
 	hxMediaHandler := hx.NewMediaItemHandler(*mediaController)
 	hxUserHandler := hx.NewUserHandler(hx.UserHandlerParams{
-			UserStore:         userStore,
-			SessionStore:      sessionStore,
-			PasswordHash:      passwordhash,
-			SessionCookieName: cfg.SessionCookieName,
-		})
+		UserStore:         userStore,
+		SessionStore:      sessionStore,
+		PasswordHash:      passwordhash,
+		SessionCookieName: cfg.SessionCookieName,
+	})
 
 	// TwitterScrapeHandler := handlers.NewTwitterScrapeHandler(twitterScrapeServce)
 
+	mediaJsonHandler := api.NewMediaJsonHandler(mediaStore)
 
 	r.Group(func(r chi.Router) {
 		r.Use(
@@ -165,6 +167,9 @@ func main() {
 			r.Get("/generate", hxScoreHandler.GenerateImageScore)
 		})
 
+		r.Route("/api", func(r chi.Router) {
+			r.Get("/media", mediaJsonHandler.GetGallery)
+		})
 	})
 
 	srv := &http.Server{

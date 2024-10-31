@@ -1,6 +1,7 @@
 package webapi
 
 import (
+	"math"
 	"net/http"
 	"teledeck/internal/middleware"
 	"teledeck/internal/models"
@@ -17,16 +18,25 @@ func NewMediaJsonHandler(mediaStore store.MediaStore) *MediaJsonHandler {
 	return &MediaJsonHandler{mediaStore: mediaStore}
 }
 
-func (h *MediaJsonHandler) GetMedia(w http.ResponseWriter, r *http.Request) {
+const (
+	itemsPerPage = 100
+)
+
+func newSearchPrefs(sort string, favorites string, videos bool, query string) models.SearchPrefs {
+	return models.SearchPrefs{
+		Sort:       sort,
+		Favorites:  favorites,
+		VideosOnly: videos,
+		Search:     query,
+	}
+}
+
+func (h *MediaJsonHandler) GetGallery(w http.ResponseWriter, r *http.Request) {
 	// Parse query parameters for pagination and preferences
 	page := 1
-	itemsPerPage := 100 // Could make this configurable
 
-	searchPrefs, ok := r.Context().Value(middleware.SearchPrefKey).(models.SearchPrefs)
-	if !ok {
-		writeError(w, http.StatusInternalServerError, "Error loading preferences")
-		return
-	}
+	// page := chi.URLParam(r, "page")
+	searchPrefs := newSearchPrefs("", "", false, "")
 
 	items, err := h.mediaStore.GetPaginatedMediaItems(page, itemsPerPage, searchPrefs)
 	if err != nil {
@@ -35,6 +45,25 @@ func (h *MediaJsonHandler) GetMedia(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, items)
+}
+
+func (h *MediaJsonHandler) GetMediaItem(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	mediaItem, ok := ctx.Value(middleware.MediaItemKey).(*models.MediaItemWithMetadata)
+	if !ok {
+		status := http.StatusUnprocessableEntity
+		http.Error(w, http.StatusText(status), status)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, mediaItem)
+}
+
+func (h *MediaJsonHandler) GetNumPages(w http.ResponseWriter, r *http.Request) {
+	searchPrefs := newSearchPrefs("", "", false, "")
+
+	totalPages := int(math.Ceil(float64(h.mediaStore.GetMediaItemCount(searchPrefs)) / float64(itemsPerPage)))
+	writeJSON(w, http.StatusOK, totalPages)
 }
 
 func (h *MediaJsonHandler) ToggleFavorite(w http.ResponseWriter, r *http.Request) {
