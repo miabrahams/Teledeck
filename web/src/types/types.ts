@@ -1,13 +1,14 @@
 
 // Types to match your Go models
-export type MediaItem = {
+export type MediaItemType = {
   id: string;
-  fileName: string;
-  mediaType: string;
+  file_name: string;
+  MediaType: string;
   favorite: boolean;
   channelTitle: string;
-  createdAt: string;
-  telegramText: string;
+  created_at: string;
+  TelegramDate: string;
+  TelegramText: string;
 };
 
 export type MediaGalleryProps = {

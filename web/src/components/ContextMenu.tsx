@@ -1,8 +1,8 @@
 import React, { useRef, useEffect } from 'react'
 import { Download, Star, Trash, Tag, BarChart2 } from 'lucide-react';
-import { MediaItem } from '@/types/types';
+import { MediaItemType } from '@/types/types';
 
-type ContextMenuProps = { x: number, y: number, item: MediaItem, onClose: ()=>{},  onAction: Function }
+type ContextMenuProps = { x: number, y: number, item: MediaItemType, onClose: ()=>{},  onAction: Function }
 
 const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, onClose, onAction, item }) => {
   const menuRef = useRef<HTMLDivElement>(null);

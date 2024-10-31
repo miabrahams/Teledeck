@@ -1,14 +1,15 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import MediaItem from './MediaItem';
 import FullscreenView from './FullScreenView';
 import ContextMenu from './ContextMenu';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { MediaItemType } from '@/types/types';
 
 const MediaGallery = ({ currentPage, totalPages, onPageChange }) => {
-  const [items, setItems] = useState([]);
+  const [items, setItems] = useState<MediaItemType[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [contextMenu, setContextMenu] = useState(null);
+  const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null);
   const [fullscreenItem, setFullscreenItem] = useState(null);
 
   useEffect(() => {
@@ -105,7 +106,7 @@ const MediaGallery = ({ currentPage, totalPages, onPageChange }) => {
 
   return (
     <div className="container mx-auto px-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div className="media-gallery">
         {items.map((item) => (
           <MediaItem
             key={item.id}
@@ -119,6 +120,32 @@ const MediaGallery = ({ currentPage, totalPages, onPageChange }) => {
       </div>
 
       {/* Pagination */}
+      <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={onPageChange} />
+
+      {contextMenu && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          item={contextMenu.item}
+          onClose={() => setContextMenu(null)}
+          onAction={handleContextAction}
+        />
+      )}
+
+      {fullscreenItem && (
+        <FullscreenView
+          item={fullscreenItem}
+          onClose={() => setFullscreenItem(null)}
+        />
+      )}
+    </div>
+  );
+};
+
+type PaginationProps = {currentPage: number, totalPages: number, onPageChange: (n: number) => void}
+const Pagination: React.FC<PaginationProps> = ({currentPage, totalPages, onPageChange}) => {
+
+  return (
       <div className="flex justify-center items-center gap-4 mt-8">
         {currentPage > 1 && (
           <button
@@ -144,25 +171,7 @@ const MediaGallery = ({ currentPage, totalPages, onPageChange }) => {
           </button>
         )}
       </div>
-
-      {contextMenu && (
-        <ContextMenu
-          x={contextMenu.x}
-          y={contextMenu.y}
-          item={contextMenu.item}
-          onClose={() => setContextMenu(null)}
-          onAction={handleContextAction}
-        />
-      )}
-
-      {fullscreenItem && (
-        <FullscreenView
-          item={fullscreenItem}
-          onClose={() => setFullscreenItem(null)}
-        />
-      )}
-    </div>
   );
-};
+}
 
 export default MediaGallery;
