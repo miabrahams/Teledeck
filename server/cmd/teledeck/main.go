@@ -12,7 +12,6 @@ import (
 	"syscall"
 	"teledeck/internal/config"
 	"teledeck/internal/controllers"
-	"teledeck/internal/handlers"
 	hx "teledeck/internal/handlers/htmx"
 	external "teledeck/internal/service/external/api"
 	"teledeck/internal/service/files/localfile"
@@ -102,19 +101,23 @@ func main() {
 	mediaItemMiddleware := m.NewMediaItemMiddleware(mediaController)
 
 	/* Handlers */
-	TagsHandler := handlers.NewTagsHandler(*tagsController)
-	ScoreHandler := handlers.NewScoreHandler(*scoreController)
-	// TwitterScrapeHandler := handlers.NewTwitterScrapeHandler(twitterScrapeServce)
-
-	GlobalHandler := hx.NewGlobalHandler()
-	MediaHandler := hx.NewMediaItemHandler(*mediaController)
-	UserHandler := handlers.NewUserHandler(
-		handlers.UserHandlerParams{
+	hxTagsHandler := hx.NewTagsHandler(*tagsController)
+	hxScoreHandler := hx.NewScoreHandler(*scoreController)
+	hxGlobalHandler := hx.NewGlobalHandler()
+	hxHomeHandler := hx.NewHomeHandler(hx.NewHomeHandlerParams{
+		MediaStore: mediaStore,
+		Logger: logger,
+	})
+	hxMediaHandler := hx.NewMediaItemHandler(*mediaController)
+	hxUserHandler := hx.NewUserHandler(hx.UserHandlerParams{
 			UserStore:         userStore,
 			SessionStore:      sessionStore,
 			PasswordHash:      passwordhash,
 			SessionCookieName: cfg.SessionCookieName,
 		})
+
+	// TwitterScrapeHandler := handlers.NewTwitterScrapeHandler(twitterScrapeServce)
+
 
 	r.Group(func(r chi.Router) {
 		r.Use(
@@ -127,42 +130,39 @@ func main() {
 
 		r.NotFound(hx.NewNotFoundHandler().ServeHTTP)
 
-		r.Get("/about", GlobalHandler.GetAbout)
-		r.Get("/register", GlobalHandler.GetRegister)
-		r.Get("/login", GlobalHandler.GetLogin)
+		r.Get("/about", hxGlobalHandler.GetAbout)
+		r.Get("/register", hxGlobalHandler.GetRegister)
+		r.Get("/login", hxGlobalHandler.GetLogin)
 
-		r.Post("/register", UserHandler.PostRegister)
-		r.Post("/login", UserHandler.PostLogin)
-		r.Post("/logout", UserHandler.PostLogout)
+		r.Post("/register", hxUserHandler.PostRegister)
+		r.Post("/login", hxUserHandler.PostLogin)
+		r.Post("/logout", hxUserHandler.PostLogout)
 
 		r.Group(func(r chi.Router) {
 			r.Use(m.SearchParamsMiddleware)
 
-			r.Get("/", hx.NewHomeHandler(hx.NewHomeHandlerParams{
-				MediaStore: mediaStore,
-				Logger:     logger,
-			}).ServeHTTP)
+			r.Get("/", hxHomeHandler.ServeHTTP)
 
 			r.Route("/mediaItem/{mediaItemID}", func(r chi.Router) {
 				r.Use(mediaItemMiddleware)
-				r.Get("/", MediaHandler.GetMediaItem)
-				r.Delete("/", MediaHandler.RecycleAndGetNext)
-				r.Post("/favorite", MediaHandler.PostFavorite)
-				r.Delete("/favorite", MediaHandler.DeleteFavorite)
+				r.Get("/", hxMediaHandler.GetMediaItem)
+				r.Delete("/", hxMediaHandler.RecycleAndGetNext)
+				r.Post("/favorite", hxMediaHandler.PostFavorite)
+				r.Delete("/favorite", hxMediaHandler.DeleteFavorite)
 			})
 		})
 
 		// r.Get("/scrape", TwitterScrapeHandler.ScrapeUser)
 		r.Route("/tags/{mediaItemID}", func(r chi.Router) {
 			r.Use(mediaItemMiddleware)
-			r.Get("/", TagsHandler.GetTagsImage)
-			r.Get("/generate", TagsHandler.GenerateTagsImage)
+			r.Get("/", hxTagsHandler.GetTagsImage)
+			r.Get("/generate", hxTagsHandler.GenerateTagsImage)
 		})
 
 		r.Route("/score/{mediaItemID}", func(r chi.Router) {
 			r.Use(mediaItemMiddleware)
-			r.Get("/", ScoreHandler.GetImageScore)
-			r.Get("/generate", ScoreHandler.GenerateImageScore)
+			r.Get("/", hxScoreHandler.GetImageScore)
+			r.Get("/generate", hxScoreHandler.GenerateImageScore)
 		})
 
 	})
