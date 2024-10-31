@@ -13,7 +13,7 @@ import { Login, Register } from '@/components/Auth';
 import { Preferences, User, defaultPreferences } from '@/lib/types';
 import { useUser, useLogout } from '@/lib/api';
 
-const App = () => {
+const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [preferences, setPreferences] = useState<Preferences>(() => {
@@ -22,7 +22,7 @@ const App = () => {
   });
 
   const toggleDarkMode = () => {
-
+    // document.documentElement.classList.toggle('dark');
   };
 
   const { data: user, isLoading: userLoading } = useUser();
@@ -38,7 +38,6 @@ const App = () => {
     setPreferences(newPreferences);
     localStorage.setItem('userPreferences', JSON.stringify(newPreferences));
   };
-  // document.documentElement.classList.toggle('dark');
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -63,6 +62,7 @@ const App = () => {
                   currentPage={currentPage}
                   totalPages={totalPages}
                   onPageChange={handlePageChange}
+                  preferences={preferences}
                 />
               }
             />

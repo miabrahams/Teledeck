@@ -3,9 +3,11 @@ import MediaItem from './MediaItem';
 import FullscreenView from './FullScreenView';
 import ContextMenu from './ContextMenu';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { defaultPreferences, MediaItemType } from '@/lib/types';
+import { Preferences, defaultPreferences, MediaItemType } from '@/lib/types';
 
-const MediaGallery = ({ currentPage, totalPages, onPageChange }) => {
+
+type MediaGalleryProps = { currentPage: number, totalPages: number, onPageChange: Function, preferences: Preferences };
+const MediaGallery: React.FC<MediaGalleryProps> = ( {currentPage, totalPages, onPageChange, preferences} ) => {
   const [items, setItems] = useState<MediaItemType[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -22,8 +24,6 @@ const MediaGallery = ({ currentPage, totalPages, onPageChange }) => {
       setError(null);
 
       // Get preferences from localStorage for consistent filtering
-      const storedPrefs = localStorage.getItem('userPreferences');
-      const preferences = storedPrefs ? JSON.parse(storedPrefs) : defaultPreferences;
       const params = new URLSearchParams({
         ...preferences,
         page: currentPage.toString()
