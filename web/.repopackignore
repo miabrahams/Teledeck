@@ -5,4 +5,8 @@ package.json
 package-lock.json
 
 vite.config.ts
-eslint.config.ts
+eslint.config.js
+tsconfig.json
+tsconfig.*.json
+.repopackignore
+.gitignore

@@ -169,6 +169,8 @@ func main() {
 
 		r.Route("/api", func(r chi.Router) {
 			r.Get("/media", mediaJsonHandler.GetGallery)
+			r.Delete("/media/{mediaItemID}", mediaJsonHandler.DeleteMedia)
+			r.Post("/media/favorite/{mediaItemID}", mediaJsonHandler.ToggleFavorite)
 		})
 	})
 
