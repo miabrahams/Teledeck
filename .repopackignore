@@ -23,6 +23,7 @@ static/media
 license
 TODO.md
 requirements.txt
+*repopack*
 
 *.sum
 __pycache__
