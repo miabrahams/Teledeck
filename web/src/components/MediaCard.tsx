@@ -1,56 +1,16 @@
 import React, { useState } from 'react';
 import { Play, Pause, Download, Star, Trash } from 'lucide-react';
-import { MediaItemType } from '@/lib/types';
+import { MediaItem } from '@/lib/types';
 
 type MediaItemProps = {
-  item: MediaItemType;
+  item: MediaItem;
   onFavorite: Function;
   onDelete: Function;
   onOpenFullscreen: Function;
   className?: string;
 };
 
-/*
-templ GalleryItem(item *models.MediaItemWithMetadata) {
-
-    <div
-        class={ favoriteClass(&item.MediaItem) }
-        id={ itemID(&item.MediaItem) }
-        data-id={ item.ID }
-        data-filename={ item.FileName }
-    >
-		<div class="media-item-content cursor-pointer" data-fullscreen="true">
-			if models.IsImgElement(item.MediaType) {
-				<img src={ "/media/" + item.FileName } alt={ item.FileName }/>
-			} else if models.IsVideoElement(item.MediaType) {
-				<video controls loop >
-					<source src={ "/media/" + item.FileName } type="video/mp4"/>
-					Your browser does not support the video tag.
-				</video>
-			}
-		</div>
-		<div class="media-info">
-			<h2 class="media-meta media-filename">
-				{ item.FileName } ({ item.MediaType })
-				if item.Favorite {
-					<span class="favorite-star">&#9733;</span>
-				}
-			</h2>
-			<p class="media-meta media-channel">Channel: { item.ChannelTitle }</p>
-			<p class="media-meta media-date">Date: { item.CreatedAt.Format("2006-01-02 15:04:05") }</p>
-			<p class="media-meta media-text">{ item.TelegramText }</p>
-		</div>
-		<div class="controls">
-			@downloadButton(item)
-			@deleteButton(item)
-			@favoriteButton(item)
-			@scoreButton(item)
-		</div>
-	</div>
-}
-*/
-
-const VideoItem: React.FC<{ item: MediaItemType }> = ({ item }) => {
+const VideoItem: React.FC<{ item: MediaItem }> = ({ item }) => {
   const [isPlaying, setIsPlaying] = useState(false);
 
   const handleVideoToggle = (videoEl: HTMLVideoElement) => {
@@ -90,7 +50,7 @@ const VideoItem: React.FC<{ item: MediaItemType }> = ({ item }) => {
 };
 
 
-const MediaInfo: React.FC<{ item: MediaItemType }> = ({ item }) => {
+const MediaInfo: React.FC<{ item: MediaItem }> = ({ item }) => {
 
       return (
       <div className="media-info">
@@ -107,7 +67,7 @@ const MediaInfo: React.FC<{ item: MediaItemType }> = ({ item }) => {
         </div>
     )};
 
-const MediaControls: React.FC<{ item: MediaItemType, isHovering: boolean, onFavorite: Function, onDelete: Function }> = ({ item, isHovering, onFavorite, onDelete }) => {
+const MediaControls: React.FC<{ item: MediaItem, isHovering: boolean, onFavorite: Function, onDelete: Function }> = ({ item, isHovering, onFavorite, onDelete }) => {
   // `absolute top-2 right-2 flex gap-2 ${isHovering ? 'opacity-100' : 'opacity-0'} transition-opacity duration-200`
 
   const controlClass = `controls ${isHovering ? 'opacity-100' : 'opacity-0'} transition-opacity duration-200`
@@ -138,7 +98,7 @@ const MediaControls: React.FC<{ item: MediaItemType, isHovering: boolean, onFavo
       </div>
   )};
 
-const MediaItem: React.FC<MediaItemProps> = ({
+const MediaCard: React.FC<MediaItemProps> = ({
   item,
   onFavorite,
   onDelete,
@@ -146,23 +106,8 @@ const MediaItem: React.FC<MediaItemProps> = ({
 }) => {
   const [isHovering, setIsHovering] = useState(false);
 
-  const isVideo = item.MediaType.includes('video');
-  const isImage = ['image', 'photo'].includes(item.MediaType)
-
-  const renderMedia = () => {
-    if (isVideo) {
-      return <VideoItem item={item} />;
-    } else if (isImage) {
-      return (
-        <img
-          src={`/media/${item.file_name}`}
-          alt={item.file_name}
-          onClick={() => onOpenFullscreen(item)}
-        />
-      );
-    }
-    return null;
-  };
+  const isVideo = ['video'].includes(item.MediaType);
+  const isImage = ['image', 'photo'].includes(item.MediaType);
 
   return (
     <div
@@ -172,11 +117,22 @@ const MediaItem: React.FC<MediaItemProps> = ({
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
     >
-      <div className={'media-item-content cursor-pointer'}>{renderMedia()}</div>
+      <div className={'media-item-content cursor-pointer'}>{
+          isVideo?
+            <VideoItem item={item} />
+          : isImage?
+            <img
+              src={`/media/${item.file_name}`}
+              alt={item.file_name}
+              onClick={() => onOpenFullscreen(item)}
+            />
+          : null
+        }
+      </div>
       <MediaInfo item={item} />
       <MediaControls item={item} isHovering={isHovering} onFavorite={onFavorite} onDelete={onDelete} />
     </div>
   );
 };
 
-export default MediaItem;
+export default MediaCard;

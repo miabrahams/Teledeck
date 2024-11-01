@@ -1,47 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import MediaItem from './MediaItem';
+import MediaCard from './MediaCard';
 import FullscreenView from './FullScreenView';
 import ContextMenu from './ContextMenu';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { Preferences, defaultPreferences, MediaItemType } from '@/lib/types';
+import { Preferences, defaultPreferences, MediaItem } from '@/lib/types';
+import { useMedia } from '@/lib/api';
 
 
 type MediaGalleryProps = { currentPage: number, totalPages: number, onPageChange: Function, preferences: Preferences };
 const MediaGallery: React.FC<MediaGalleryProps> = ( {currentPage, totalPages, onPageChange, preferences} ) => {
-  const [items, setItems] = useState<MediaItemType[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // const [items, setItems] = useState<MediaItemType[]>([]);
+  // const [loading, setLoading] = useState(false);
+  // const [error, setError] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null);
   const [fullscreenItem, setFullscreenItem] = useState(null);
 
-  useEffect(() => {
-    fetchItems();
-  }, [currentPage]);
 
-  const fetchItems = async () => {
-    try {
-      setLoading(true);
-      setError(null);
+  const {data: items, isLoading, error} = useMedia(preferences, currentPage);
 
-      // Get preferences from localStorage for consistent filtering
-      const params = new URLSearchParams({
-        ...preferences,
-        page: currentPage.toString()
-      });
-
-      const response = await fetch(`/api/media?${params}`);
-      if (!response.ok) throw new Error('Failed to fetch media items');
-
-      const data = await response.json();
-      setItems(data);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleContextMenu = (e, item) => {
+  const handleContextMenu = (e: React.MouseEvent, item: MediaItem) => {
     e.preventDefault();
     setContextMenu({
       x: e.pageX,
@@ -83,7 +60,7 @@ const MediaGallery: React.FC<MediaGalleryProps> = ( {currentPage, totalPages, on
     setContextMenu(null);
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
@@ -109,7 +86,7 @@ const MediaGallery: React.FC<MediaGalleryProps> = ( {currentPage, totalPages, on
     <div id="media-index">
       <div className="media-gallery" id="gallery">
         {items.map((item) => (
-          <MediaItem
+          <MediaCard
             key={item.id}
             item={item}
             onContextMenu={(e) => handleContextMenu(e, item)}
