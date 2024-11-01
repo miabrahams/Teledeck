@@ -11,26 +11,44 @@ import Navigation from '@/components/Navigation';
 import MediaGallery from '@/components/Gallery';
 import { Login, Register } from '@/components/Auth';
 import { Preferences, User, defaultPreferences } from '@/lib/types';
-import { useUser, useLogout } from '@/lib/api';
+import { useUser, useLogout, useTotalPages } from '@/lib/api';
 
 const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+
+  // TODO: query totalPages from API
+  // TODO: fetch preferences using useQuery
   const [preferences, setPreferences] = useState<Preferences>(() => {
     const stored = localStorage.getItem('userPreferences');
-    return stored ? JSON.parse(stored) : defaultPreferences;
+    const prefs = stored ? JSON.parse(stored) : defaultPreferences;
+    // Set dark mode to match new setting
+    if (prefs.darkmode) {
+      document.documentElement.classList.add('dark');
+    }
+    else {
+      document.documentElement.classList.remove('dark');
+    }
+    return prefs
   });
 
-  const toggleDarkMode = () => {
-    // document.documentElement.classList.toggle('dark');
-  };
+
+  const {data: totalPages} = useTotalPages(preferences);
+
+  // Equivalent useQuery for preferences
+  /*
+  const { data: preferences, isLoading: preferencesLoading } = useQuery({
+    queryKey: ['preferences'],
+    queryFn: () => {
+      const stored = localStorage.getItem('userPreferences');
+      const prefs: Preferences = stored ? JSON.parse(stored) : defaultPreferences;
+      return prefs;
+    },
+  });
+  */
+
 
   const { data: user, isLoading: userLoading } = useUser();
   const logout = useLogout();
-
-  const handleLogout = () => {
-    logout.mutate();
-  };
 
 
   const handlePreferenceChange = (key: string, value: any) => {
@@ -39,9 +57,6 @@ const App: React.FC = () => {
     localStorage.setItem('userPreferences', JSON.stringify(newPreferences));
   };
 
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
 
   return (
     <Router>
@@ -50,7 +65,7 @@ const App: React.FC = () => {
           user={user}
           preferences={preferences}
           onPreferenceChange={handlePreferenceChange}
-          onLogout={handleLogout}
+          onLogout={() => { logout.mutate }}
         />
 
         <main className="flex-1 container main-container">
@@ -61,7 +76,7 @@ const App: React.FC = () => {
                 <MediaGallery
                   currentPage={currentPage}
                   totalPages={totalPages}
-                  onPageChange={handlePageChange}
+                  onPageChange={setCurrentPage}
                   preferences={preferences}
                 />
               }

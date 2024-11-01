@@ -1,6 +1,7 @@
 package webapi
 
 import (
+	"fmt"
 	"math"
 	"net/http"
 	"teledeck/internal/middleware"
@@ -16,6 +17,7 @@ func NewMediaJsonHandler(mediaStore store.MediaStore) *MediaJsonHandler {
 	return &MediaJsonHandler{mediaStore: mediaStore}
 }
 
+// TODO: Make configurable
 const (
 	itemsPerPage = 100
 )
@@ -29,33 +31,46 @@ func newSearchPrefs(sort string, favorites string, videos bool, query string) mo
 	}
 }
 
-func (h *MediaJsonHandler) GetGallery(w http.ResponseWriter, r *http.Request) {
+func (h *MediaJsonHandler) getWithPrefs(w http.ResponseWriter, r *http.Request, callback func(searchPrefs models.SearchPrefs, page int)) {
 	// Parse query parameters for pagination and preferences
-	page := 1
-
-	// page := chi.URLParam(r, "page")
-	searchPrefs := newSearchPrefs("", "", false, "")
-
-	items, err := h.mediaStore.GetPaginatedMediaItems(page, itemsPerPage, searchPrefs)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Error fetching media items")
+	ctx := r.Context()
+	searchPrefs, ok := ctx.Value(middleware.SearchPrefKey).(models.SearchPrefs)
+	if !ok {
+		writeError(w, http.StatusInternalServerError, "Error fetching preferences")
+		return
+	}
+	page, ok := ctx.Value(middleware.PageKey).(int)
+	if !ok {
+		fmt.Printf("Error reading page number")
 		return
 	}
 
-	writeJSON(w, http.StatusOK, items)
+	callback(searchPrefs, page)
+}
+
+func (h *MediaJsonHandler) GetGallery(w http.ResponseWriter, r *http.Request) {
+	// Parse query parameters for pagination and preferences
+	h.getWithPrefs(w, r, func(searchPrefs models.SearchPrefs, page int) {
+		items, err := h.mediaStore.GetPaginatedMediaItems(page, itemsPerPage, searchPrefs)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "Error fetching media items")
+			return
+		}
+		writeJSON(w, http.StatusOK, items)
+	})
 }
 
 func (h *MediaJsonHandler) GetGalleryIds(w http.ResponseWriter, r *http.Request) {
-	page := 1
-	searchPrefs := newSearchPrefs("", "", false, "")
+	// Parse query parameters for pagination and preferences
+	h.getWithPrefs(w, r, func(searchPrefs models.SearchPrefs, page int) {
+		items, err := h.mediaStore.GetPaginatedMediaItemIds(page, itemsPerPage, searchPrefs)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "Error fetching media items")
+			return
+		}
 
-	items, err := h.mediaStore.GetPaginatedMediaItemIds(page, itemsPerPage, searchPrefs)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Error fetching media items")
-		return
-	}
-
-	writeJSON(w, http.StatusOK, items)
+		writeJSON(w, http.StatusOK, items)
+	})
 }
 
 func (h *MediaJsonHandler) mediaCallback(

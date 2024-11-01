@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { Play, Pause, Download, Star, Trash } from 'lucide-react';
 import { MediaItem } from '@/lib/types';
+import { useMediaItem } from '@/lib/api';
 
 type MediaItemProps = {
-  item: MediaItem;
+  itemId: string;
   onFavorite: Function;
   onDelete: Function;
-  onOpenFullscreen: Function;
+  setFullscreenItem: Function;
+  handleContextMenu: Function;
   className?: string;
 };
 
@@ -95,16 +97,39 @@ const MediaControls: React.FC<{ item: MediaItem, isHovering: boolean, onFavorite
   )};
 
 const MediaCard: React.FC<MediaItemProps> = ({
-  item,
+  itemId,
+  handleContextMenu,
   onFavorite,
   onDelete,
-  onOpenFullscreen,
+  setFullscreenItem,
 }) => {
   const [isHovering, setIsHovering] = useState(false);
 
+  const { data: item, status, error } = useMediaItem(itemId);
+
+  if (status === 'pending') {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
+  if (status === 'error') {
+    return (
+      <div className="text-center text-red-600 p-4">
+        <p>Error loading media: {error.message}</p>
+        <button
+          className="mt-2 px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+
   const isVideo = ['video'].includes(item.MediaType);
   const isImage = ['image', 'photo'].includes(item.MediaType);
-
   const cardClass = 'media-item relative group' + (item.favorite ? ' favorite' : '')
 
   return (
@@ -120,7 +145,7 @@ const MediaCard: React.FC<MediaItemProps> = ({
             <img
               src={`/media/${item.file_name}`}
               alt={item.file_name}
-              onClick={() => onOpenFullscreen(item)}
+              onClick={() => setFullscreenItem(item)}
             />
           : null
         }

@@ -42,10 +42,12 @@ func NewMediaItemMiddleware(controller *controllers.MediaController) func(http.H
 func SearchParamsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		sort := r.URL.Query().Get("sort")
-		videosOnly := r.URL.Query().Get("videos") == "true"
-		favorites := r.URL.Query().Get("favorites")
-		search := r.URL.Query().Get("search")
+		query := r.URL.Query()
+
+		sort := query.Get("sort")
+		videosOnly := query.Get("videos") == "true"
+		favorites := query.Get("favorites")
+		search := query.Get("search")
 
 		searchPrefs := models.SearchPrefs{
 			Sort:       sort,
@@ -57,7 +59,7 @@ func SearchParamsMiddleware(next http.Handler) http.Handler {
 		ctx := r.Context()
 		ctx = context.WithValue(ctx, SearchPrefKey, searchPrefs)
 
-		page, _ := strconv.Atoi(chi.URLParam(r, "page"))
+		page, _ := strconv.Atoi(query.Get("page"))
 		if page == 0 {
 			page = 1
 		}

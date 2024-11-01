@@ -168,7 +168,9 @@ func main() {
 		})
 
 		r.Route("/api", func(r chi.Router) {
+			r.Use(m.SearchParamsMiddleware)
 			r.Get("/gallery", mediaJsonHandler.GetGallery)
+			r.Get("/gallery/totalPages", mediaJsonHandler.GetNumPages)
 			r.Get("/gallery/ids", mediaJsonHandler.GetGalleryIds)
 			r.Route("/media/{mediaItemID}", func(r chi.Router) {
 				r.Use(mediaItemMiddleware)

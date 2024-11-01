@@ -3,9 +3,8 @@ import MediaCard from './MediaCard';
 import FullscreenView from './FullScreenView';
 import ContextMenu from './ContextMenu';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { Preferences, defaultPreferences, MediaItem } from '@/lib/types';
-import { useDeleteItem, useGallery, useToggleFavorite } from '@/lib/api';
-
+import { Preferences, MediaItem } from '@/lib/types';
+import { useDeleteItem, useGalleryIds, useToggleFavorite } from '@/lib/api';
 
 type MediaGalleryProps = { currentPage: number, totalPages: number, onPageChange: Function, preferences: Preferences };
 const MediaGallery: React.FC<MediaGalleryProps> = ( {currentPage, totalPages, onPageChange, preferences} ) => {
@@ -13,7 +12,7 @@ const MediaGallery: React.FC<MediaGalleryProps> = ( {currentPage, totalPages, on
   const [fullscreenItem, setFullscreenItem] = useState(null);
 
 
-  const {data: items, isLoading, error} = useGallery(preferences, currentPage);
+  const {data: idData, isLoading, error} = useGalleryIds(preferences, currentPage);
 
   const handleContextMenu = (e: React.MouseEvent, item: MediaItem) => {
     e.preventDefault();
@@ -24,21 +23,24 @@ const MediaGallery: React.FC<MediaGalleryProps> = ( {currentPage, totalPages, on
     });
   };
 
+  // data, error, mutateAsync, isError, context, isPending...
   const tf = useToggleFavorite();
-  const di = useDeleteItem();
+  const {mutate: mutDelete} = useDeleteItem();
 
-  const handleContextAction = async (action: string, item: MediaItem) => {
+  const handleContextAction = async (action: string, id: string) => {
     switch (action) {
       case 'download':
-        window.open(`/media/${item.file_name}`, '_blank');
+        // TODO: implement
+        console.error("Not implemented");
+        // window.open(`/media/${item.file_name}`, '_blank');
         break;
       case 'favorite':
-          tf.mutate(item.id);
-          break;
+        tf.mutate(id);
+        break;
       case 'delete':
-        if (window.confirm('Are you sure you want to delete this item?')) {
-          di.mutate(item.id);
-        }
+        // if (window.confirm('Are you sure you want to delete this item?')) {
+        mutDelete({itemId: id, page: currentPage, preferences});
+        // }
         break;
     }
     setContextMenu(null);
@@ -68,20 +70,20 @@ const MediaGallery: React.FC<MediaGalleryProps> = ( {currentPage, totalPages, on
   return (
     <div id="media-index">
       <div className="media-gallery" id="gallery">
-        {items.map((item) => (
+        {idData.map((item) => (
           <MediaCard
             key={item.id}
-            item={item}
-            onContextMenu={(e) => handleContextMenu(e, item)}
-            onFavorite={() => handleContextAction('favorite', item)}
-            onDelete={() => handleContextAction('delete', item)}
-            onOpenFullscreen={() => setFullscreenItem(item)}
+            itemId={item.id}
+            handleContextMenu={handleContextMenu}
+            onFavorite={() => handleContextAction('favorite', item.id)}
+            onDelete={() => handleContextAction('delete', item.id)}
+            setFullscreenItem={setFullscreenItem}
           />
         ))}
       </div>
 
       {/* Pagination */}
-      <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={onPageChange} />
+      <Pagination currentPage={currentPage} totalPages={totalPages} changePage={onPageChange} />
 
       {contextMenu && (
         <ContextMenu
@@ -103,14 +105,14 @@ const MediaGallery: React.FC<MediaGalleryProps> = ( {currentPage, totalPages, on
   );
 };
 
-type PaginationProps = {currentPage: number, totalPages: number, onPageChange: (n: number) => void}
-const Pagination: React.FC<PaginationProps> = ({currentPage, totalPages, onPageChange}) => {
+type PaginationProps = {currentPage: number, totalPages: number, changePage: (n: number) => void}
+const Pagination: React.FC<PaginationProps> = ({currentPage, totalPages, changePage}) => {
 
   return (
       <div className="flex justify-center items-center gap-4 mt-8">
         {currentPage > 1 && (
           <button
-            onClick={() => onPageChange(currentPage - 1)}
+            onClick={() => changePage(currentPage - 1)}
             className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700"
           >
             <ChevronLeft className="w-4 h-4" />
@@ -124,7 +126,7 @@ const Pagination: React.FC<PaginationProps> = ({currentPage, totalPages, onPageC
 
         {currentPage < totalPages && (
           <button
-            onClick={() => onPageChange(currentPage + 1)}
+            onClick={() => changePage(currentPage + 1)}
             className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700"
           >
             Next

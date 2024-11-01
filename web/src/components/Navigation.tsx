@@ -33,9 +33,12 @@ const Navigation: React.FC<NavigationProps> = ({
   onLogout,
 }) => {
   const [searchValue, setSearchValue] = useState(preferences.search || '');
-  const [isDark, setIsDark] = useState(() =>
-    document.documentElement.classList.contains('dark')
-  );
+
+  const toggleDarkMode = () => {
+    onPreferenceChange('darkmode', !preferences.darkmode);
+    document.documentElement.classList.toggle('dark');
+  };
+
 
   // Handle search with debounce
   useEffect(() => {
@@ -47,11 +50,6 @@ const Navigation: React.FC<NavigationProps> = ({
 
     return () => clearTimeout(timer);
   }, [searchValue]);
-
-  const toggleDarkMode = () => {
-    document.documentElement.classList.toggle('dark');
-    setIsDark(!isDark);
-  };
 
   return (
     <nav className="bg-primary-600 p-4 dark:bg-dark-surface text-white sticky top-0 z-40">
@@ -66,7 +64,7 @@ const Navigation: React.FC<NavigationProps> = ({
               className="p-2 bg-primary-700 dark:bg-primary-800 rounded-full hover:bg-primary-800 dark:hover:bg-primary-700"
               aria-label="Toggle dark mode"
             >
-              {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              {preferences.darkmode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
           </div>
 
