@@ -1,3 +1,5 @@
+.PHONY: build server tagger grpc-update deploy-classifier stop-classifier vite
+
 BACKUP_DIR = ./data/db_backup
 DATE := $(shell date +%Y%m%d)
 DB_NAME = teledeck.db
@@ -20,26 +22,24 @@ recycle:
 dump-schema:
 	sqlite3 teledeck.db '.schema' > alembic/schema.sql
 
-.PHONY: build
 build:
 	@cd server && make build
 
-.PHONY: server tagger
 server:
 	@cd server && make dev
 
 tagger:
 	python tagger/server.py
 
-.PHONY: grpc-update
 grpc-update:
 	python -m grpc_tools.protoc -I./AI/proto --python_out=./AI/proto --grpc_python_out=./AI/proto ./AI/proto/ai_server.proto
 	protoc --go_out=./server/internal/genproto --go-grpc_out=./server/internal/genproto AI/proto/ai_server.proto
 
-.PHONY: deploy-classifier
 deploy-classifier:
 	@cd AI && ./launch-classifier.sh
 
-.PHONY: stop-classifier
 stop-classifier:
 	@cd AI && ./stop-classifier.sh
+
+vite:
+	@cd web && npm i && npm run dev
