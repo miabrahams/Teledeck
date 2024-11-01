@@ -1,8 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { MediaItemType, Preferences } from '@/lib/types';
+import { MediaItem, Preferences } from '@/lib/types';
 
 type PaginatedResponse = {
-  items: MediaItemType[];
+  items: MediaItem[];
   totalPages: number;
   currentPage: number;
 };
@@ -23,11 +23,11 @@ const createPreferenceQuery = (preferences: Preferences, page: number) => {
 
 
 
-export const useMedia = (preferences: Preferences, page: number) => {
+export const useGallery = (preferences: Preferences, page: number) => {
   return useQuery<PaginatedResponse, ApiError>({
     queryKey: ['media', preferences, page],
     queryFn: () => {
-      return fetch(`/api/media?${createPreferenceQuery(preferences, page)}`).then((res) => res.json())
+      return fetch(`/api/gallery?${createPreferenceQuery(preferences, page)}`).then((res) => res.json())
     },
     staleTime: Infinity, // Disable automatic refetching
   });
@@ -35,7 +35,7 @@ export const useMedia = (preferences: Preferences, page: number) => {
 
 export const useToggleFavorite = () => {
   const queryClient = useQueryClient();
-  return useMutation<MediaItemType, ApiError, string> ({
+  return useMutation<MediaItem, ApiError, string> ({
     mutationFn: async (itemId: string) => {
         const response = await fetch(`/api/media/${itemId}/favorite`, { method: 'POST' });
         if (!response.ok) {

@@ -6,8 +6,6 @@ import (
 	"teledeck/internal/middleware"
 	"teledeck/internal/models"
 	"teledeck/internal/service/store"
-
-	"github.com/go-chi/chi/v5"
 )
 
 type MediaJsonHandler struct {
@@ -47,16 +45,25 @@ func (h *MediaJsonHandler) GetGallery(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, items)
 }
 
-func (h *MediaJsonHandler) GetMediaItem(w http.ResponseWriter, r *http.Request) {
+func (h *MediaJsonHandler) mediaCallback(
+	w http.ResponseWriter,
+	r *http.Request,
+	callback func(m *models.MediaItemWithMetadata),
+) {
 	ctx := r.Context()
 	mediaItem, ok := ctx.Value(middleware.MediaItemKey).(*models.MediaItemWithMetadata)
 	if !ok {
-		status := http.StatusUnprocessableEntity
-		http.Error(w, http.StatusText(status), status)
+		writeError(w, http.StatusUnprocessableEntity, "Media item not found")
 		return
 	}
 
-	writeJSON(w, http.StatusOK, mediaItem)
+	callback(mediaItem)
+}
+
+func (h *MediaJsonHandler) GetMediaItem(w http.ResponseWriter, r *http.Request) {
+	h.mediaCallback(w, r, func(m *models.MediaItemWithMetadata) {
+		writeJSON(w, http.StatusOK, m)
+	})
 }
 
 func (h *MediaJsonHandler) GetNumPages(w http.ResponseWriter, r *http.Request) {
@@ -67,36 +74,28 @@ func (h *MediaJsonHandler) GetNumPages(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *MediaJsonHandler) ToggleFavorite(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
-
-	item, err := h.mediaStore.ToggleFavorite(id)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Error toggling favorite")
-		return
-	}
-
-	writeJSON(w, http.StatusOK, item)
+	h.mediaCallback(w, r, func(m *models.MediaItemWithMetadata) {
+		item, err := h.mediaStore.ToggleFavorite(m.ID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "Error toggling favorite")
+			return
+		}
+		writeJSON(w, http.StatusOK, item)
+	})
 }
 
 func (h *MediaJsonHandler) DeleteMedia(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
+	h.mediaCallback(w, r, func(m *models.MediaItemWithMetadata) {
+		if m.Favorite {
+			writeError(w, http.StatusBadRequest, "Cannot delete a favorite item")
+			return
+		}
 
-	item, err := h.mediaStore.GetMediaItem(id)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "Media item not found")
-		return
-	}
+		if err := h.mediaStore.MarkDeleted(&m.MediaItem); err != nil {
+			writeError(w, http.StatusInternalServerError, "Error deleting item")
+			return
+		}
 
-	if item.Favorite {
-		writeError(w, http.StatusBadRequest, "Cannot delete a favorite item")
-		return
-	}
-
-	err = h.mediaStore.MarkDeleted(&item.MediaItem)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Error deleting item")
-		return
-	}
-
-	w.WriteHeader(http.StatusNoContent)
+		w.WriteHeader(http.StatusNoContent)
+	})
 }

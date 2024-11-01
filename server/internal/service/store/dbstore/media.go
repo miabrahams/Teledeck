@@ -57,8 +57,6 @@ func applySearchFilters(db *gorm.DB, P models.SearchPrefs, query *gorm.DB) *gorm
 	}
 
 	if P.Search != "" {
-		// query = query.Where("media_items.text LIKE ?", "%"+P.Search+"%")
-
 		matching_tags := db.Select("id").Model(&models.Tag{}).Where("name LIKE ?", P.Search+"%")
 		matching_ids := db.Select("media_item_id").Model(&models.MediaItemTag{}).Where("tag_id IN (?)", matching_tags).Distinct()
 		query = query.Where("media_items.id IN (?)", matching_ids)

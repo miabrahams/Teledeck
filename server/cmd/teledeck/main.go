@@ -168,9 +168,13 @@ func main() {
 		})
 
 		r.Route("/api", func(r chi.Router) {
-			r.Get("/media", mediaJsonHandler.GetGallery)
-			r.Delete("/media/{mediaItemID}", mediaJsonHandler.DeleteMedia)
-			r.Post("/media/favorite/{mediaItemID}", mediaJsonHandler.ToggleFavorite)
+			r.Get("/gallery", mediaJsonHandler.GetGallery)
+			r.Route("/media/{mediaItemID}", func(r chi.Router) {
+				r.Use(mediaItemMiddleware)
+				r.Get("/", mediaJsonHandler.GetMediaItem)
+				r.Delete("/", mediaJsonHandler.DeleteMedia)
+				r.Post("/favorite", mediaJsonHandler.ToggleFavorite)
+			})
 		})
 	})
 

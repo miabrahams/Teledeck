@@ -14,11 +14,8 @@ const VideoItem: React.FC<{ item: MediaItem }> = ({ item }) => {
   const [isPlaying, setIsPlaying] = useState(false);
 
   const handleVideoToggle = (videoEl: HTMLVideoElement) => {
-    if (isPlaying) {
-      videoEl.pause();
-    } else {
-      videoEl.play();
-    }
+    if (isPlaying) { videoEl.pause(); }
+    else { videoEl.play(); }
     setIsPlaying(!isPlaying);
   };
 
@@ -68,7 +65,6 @@ const MediaInfo: React.FC<{ item: MediaItem }> = ({ item }) => {
     )};
 
 const MediaControls: React.FC<{ item: MediaItem, isHovering: boolean, onFavorite: Function, onDelete: Function }> = ({ item, isHovering, onFavorite, onDelete }) => {
-  // `absolute top-2 right-2 flex gap-2 ${isHovering ? 'opacity-100' : 'opacity-0'} transition-opacity duration-200`
 
   const controlClass = `controls ${isHovering ? 'opacity-100' : 'opacity-0'} transition-opacity duration-200`
   return (
@@ -109,11 +105,11 @@ const MediaCard: React.FC<MediaItemProps> = ({
   const isVideo = ['video'].includes(item.MediaType);
   const isImage = ['image', 'photo'].includes(item.MediaType);
 
+  const cardClass = 'media-item relative group' + (item.favorite ? ' favorite' : '')
+
   return (
     <div
-      className={
-        'media-item relative group' + (item.favorite ? ' favorite' : '')
-      }
+      className={cardClass}
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
     >

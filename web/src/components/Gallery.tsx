@@ -4,19 +4,16 @@ import FullscreenView from './FullScreenView';
 import ContextMenu from './ContextMenu';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Preferences, defaultPreferences, MediaItem } from '@/lib/types';
-import { useMedia } from '@/lib/api';
+import { useDeleteItem, useGallery, useToggleFavorite } from '@/lib/api';
 
 
 type MediaGalleryProps = { currentPage: number, totalPages: number, onPageChange: Function, preferences: Preferences };
 const MediaGallery: React.FC<MediaGalleryProps> = ( {currentPage, totalPages, onPageChange, preferences} ) => {
-  // const [items, setItems] = useState<MediaItemType[]>([]);
-  // const [loading, setLoading] = useState(false);
-  // const [error, setError] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null);
   const [fullscreenItem, setFullscreenItem] = useState(null);
 
 
-  const {data: items, isLoading, error} = useMedia(preferences, currentPage);
+  const {data: items, isLoading, error} = useGallery(preferences, currentPage);
 
   const handleContextMenu = (e: React.MouseEvent, item: MediaItem) => {
     e.preventDefault();
@@ -27,33 +24,20 @@ const MediaGallery: React.FC<MediaGalleryProps> = ( {currentPage, totalPages, on
     });
   };
 
-  const handleContextAction = async (action, item) => {
+  const tf = useToggleFavorite();
+  const di = useDeleteItem();
+
+  const handleContextAction = async (action: string, item: MediaItem) => {
     switch (action) {
       case 'download':
-        window.open(`/media/${item.fileName}`, '_blank');
+        window.open(`/media/${item.file_name}`, '_blank');
         break;
       case 'favorite':
-        try {
-          const response = await fetch(`/api/media/${item.id}/favorite`, {
-            method: 'POST'
-          });
-          if (!response.ok) throw new Error('Failed to toggle favorite');
-          await fetchItems(); // Refresh the list
-        } catch (err) {
-          console.error('Error toggling favorite:', err);
-        }
-        break;
+          tf.mutate(item.id);
+          break;
       case 'delete':
-        if (!item.favorite) {
-          try {
-            const response = await fetch(`/api/media/${item.id}`, {
-              method: 'DELETE'
-            });
-            if (!response.ok) throw new Error('Failed to delete item');
-            await fetchItems(); // Refresh the list
-          } catch (err) {
-            console.error('Error deleting item:', err);
-          }
+        if (window.confirm('Are you sure you want to delete this item?')) {
+          di.mutate(item.id);
         }
         break;
     }
@@ -71,9 +55,8 @@ const MediaGallery: React.FC<MediaGalleryProps> = ( {currentPage, totalPages, on
   if (error) {
     return (
       <div className="text-center text-red-600 p-4">
-        <p>Error loading media: {error}</p>
+        <p>Error loading media: {error.message}</p>
         <button
-          onClick={fetchItems}
           className="mt-2 px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700"
         >
           Retry

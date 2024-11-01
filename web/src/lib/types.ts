@@ -1,5 +1,5 @@
 // Types to match your Go models
-export type MediaItemType = {
+export type MediaItem = {
   id: string;
   file_name: string;
   MediaType: string;
