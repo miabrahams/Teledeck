@@ -18,6 +18,7 @@ type MediaStore interface {
 	GetTotalMediaItems() int64
 	GetMediaItemCount(P models.SearchPrefs) int64
 	GetPaginatedMediaItems(page, itemsPerPage int, P models.SearchPrefs) ([]models.MediaItemWithMetadata, error)
+	GetPaginatedMediaItemIds(page, itemsPerPage int, P models.SearchPrefs) ([]models.MediaItemID, error)
 	GetAllMediaItems() ([]models.MediaItemWithMetadata, error)
 	ToggleFavorite(id string) (*models.MediaItemWithMetadata, error)
 	GetMediaItem(id string) (*models.MediaItemWithMetadata, error)

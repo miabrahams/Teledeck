@@ -41,6 +41,10 @@ type MediaItem struct {
 	UserDeleted bool      `gorm:"column:user_deleted;type:BOOLEAN" json:"user_deleted"`
 }
 
+type MediaItemID struct {
+	ID string `gorm:"column:id;type:VARCHAR(36)" json:"id"`
+}
+
 type Channel struct {
 	ID    int    `gorm:"column:id;primaryKey"`
 	Title string `gorm:"column:title;not null"`

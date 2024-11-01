@@ -45,6 +45,19 @@ func (h *MediaJsonHandler) GetGallery(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, items)
 }
 
+func (h *MediaJsonHandler) GetGalleryIds(w http.ResponseWriter, r *http.Request) {
+	page := 1
+	searchPrefs := newSearchPrefs("", "", false, "")
+
+	items, err := h.mediaStore.GetPaginatedMediaItemIds(page, itemsPerPage, searchPrefs)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Error fetching media items")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, items)
+}
+
 func (h *MediaJsonHandler) mediaCallback(
 	w http.ResponseWriter,
 	r *http.Request,
