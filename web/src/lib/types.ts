@@ -32,16 +32,19 @@ export const favoriteOptions = {
   'non-favorites': 'Non-favorites only',
 };
 
+export type SortOption = keyof typeof sortOptions;
+export type FavoriteOption = keyof typeof favoriteOptions;
+
 export type SearchPreferences = {
-  sort: keyof typeof sortOptions;
+  sort: SortOption;
   videos: boolean;
-  favorites: keyof typeof favoriteOptions;
+  favorites: FavoriteOption;
   search: string;
 };
 
 export type ViewPreferences = {
   darkmode: boolean;
-  hideInfo: boolean;
+  hideinfo: boolean;
 }
 
 export type SavedPreferences = {
