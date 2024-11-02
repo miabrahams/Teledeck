@@ -1,4 +1,4 @@
-import { Preferences } from '../../shared/types/preferences'
+import { Preferences } from '@shared/types/preferences'
 
 export const defaultPreferences: Preferences = {
   search: {

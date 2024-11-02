@@ -1,6 +1,6 @@
 import axios, { AxiosResponse } from 'axios';
-import { API_ENDPOINTS } from './constants';
 import { createPreferenceString } from '@shared/api/serialization';
+import { API_ENDPOINTS } from './constants';
 
 
 type ROUTE = typeof API_ENDPOINTS[keyof typeof API_ENDPOINTS];

@@ -3,11 +3,11 @@ import {
   useQueryClient,
   QueryClient,
 } from '@tanstack/react-query';
-import { MediaItem, MediaID } from '@shared/types/media';
+import { getGalleryIds, getGalleryPage, getTotalPages } from '@shared/api/requests';
+import { MediaID } from '@shared/types/media';
 import { ApiError } from '@shared/types/api';
 import { SearchPreferences } from '@shared/types/preferences';
 import queryKeys from '@shared/api/queryKeys'
-import { getGalleryIds, getGalleryPage, getTotalPages } from '@shared/api/requests';
 
 export const useTotalPages = (preferences: SearchPreferences) => {
   return useQuery<number>({

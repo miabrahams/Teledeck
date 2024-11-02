@@ -1,9 +1,9 @@
 import axios from 'axios';
-import { SearchPreferences } from '@shared/types/preferences';
-import { API_ENDPOINTS } from './constants';
 import { withPreferences, apiHandler, apiHandlerOK } from '@shared/api/utils';
 import { MediaID, MediaItem } from '@shared/types/media';
 import { User } from '@shared/types/user';
+import { SearchPreferences } from '@shared/types/preferences';
+import { API_ENDPOINTS } from './constants';
 
 
 const instance = axios.create()

@@ -1,4 +1,4 @@
-import {createPreferenceString} from '@shared/api/serialization';
+import { createPreferenceString } from '@shared/api/serialization';
 import { SearchPreferences } from '@shared/types/preferences';
 
 const queryKeys = {

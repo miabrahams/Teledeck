@@ -7,8 +7,8 @@ import {
 } from 'react-router-dom';
 import Navigation from '@navigation/components/Navigation';
 import { PaginatedMediaGallery } from '@gallery/components/PaginatedGallery';
-import { useUser, useLogout } from '@auth/api';
 import { Login, Register } from '@auth/components/Auth';
+import { useUser, useLogout } from '@auth/api';
 
 const App: React.FC = () => {
   const { data: user } = useUser();

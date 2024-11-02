@@ -1,10 +1,9 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { User } from '@/shared/types/user';
-
 import ViewOptions from './ViewOptions';
 import SearchOptions from './SearchOptions';
 import SearchBox from './SearchBox';
+import { User } from '@/shared/types/user';
 
 type NavigationProps = { user: User | undefined; onLogout: React.MouseEventHandler<HTMLButtonElement> };
 

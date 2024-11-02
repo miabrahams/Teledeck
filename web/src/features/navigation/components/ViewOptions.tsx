@@ -1,8 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Moon, Sun, Captions, CaptionsOff } from 'lucide-react';
-import { viewPrefsAtom } from '@preferences/state';
 import { useAtom } from 'jotai';
+import { viewPrefsAtom } from '@preferences/state';
 
 
 const ViewOptions: React.FC = () => {

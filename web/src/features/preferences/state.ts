@@ -1,6 +1,6 @@
 import { atom, getDefaultStore } from 'jotai'
 import { atomWithStorage, createJSONStorage  } from 'jotai/utils';
-import { SortOption, FavoriteOption } from '../../shared/types/preferences';
+import { SortOption, FavoriteOption } from '@shared/types/preferences';
 import { defaultPreferences } from './constants';
 
 const storage = createJSONStorage<any>(() => sessionStorage)
