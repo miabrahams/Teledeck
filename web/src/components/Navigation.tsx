@@ -19,12 +19,6 @@ const Navigation: React.FC<NavigationProps> = ({
 }) => {
   const [searchValue, setSearchValue] = useState(preferences.search.search || '');
 
-  const toggleDarkMode = () => {
-    onPreferenceChange('darkmode', !preferences.view.darkmode);
-    document.documentElement.classList.toggle('dark');
-  };
-
-
   // Handle search with debounce
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -45,7 +39,7 @@ const Navigation: React.FC<NavigationProps> = ({
             <Link to="/" className="hover:text-gray-200">Home</Link>
             <Link to="/about" className="hover:text-gray-200">About</Link>
             <button
-              onClick={toggleDarkMode}
+              onClick={() => {onPreferenceChange('darkmode', !preferences.view.darkmode)}}
               className="p-2 bg-primary-700 dark:bg-primary-800 rounded-full hover:bg-primary-800 dark:hover:bg-primary-700"
               aria-label="Toggle dark mode"
             >
