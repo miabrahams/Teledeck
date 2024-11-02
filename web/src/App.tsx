@@ -6,19 +6,18 @@ import {
   Navigate,
 } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import Navigation from '@/components/Navigation';
 import { PaginatedMediaGallery } from '@/components/Gallery';
 import { Login, Register } from '@/components/Auth';
-import { Preferences, User } from '@/lib/types';
-import { useUser, useLogout, useTotalPages } from '@/lib/api';
+import { Preferences } from '@/lib/types';
+import { useUser, useLogout } from '@/lib/api';
 
 
 const defaultPreferences: Preferences = {
   sort: 'date_desc',
   videos: true,
   favorites: 'all',
-  search: '',
+  search: 'date_desc',
   darkmode: true,
 };
 
@@ -45,7 +44,7 @@ const App: React.FC = () => {
     }
   }, [preferences.darkmode]);
 
-  const { data: user, isLoading: userLoading } = useUser();
+  const { data: user } = useUser();
   const logout = useLogout();
 
   return (
@@ -97,6 +96,7 @@ const queryClient = new QueryClient({
   },
 });
 
+// import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 // Wrap the app with QueryClientProvider
 const AppWithProvider = () => (
   <QueryClientProvider client={queryClient}>

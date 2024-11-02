@@ -4,7 +4,7 @@ import FullscreenView from './FullScreenView';
 import { ContextMenu, ContextMenuState } from './ContextMenu';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Preferences, MediaItem } from '@/lib/types';
-import { useDeleteItem, useGalleryIds, useToggleFavorite, useTotalPages } from '@/lib/api';
+import { useGallery, useTotalPages, useGalleryMutations } from '@/lib/api';
 
 export const PaginatedMediaGallery: React.FC<{ preferences: Preferences }> = ({ preferences }) => {
   const [currentPage, setCurrentPage] = useState(1);
@@ -29,7 +29,7 @@ type MediaGalleryProps = { currentPage: number, totalPages: number, onPageChange
 const MediaGallery: React.FC<MediaGalleryProps> = ( {currentPage, totalPages, onPageChange, preferences} ) => {
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({ x: 0, y: 0, item: null });
   const [fullscreenItem, setFullscreenItem] = useState(null);
-  const {data: idData, isLoading, error} = useGalleryIds(preferences, currentPage);
+  const {data: idData, isLoading, error} = useGallery(preferences, currentPage);
 
   const handleContextMenu = (e: React.MouseEvent, item: MediaItem) => {
     e.preventDefault();
@@ -41,8 +41,7 @@ const MediaGallery: React.FC<MediaGalleryProps> = ( {currentPage, totalPages, on
   };
 
   // data, error, mutateAsync, isError, context, isPending...
-  const tf = useToggleFavorite();
-  const {mutate: mutDelete} = useDeleteItem();
+  const {toggleFavorite, deleteItem} = useGalleryMutations();
 
   const handleContextAction = async (action: string, id: string) => {
     switch (action) {
@@ -52,11 +51,11 @@ const MediaGallery: React.FC<MediaGalleryProps> = ( {currentPage, totalPages, on
         // window.open(`/media/${item.file_name}`, '_blank');
         break;
       case 'favorite':
-        tf.mutate({ itemId: id, preferences, page: currentPage });
+        toggleFavorite.mutate({ itemId: id, preferences, page: currentPage });
         break;
       case 'delete':
         // if (window.confirm('Are you sure you want to delete this item?')) {
-        mutDelete({itemId: id, page: currentPage, preferences});
+        deleteItem.mutate({itemId: id, page: currentPage, preferences});
         // }
         break;
     }

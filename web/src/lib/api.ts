@@ -2,16 +2,9 @@ import {
   useQuery,
   useMutation,
   useQueryClient,
-  UseQueryResult,
   QueryClient,
 } from '@tanstack/react-query';
 import { MediaItem, Preferences } from '@/lib/types';
-
-type PaginatedResponse = {
-  items: MediaItem[];
-  totalPages: number;
-  currentPage: number;
-};
 
 type MediaID = { id: string };
 
@@ -59,6 +52,7 @@ export const useTotalPages = (preferences: Preferences) => {
 
 
 // Hook to fetch paginated list of IDs
+/*
 export const useGalleryIds = (preferences: Preferences, page: number) => {
   return useQuery({
     queryKey: queryKeys.gallery.ids(preferences, page),
@@ -69,6 +63,7 @@ export const useGalleryIds = (preferences: Preferences, page: number) => {
     staleTime: Infinity,
   });
 };
+*/
 
 // Hook to fetch individual media items
 export const useMediaItem = (itemId: string) => {
@@ -113,7 +108,7 @@ const prefetchGalleryPage = async (
 export const useGallery = (preferences: Preferences, page: number) => {
   const queryClient = useQueryClient();
   return useQuery<MediaID[], ApiError>({
-    queryKey: ['media', page],
+    queryKey: queryKeys.gallery.ids(preferences, page),
     queryFn: async () => {
       prefetchGalleryPage(queryClient, preferences, page - 1);
       prefetchGalleryPage(queryClient, preferences, page + 1);
@@ -123,6 +118,20 @@ export const useGallery = (preferences: Preferences, page: number) => {
   });
 };
 
+
+// Fetch paginated list of IDs only (unused)
+/*
+export const useGalleryIds = (preferences: Preferences, page: number) => {
+  return useQuery({
+    queryKey: queryKeys.gallery.ids(preferences, page),
+    queryFn: () =>
+      fetch(
+        `/api/gallery/ids?${createPreferenceQuery(preferences, page)}`
+      ).then((res) => res.json()) as Promise<MediaID[]>,
+    staleTime: Infinity,
+  });
+};
+*/
 
 export const optimisticRemove = (queryClient: QueryClient, {itemId, preferences, page}: mutationParams) => {
   const pageIdKey = queryKeys.gallery.ids(preferences, page);
@@ -140,13 +149,14 @@ const invalidatePageIds = (queryClient: QueryClient) => {
 }
 
 // Mutation hook for toggling favorites
-export const useToggleFavorite = () => {
+export const useGalleryMutations = () => {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return {
+  toggleFavorite: useMutation({
     mutationFn: async ({itemId, preferences, page}: mutationParams) => {
       // Optimistically update query containing this item
-      const itemKey = ['mediaItem', itemId];
+      const itemKey = queryKeys.gallery.item(itemId);
       const mediaItem = queryClient.getQueryData<MediaItem>(itemKey);
       if (mediaItem) {
         queryClient.setQueryData(itemKey, {
@@ -159,9 +169,6 @@ export const useToggleFavorite = () => {
       if (preferences.favorites !== 'all') {
         console.log("Optimistic remove")
         optimisticRemove(queryClient, {itemId, preferences, page});
-      }
-      else {
-        console.log("Keeping item because prefs are", preferences)
       }
 
       const response = await fetch(`/api/media/${itemId}/favorite`, {
@@ -180,13 +187,8 @@ export const useToggleFavorite = () => {
         invalidatePageIds(queryClient)
       }
     },
-  });
-};
-
-
-export const useDeleteItem = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
+  }),
+  deleteItem: useMutation({
     mutationFn: async ({ itemId, page, preferences }: mutationParams) => {
       // Optimistically remove this item from page
       optimisticRemove(queryClient, {itemId, preferences, page});
@@ -205,9 +207,9 @@ export const useDeleteItem = () => {
       console.log('Deletion error:', context);
       console.log('Deletion error:', variables);
       console.log('Deletion error:', error);
-    },
-  });
-};
+    }})
+  }
+}
 
 // Auth hooks remain the same...
 export const useUser = () => {
