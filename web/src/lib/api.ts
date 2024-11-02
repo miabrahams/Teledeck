@@ -1,4 +1,10 @@
-import { useQuery, useMutation, useQueryClient, UseQueryResult } from '@tanstack/react-query';
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  UseQueryResult,
+  QueryClient,
+} from '@tanstack/react-query';
 import { MediaItem, Preferences } from '@/lib/types';
 
 type PaginatedResponse = {
@@ -7,7 +13,7 @@ type PaginatedResponse = {
   currentPage: number;
 };
 
-type MediaID = {id : string}
+type MediaID = { id: string };
 
 type ApiError = {
   message: string;
@@ -18,7 +24,7 @@ const createPreferenceString = (preferences: Preferences) => {
   return Object.entries(preferences)
     .map(([key, value]) => `${key}=${value}`)
     .join('&');
-}
+};
 
 const createPreferenceQuery = (preferences: Preferences, page: number) => {
   return createPreferenceString(preferences) + '&page=' + page.toString();
@@ -29,36 +35,61 @@ export const useGalleryIds = (preferences: Preferences, page: number) => {
   return useQuery({
     queryKey: ['mediaIds', createPreferenceString(preferences), page],
     queryFn: () =>
-      fetch(`/api/gallery/ids?${createPreferenceQuery(preferences, page)}`)
-      .then(res => res.json()) as Promise<MediaID[]>,
-    staleTime: Infinity,  // Disable automatic refetching
+      fetch(
+        `/api/gallery/ids?${createPreferenceQuery(preferences, page)}`
+      ).then((res) => res.json()) as Promise<MediaID[]>,
+    staleTime: Infinity, // Disable automatic refetching
   });
 };
-
 
 // Hook to fetch individual media items
 export const useMediaItem = (itemId: string) => {
   return useQuery({
     queryKey: ['mediaItem', itemId],
-    queryFn: () => fetch(`/api/media/${itemId}`).then(res => res.json()),
+    queryFn: () => fetch(`/api/media/${itemId}`).then((res) => res.json()),
     staleTime: Infinity,
     enabled: !!itemId,
   });
 };
 
-// Unused??
+// Prepopulate media items from full query and return ids only
+const fetchGalleryPage = async (
+  queryClient: QueryClient,
+  preferences: Preferences,
+  page: number
+) => {
+  const res = await fetch(
+    `/api/gallery?${createPreferenceQuery(preferences, page)}`
+  );
+  const gallery = (await res.json()) as MediaItem[];
+
+  gallery.forEach((mediaItem) => {
+    queryClient.setQueryData(['mediaItem', mediaItem.id], mediaItem);
+  });
+  return gallery.map((item) => {
+    return { id: item.id };
+  });
+};
+
+const prefetchGalleryPage = async (
+  queryClient: QueryClient,
+  preferences: Preferences,
+  page: number
+) => {
+  queryClient.prefetchQuery({
+    queryKey: ['mediaIds', createPreferenceString(preferences), page],
+    queryFn: () => fetchGalleryPage(queryClient, preferences, page),
+  });
+};
+
 export const useGallery = (preferences: Preferences, page: number) => {
   const queryClient = useQueryClient();
   return useQuery<MediaID[], ApiError>({
     queryKey: ['media', page],
     queryFn: async () => {
-      const res = await fetch(`/api/gallery?${createPreferenceQuery(preferences, page)}`);
-      const gallery = await res.json() as MediaItem[];
-
-      gallery.forEach(mediaItem => {
-        queryClient.setQueryData(['mediaItem', mediaItem.id], mediaItem);
-      });
-      return gallery.map((item) => {return {id: item.id}})
+      prefetchGalleryPage(queryClient, preferences, page - 1);
+      prefetchGalleryPage(queryClient, preferences, page + 1);
+      return fetchGalleryPage(queryClient, preferences, page);
     },
     staleTime: Infinity,
   });
@@ -80,38 +111,36 @@ export const useMediaItems = (ids: string[]): UseQueryResult<MediaItem[]> => {
 };
 */
 
-
 // Mutation hook for toggling favorites
 export const useToggleFavorite = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (itemId: string) => {
-
       // Optimistically query containing this item
-      const itemKey = ['mediaItem', itemId]
+      const itemKey = ['mediaItem', itemId];
       const mediaItem = queryClient.getQueryData<MediaItem>(itemKey);
       if (mediaItem) {
-        queryClient.setQueryData(itemKey, {...mediaItem, favorite: !mediaItem.favorite })
-      };
+        queryClient.setQueryData(itemKey, {
+          ...mediaItem,
+          favorite: !mediaItem.favorite,
+        });
+      }
 
       const response = await fetch(`/api/media/${itemId}/favorite`, {
-        method: 'POST'
+        method: 'POST',
       });
       if (!response.ok) {
         throw new Error('Failed to toggle favorite');
       }
-      console.log("Favorited...")
+      console.log('Favorited...');
       return response.json() as Promise<MediaItem>;
     },
     onSuccess: (updatedItem) => {
       // Update the individual item cache
-      console.log("Updating fav: ", updatedItem)
-      queryClient.setQueryData(
-        ['mediaItem', updatedItem.id],
-        updatedItem
-      );
-    }
+      console.log('Updating fav: ', updatedItem);
+      queryClient.setQueryData(['mediaItem', updatedItem.id], updatedItem);
+    },
   });
 };
 
@@ -119,27 +148,32 @@ export const useTotalPages = (preferences: Preferences) => {
   return useQuery<number>({
     queryKey: ['totalPages', createPreferenceString(preferences)],
     queryFn: () =>
-      fetch(`/api/gallery/totalPages?${createPreferenceString(preferences)}`)
-      .then(res => res.json()),
-})}
+      fetch(
+        `/api/gallery/totalPages?${createPreferenceString(preferences)}`
+      ).then((res) => res.json()),
+  });
+};
 
-
-type deleteParams = {itemId: string, page: number, preferences: Preferences}
+type deleteParams = { itemId: string; page: number; preferences: Preferences };
 
 export const useDeleteItem = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({itemId, page, preferences}: deleteParams) => {
-
+    mutationFn: async ({ itemId, page, preferences }: deleteParams) => {
       // Optimistically remove this item from page
-      const pageIdKey = ['mediaIds', createPreferenceString(preferences), page]
+      const pageIdKey = ['mediaIds', createPreferenceString(preferences), page];
       const currentPage = queryClient.getQueryData<MediaID[]>(pageIdKey);
       if (currentPage) {
-        queryClient.setQueryData(pageIdKey, currentPage.filter(id => id.id !== itemId));
-      };
+        queryClient.setQueryData(
+          pageIdKey,
+          currentPage.filter((id) => id.id !== itemId)
+        );
+      }
 
-      const response = await fetch(`/api/media/${itemId}`, { method: 'DELETE' });
+      const response = await fetch(`/api/media/${itemId}`, {
+        method: 'DELETE',
+      });
       if (!response.ok) {
         throw new Error('Failed to delete item: ' + response.statusText);
       }
@@ -153,9 +187,9 @@ export const useDeleteItem = () => {
     },
     onError: (error, variables, context) => {
       // An error happened!
-      console.log('Deletion error:', context)
-      console.log('Deletion error:', variables)
-      console.log('Deletion error:', error)
+      console.log('Deletion error:', context);
+      console.log('Deletion error:', variables);
+      console.log('Deletion error:', error);
     },
   });
 };
@@ -164,7 +198,9 @@ export const useDeleteItem = () => {
 export const useUser = () => {
   return useQuery({
     queryKey: ['user'],
-    queryFn: () => { return fetch('/api/me').then(res => res.json()); },
+    queryFn: () => {
+      return fetch('/api/me').then((res) => res.json());
+    },
     retry: false,
     staleTime: Infinity,
   });

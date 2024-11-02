@@ -32,7 +32,8 @@ const App: React.FC = () => {
   });
 
 
-  const {data: totalPages} = useTotalPages(preferences);
+  let {data: totalPages} = useTotalPages(preferences);
+  totalPages = totalPages || 1;
 
   // Equivalent useQuery for preferences
   /*
