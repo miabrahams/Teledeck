@@ -5,10 +5,10 @@ import {
   Route,
   Navigate,
 } from 'react-router-dom';
-import Navigation from '@/components/Navigation';
-import { PaginatedMediaGallery } from '@/components/Gallery';
-import { Login, Register } from '@/components/Auth';
-import { useUser, useLogout } from '@/lib/api';
+import Navigation from '@navigation/components/Navigation';
+import { PaginatedMediaGallery } from '@gallery/components/Gallery';
+import { useUser, useLogout } from '@gallery/api';
+import { Login, Register } from '@auth/components/Auth';
 
 const App: React.FC = () => {
   const { data: user } = useUser();

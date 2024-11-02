@@ -12,6 +12,10 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": root,
+      "@auth": path.join(root, "features/auth"),
+      "@gallery": path.join(root, "features/gallery"),
+      "@preferences": path.join(root, "features/preferences"),
+      "@navigation": path.join(root, "features/navigation"),
     } as AliasOptions,
   },
   server: {

@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
-import { MediaItem } from '@/lib/types';
+import { MediaItem } from '../types';
 
 type FullscreenViewProps = {
   item: MediaItem,

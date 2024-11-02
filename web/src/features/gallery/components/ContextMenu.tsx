@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react'
 import { Download, Star, Trash, Tag, BarChart2 } from 'lucide-react';
-import { MediaItem } from '@/lib/types';
+import { MediaItem } from '../types';
 
 export type ContextMenuState = { x: number, y: number, item: MediaItem | null }
 

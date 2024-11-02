@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Play, Pause, Download, Star, Trash } from 'lucide-react';
-import { MediaItem } from '@/lib/types';
-import { useMediaItem } from '@/lib/api';
+import { MediaItem } from '../types';
+import { useMediaItem } from '@/features/gallery/api';
 
 type MediaItemProps = {
   itemId: string;
@@ -134,7 +134,6 @@ const VideoImageSwitch: React.FC< VideoImageSwitchProps> = ({ item, setFullscree
 
 const MediaCard: React.FC<MediaItemProps> = ({
   itemId,
-  handleContextMenu,
   onFavorite,
   onDelete,
   setFullscreenItem,

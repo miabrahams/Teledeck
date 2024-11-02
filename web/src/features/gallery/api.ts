@@ -4,7 +4,8 @@ import {
   useQueryClient,
   QueryClient,
 } from '@tanstack/react-query';
-import { MediaItem, SearchPreferences } from '@/lib/types';
+import { MediaItem } from './types';
+import { SearchPreferences } from '@preferences/types';
 
 type MediaID = { id: string };
 

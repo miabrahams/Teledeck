@@ -24,8 +24,10 @@
     /* Paths */
     "baseUrl": ".",
     "paths": {
-        "@components/*": ["src/components/*"],
-        "@api/*": ["src/api/*"],
+        "@auth/*": ["src/features/auth/*"],
+        "@gallery/*": ["src/features/gallery/*"],
+        "@preferences/*": ["src/features/preferences/*"],
+        "@navigation/*": ["src/features/navigation/*"],
         "@/*": ["src/*"],
     },
 

@@ -1,21 +1,7 @@
 import { atom, getDefaultStore } from 'jotai'
 import { atomWithStorage, createJSONStorage  } from 'jotai/utils';
-import { FavoriteOption, Preferences, SortOption } from '@/lib/types';
-
-// Ideas: Zod validation so we don't wreck things? Object.apply?
-
-const defaultPreferences: Preferences = {
-  search: {
-    sort: 'date_desc',
-    videos: false,
-    favorites: 'all',
-    search: '',
-  },
-  view: {
-    darkmode: true,
-    hideinfo: false,
-  },
-};
+import { SortOption, FavoriteOption } from './types';
+import { defaultPreferences } from './constants';
 
 const storage = createJSONStorage<any>(() => sessionStorage)
 const opts = { getOnInit: true }
@@ -26,8 +12,8 @@ export const searchStringAtom = atomWithStorage<string>('searchString', '', stor
 export const darkModeAtom = atomWithStorage<boolean>('darkmode', true, storage, opts)
 export const hideInfoAtom = atomWithStorage<boolean>('hideinfo', false, storage, opts)
 
-export const currentPageAtom = atomWithStorage<number>('currentPage', 1)
 
+// Idea: Zod validation so we don't wreck things? Object.apply?
 
 export const searchPrefsAtom = atom(
   (get) => {return {
