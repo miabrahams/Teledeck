@@ -33,17 +33,35 @@ const createPreferenceQuery = (preferences: Preferences, page: number) => {
   return createPreferenceString(preferences) + '&page=' + page.toString();
 };
 
-const galleryIdsQueryKey = (preferences: Preferences, page: number) => {
-  return ['gallery', createPreferenceString(preferences), page];
-}
-const mediaItemQueryKey = (itemId: string) => {
-  return ['mediaItem', itemId];
-}
+const queryKeys = {
+  gallery: {
+    ids: (preferences: Preferences, page: number) =>
+      ['gallery', 'ids', createPreferenceString(preferences), page.toString()] as const,
+    item: (id: string) =>
+      ['gallery', 'item', id] as const,
+    numPages: (preferences: Preferences) =>
+      ['gallery', 'pages', createPreferenceString(preferences)] as const
+  },
+  user: {
+    me: ['user'] as const
+  }
+};
+
+export const useTotalPages = (preferences: Preferences) => {
+  return useQuery<number>({
+    queryKey: queryKeys.gallery.numPages(preferences),
+    queryFn: () =>
+      fetch(
+        `/api/gallery/totalPages?${createPreferenceString(preferences)}`
+      ).then((res) => res.json()),
+  });
+};
+
 
 // Hook to fetch paginated list of IDs
 export const useGalleryIds = (preferences: Preferences, page: number) => {
   return useQuery({
-    queryKey: galleryIdsQueryKey(preferences, page),
+    queryKey: queryKeys.gallery.ids(preferences, page),
     queryFn: () =>
       fetch(
         `/api/gallery/ids?${createPreferenceQuery(preferences, page)}`
@@ -55,7 +73,7 @@ export const useGalleryIds = (preferences: Preferences, page: number) => {
 // Hook to fetch individual media items
 export const useMediaItem = (itemId: string) => {
   return useQuery({
-    queryKey: mediaItemQueryKey(itemId),
+    queryKey: queryKeys.gallery.item(itemId),
     queryFn: () => fetch(`/api/media/${itemId}`).then((res) => res.json()),
     staleTime: Infinity,
     enabled: !!itemId,
@@ -87,7 +105,7 @@ const prefetchGalleryPage = async (
   page: number
 ) => {
   queryClient.prefetchQuery({
-    queryKey: galleryIdsQueryKey(preferences, page),
+    queryKey: queryKeys.gallery.ids(preferences, page),
     queryFn: () => fetchGalleryPage(queryClient, preferences, page),
   });
 };
@@ -107,7 +125,7 @@ export const useGallery = (preferences: Preferences, page: number) => {
 
 
 export const optimisticRemove = (queryClient: QueryClient, {itemId, preferences, page}: mutationParams) => {
-  const pageIdKey = galleryIdsQueryKey(preferences, page);
+  const pageIdKey = queryKeys.gallery.ids(preferences, page);
   const currentPage = queryClient.getQueryData<MediaID[]>(pageIdKey);
   if (currentPage) {
     queryClient.setQueryData(
@@ -165,16 +183,6 @@ export const useToggleFavorite = () => {
   });
 };
 
-export const useTotalPages = (preferences: Preferences) => {
-  return useQuery<number>({
-    queryKey: ['totalPages', createPreferenceString(preferences)],
-    queryFn: () =>
-      fetch(
-        `/api/gallery/totalPages?${createPreferenceString(preferences)}`
-      ).then((res) => res.json()),
-  });
-};
-
 
 export const useDeleteItem = () => {
   const queryClient = useQueryClient();
@@ -204,7 +212,7 @@ export const useDeleteItem = () => {
 // Auth hooks remain the same...
 export const useUser = () => {
   return useQuery({
-    queryKey: ['user'],
+    queryKey: queryKeys.user.me,
     queryFn: () => {
       return fetch('/api/me').then((res) => res.json());
     },
