@@ -4,7 +4,7 @@ import {
   useQueryClient,
   QueryClient,
 } from '@tanstack/react-query';
-import { MediaItem, Preferences } from '@/lib/types';
+import { MediaItem, SearchPreferences } from '@/lib/types';
 
 type MediaID = { id: string };
 
@@ -12,27 +12,27 @@ type ApiError = {
   message: string;
 };
 
-type mutationParams = { itemId: string; page: number; preferences: Preferences };
+type mutationParams = { itemId: string; page: number; preferences: SearchPreferences };
 
 // TODO: Axios?
 
-const createPreferenceString = (preferences: Preferences) => {
+const createPreferenceString = (preferences: SearchPreferences) => {
   return Object.entries(preferences)
     .map(([key, value]) => `${key}=${value}`)
     .join('&');
 };
 
-const createPreferenceQuery = (preferences: Preferences, page: number) => {
+const createPreferenceQuery = (preferences: SearchPreferences, page: number) => {
   return createPreferenceString(preferences) + '&page=' + page.toString();
 };
 
 const queryKeys = {
   gallery: {
-    ids: (preferences: Preferences, page: number) =>
+    ids: (preferences: SearchPreferences, page: number) =>
       ['gallery', 'ids', createPreferenceString(preferences), page.toString()] as const,
     item: (id: string) =>
       ['gallery', 'item', id] as const,
-    numPages: (preferences: Preferences) =>
+    numPages: (preferences: SearchPreferences) =>
       ['gallery', 'pages', createPreferenceString(preferences)] as const
   },
   user: {
@@ -40,7 +40,7 @@ const queryKeys = {
   }
 };
 
-export const useTotalPages = (preferences: Preferences) => {
+export const useTotalPages = (preferences: SearchPreferences) => {
   return useQuery<number>({
     queryKey: queryKeys.gallery.numPages(preferences),
     queryFn: () =>
@@ -78,7 +78,7 @@ export const useMediaItem = (itemId: string) => {
 // Prepopulate media items from full query and return ids only
 const fetchGalleryPage = async (
   queryClient: QueryClient,
-  preferences: Preferences,
+  preferences: SearchPreferences,
   page: number
 ) => {
   const res = await fetch(
@@ -96,16 +96,19 @@ const fetchGalleryPage = async (
 
 const prefetchGalleryPage = async (
   queryClient: QueryClient,
-  preferences: Preferences,
+  preferences: SearchPreferences,
   page: number
 ) => {
+  if (page < 1) return;
+  // TODO: Limit max pages?
+
   queryClient.prefetchQuery({
     queryKey: queryKeys.gallery.ids(preferences, page),
     queryFn: () => fetchGalleryPage(queryClient, preferences, page),
   });
 };
 
-export const useGallery = (preferences: Preferences, page: number) => {
+export const useGallery = (preferences: SearchPreferences, page: number) => {
   const queryClient = useQueryClient();
   return useQuery<MediaID[], ApiError>({
     queryKey: queryKeys.gallery.ids(preferences, page),

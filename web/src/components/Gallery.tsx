@@ -3,10 +3,10 @@ import MediaCard from './MediaCard';
 import FullscreenView from './FullScreenView';
 import { ContextMenu, ContextMenuState } from './ContextMenu';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { Preferences, MediaItem } from '@/lib/types';
+import { SearchPreferences, MediaItem } from '@/lib/types';
 import { useGallery, useTotalPages, useGalleryMutations } from '@/lib/api';
 
-export const PaginatedMediaGallery: React.FC<{ preferences: Preferences }> = ({ preferences }) => {
+export const PaginatedMediaGallery: React.FC<{ preferences: SearchPreferences }> = ({ preferences }) => {
   const [currentPage, setCurrentPage] = useState(1);
   let {data: totalPages} = useTotalPages(preferences);
   totalPages = totalPages || 1;
@@ -25,7 +25,7 @@ export const PaginatedMediaGallery: React.FC<{ preferences: Preferences }> = ({ 
 
 
 
-type MediaGalleryProps = { currentPage: number, totalPages: number, onPageChange: (n: number) => void, preferences: Preferences };
+type MediaGalleryProps = { currentPage: number, totalPages: number, onPageChange: (n: number) => void, preferences: SearchPreferences };
 const MediaGallery: React.FC<MediaGalleryProps> = ( {currentPage, totalPages, onPageChange, preferences} ) => {
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({ x: 0, y: 0, item: null });
   const [fullscreenItem, setFullscreenItem] = useState(null);

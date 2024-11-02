@@ -9,40 +9,63 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Navigation from '@/components/Navigation';
 import { PaginatedMediaGallery } from '@/components/Gallery';
 import { Login, Register } from '@/components/Auth';
-import { Preferences } from '@/lib/types';
+import { SavedPreferences } from '@/lib/types';
 import { useUser, useLogout } from '@/lib/api';
 
 
-const defaultPreferences: Preferences = {
-  sort: 'date_desc',
-  videos: true,
-  favorites: 'all',
-  search: 'date_desc',
-  darkmode: true,
+
+const defaultPreferences: SavedPreferences = {
+  search: {
+    sort: 'date_desc',
+    videos: true,
+    favorites: 'all',
+    search: 'date_desc',
+  },
+  view: {
+    darkmode: true,
+    showInfo: true,
+  },
 };
 
-
 const App: React.FC = () => {
-  const [preferences, setPreferences] = useState<Preferences>(() => {
+  const [prefs, setPrefs] = useState<SavedPreferences>(() => {
     const stored = localStorage.getItem('userPreferences');
-    const prefs = stored ? JSON.parse(stored) : defaultPreferences;
-    return prefs
+    return stored ?
+              JSON.parse(stored)
+            : defaultPreferences
   });
 
   const handlePreferenceChange = (key: string, value: any) => {
-    const newPreferences = { ...preferences, [key]: value };
-    setPreferences(newPreferences);
-    localStorage.setItem('userPreferences', JSON.stringify(newPreferences));
+    let { search: newSearch, view: newView } = prefs;
+    if (key in prefs.search) {
+        newSearch = { ...newSearch, [key]: value }
+    }
+    else if (key in prefs.view) {
+        newView = { ...newView, [key]: value }
+    }
+    else {
+      throw new Error(`Invalid preference key: ${key}`);
+    }
+    const newPrefs = { search: newSearch, view: newView };
+    setPrefs(newPrefs);
+    localStorage.setItem('userPreferences', JSON.stringify(newPrefs));
   };
 
   useEffect(() => {
-    if (preferences.darkmode) {
+    if (prefs.view.darkmode) {
       document.documentElement.classList.add('dark');
     }
     else {
       document.documentElement.classList.remove('dark');
     }
-  }, [preferences.darkmode]);
+
+    if (prefs.view.showInfo) {
+      document.documentElement.classList.remove('hide-info');
+    }
+    else {
+      document.documentElement.classList.add('hide-info');
+    }
+  }, [prefs.view]);
 
   const { data: user } = useUser();
   const logout = useLogout();
@@ -52,7 +75,7 @@ const App: React.FC = () => {
       <div className="min-h-screen flex flex-col dark:bg-slate-800">
         <Navigation
           user={user}
-          preferences={preferences}
+          preferences={prefs}
           onPreferenceChange={handlePreferenceChange}
           onLogout={() => { logout.mutate }}
         />
@@ -63,7 +86,7 @@ const App: React.FC = () => {
               path="/"
               element={
                 <PaginatedMediaGallery
-                  preferences={preferences}
+                  preferences={prefs.search}
                 />
               }
             />

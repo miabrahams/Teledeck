@@ -64,8 +64,6 @@ func applySortMethod(query *gorm.DB, P models.SearchPrefs) *gorm.DB {
 
 func (s *MediaStore) applySearchFilters(query *gorm.DB, P models.SearchPrefs) *gorm.DB {
 
-	query = query.Where("media_items.user_deleted = false")
-
 	if P.VideosOnly {
 		query = query.Where("media_types.type = 'video' OR media_types.type = 'gif' OR media_types.type = 'webm'")
 	}
@@ -129,7 +127,7 @@ func (s *MediaStore) baseMediaQuery(selection string) *gorm.DB {
 		Joins("LEFT JOIN sources ON media_items.source_id = sources.id").
 		Joins("LEFT JOIN telegram_metadata ON media_items.id = telegram_metadata.media_item_id").
 		Joins("LEFT JOIN channels ON telegram_metadata.channel_id = channels.id").
-		Where("user_deleted = false")
+		Where("media_items.user_deleted = false")
 	return query
 }
 
@@ -164,13 +162,21 @@ func (s *MediaStore) GetPaginatedMediaItems(page, itemsPerPage int, P models.Sea
 	query := s.getMediaItemsQuery(P)
 
 	offset := (page - 1) * itemsPerPage
-	query = query.Offset(offset).Limit(itemsPerPage)
 
-	// query = query.Order("media_items.id").Offset(offset)
+	if offset < 0 {
+		return nil, nil
+	}
+
+	query = query.Offset(offset).Limit(itemsPerPage)
 
 	var mediaItems []models.MediaItemWithMetadata
 	err := query.Scan(&mediaItems).Error
-	s.logger.Info("Media items", "Items", mediaItems[0])
+	if err != nil {
+		s.logger.Error("Error fetching media items", "Error", err)
+		return nil, err
+	}
+	// s.logger.Info("Media items", "Items", mediaItems)
+
 	return mediaItems, err
 }
 

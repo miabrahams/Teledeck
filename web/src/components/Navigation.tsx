@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Moon, Sun, Search } from 'lucide-react';
-import {User, Preferences, sortOptions, favoriteOptions} from '@/lib/types';
+import {User, SavedPreferences, sortOptions, favoriteOptions} from '@/lib/types';
 
 
 type NavigationProps = {
   user: User;
-  preferences: Preferences;
+  preferences: SavedPreferences;
   onPreferenceChange: (key: string, value: any) => any;
   onLogout: React.MouseEventHandler<HTMLButtonElement>;
 }
@@ -17,10 +17,10 @@ const Navigation: React.FC<NavigationProps> = ({
   onPreferenceChange,
   onLogout,
 }) => {
-  const [searchValue, setSearchValue] = useState(preferences.search || '');
+  const [searchValue, setSearchValue] = useState(preferences.search.search || '');
 
   const toggleDarkMode = () => {
-    onPreferenceChange('darkmode', !preferences.darkmode);
+    onPreferenceChange('darkmode', !preferences.view.darkmode);
     document.documentElement.classList.toggle('dark');
   };
 
@@ -28,7 +28,7 @@ const Navigation: React.FC<NavigationProps> = ({
   // Handle search with debounce
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (searchValue !== preferences.search) {
+      if (searchValue !== preferences.search.search) {
         onPreferenceChange('search', searchValue);
       }
     }, 300);
@@ -49,12 +49,12 @@ const Navigation: React.FC<NavigationProps> = ({
               className="p-2 bg-primary-700 dark:bg-primary-800 rounded-full hover:bg-primary-800 dark:hover:bg-primary-700"
               aria-label="Toggle dark mode"
             >
-              {preferences.darkmode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              {preferences.view.darkmode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
           </div>
 
           <select
-            value={preferences.sort}
+            value={preferences.search.sort}
             onChange={(e) => onPreferenceChange('sort', e.target.value)}
             className="bg-primary-700 dark:bg-primary-800 text-gray-200 rounded px-3 py-1.5 text-sm"
           >
@@ -66,7 +66,7 @@ const Navigation: React.FC<NavigationProps> = ({
           </select>
 
           <select
-            value={preferences.favorites}
+            value={preferences.search.favorites}
             onChange={(e) => onPreferenceChange('favorites', e.target.value)}
             className="bg-primary-700 dark:bg-primary-800 text-gray-200 rounded px-3 py-1.5 text-sm"
           >
@@ -80,7 +80,7 @@ const Navigation: React.FC<NavigationProps> = ({
           <label className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"
-              checked={preferences.videos}
+              checked={preferences.search.videos}
               onChange={(e) => onPreferenceChange('videos', e.target.checked)}
               className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
             />

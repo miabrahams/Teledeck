@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"teledeck/internal/controllers"
@@ -64,6 +65,8 @@ func SearchParamsMiddleware(next http.Handler) http.Handler {
 			page = 1
 		}
 		ctx = context.WithValue(ctx, PageKey, page)
+
+		slog.Info("Search preferences", slog.Any("prefs", searchPrefs))
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
