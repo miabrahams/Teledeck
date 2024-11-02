@@ -48,10 +48,17 @@ export const useMediaItem = (itemId: string) => {
 
 // Unused??
 export const useGallery = (preferences: Preferences, page: number) => {
-  return useQuery<MediaItem[], ApiError>({
+  const queryClient = useQueryClient();
+  return useQuery<MediaID[], ApiError>({
     queryKey: ['media', page],
-    queryFn: () => {
-      return fetch(`/api/gallery?${createPreferenceQuery(preferences, page)}`).then((res) => res.json());
+    queryFn: async () => {
+      const res = await fetch(`/api/gallery?${createPreferenceQuery(preferences, page)}`);
+      const gallery = await res.json() as MediaItem[];
+
+      gallery.forEach(mediaItem => {
+        queryClient.setQueryData(['mediaItem', mediaItem.id], mediaItem);
+      });
+      return gallery.map((item) => {return {id: item.id}})
     },
     staleTime: Infinity,
   });

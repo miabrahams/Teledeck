@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import MediaCard from './MediaCard';
 import FullscreenView from './FullScreenView';
 import ContextMenu from './ContextMenu';
@@ -6,7 +6,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Preferences, MediaItem } from '@/lib/types';
 import { useDeleteItem, useGalleryIds, useToggleFavorite } from '@/lib/api';
 
-type MediaGalleryProps = { currentPage: number, totalPages: number, onPageChange: Function, preferences: Preferences };
+type MediaGalleryProps = { currentPage: number, totalPages: number, onPageChange: (n: number) => void, preferences: Preferences };
 const MediaGallery: React.FC<MediaGalleryProps> = ( {currentPage, totalPages, onPageChange, preferences} ) => {
   const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null);
   const [fullscreenItem, setFullscreenItem] = useState(null);
@@ -46,7 +46,7 @@ const MediaGallery: React.FC<MediaGalleryProps> = ( {currentPage, totalPages, on
     setContextMenu(null);
   };
 
-  if (isLoading) {
+  if (isLoading || !idData) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
@@ -69,6 +69,7 @@ const MediaGallery: React.FC<MediaGalleryProps> = ( {currentPage, totalPages, on
 
   return (
     <div id="media-index">
+      <Pagination currentPage={currentPage} totalPages={totalPages} changePage={onPageChange} />
       <div className="media-gallery" id="gallery">
         {idData.map((item) => (
           <MediaCard
