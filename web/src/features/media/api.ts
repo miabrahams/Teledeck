@@ -8,7 +8,7 @@ import { MediaItem } from '../../shared/types/media';
 import { SearchPreferences } from '@shared/types/preferences';
 import { MediaID } from '../../shared/types/media';
 import queryKeys from '@shared/api/queryKeys'
-import { deleteItem, getMediaItem, postFavorite } from '@shared/api/instance';
+import { deleteItem, getMediaItem, postFavorite } from '@shared/api/requests';
 
 
 // Hook to fetch individual media items

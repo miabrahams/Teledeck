@@ -1,4 +1,4 @@
-import { getUser, postLogout } from '@shared/api/instance';
+import { getUser, postLogout } from '@shared/api/requests';
 import {
   useQuery,
   useMutation,
