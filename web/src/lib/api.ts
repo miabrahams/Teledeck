@@ -154,9 +154,9 @@ export const useGalleryMutations = () => {
 
   return {
   toggleFavorite: useMutation({
-    mutationFn: async ({itemId, preferences, page}: mutationParams) => {
+    mutationFn: async (params: mutationParams) => {
       // Optimistically update query containing this item
-      const itemKey = queryKeys.gallery.item(itemId);
+      const itemKey = queryKeys.gallery.item(params.itemId);
       const mediaItem = queryClient.getQueryData<MediaItem>(itemKey);
       if (mediaItem) {
         queryClient.setQueryData(itemKey, {
@@ -166,12 +166,12 @@ export const useGalleryMutations = () => {
       }
 
       // If we're filtering by favorite status, toggling favorite on something visible will make it disappear
-      if (preferences.favorites !== 'all') {
+      if (params.preferences.favorites !== 'all') {
         console.log("Optimistic remove")
-        optimisticRemove(queryClient, {itemId, preferences, page});
+        optimisticRemove(queryClient, params);
       }
 
-      const response = await fetch(`/api/media/${itemId}/favorite`, {
+      const response = await fetch(`/api/media/${params.itemId}/favorite`, {
         method: 'POST',
       });
       if (!response.ok) {
@@ -189,17 +189,17 @@ export const useGalleryMutations = () => {
     },
   }),
   deleteItem: useMutation({
-    mutationFn: async ({ itemId, page, preferences }: mutationParams) => {
+    mutationFn: async (params: mutationParams) => {
       // Optimistically remove this item from page
-      optimisticRemove(queryClient, {itemId, preferences, page});
+      optimisticRemove(queryClient, params);
 
-      const response = await fetch(`/api/media/${itemId}`, {
+      const response = await fetch(`/api/media/${params.itemId}`, {
         method: 'DELETE',
       });
       if (!response.ok) {
         throw new Error('Failed to delete item: ' + response.statusText);
       }
-      return itemId;
+      return Promise.resolve(true);
     },
     onSuccess: () => {invalidatePageIds(queryClient)},
     onError: (error, variables, context) => {
