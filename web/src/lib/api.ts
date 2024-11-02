@@ -19,7 +19,10 @@ type ApiError = {
   message: string;
 };
 
-// Convert to string
+type mutationParams = { itemId: string; page: number; preferences: Preferences };
+
+// TODO: Axios?
+
 const createPreferenceString = (preferences: Preferences) => {
   return Object.entries(preferences)
     .map(([key, value]) => `${key}=${value}`)
@@ -30,22 +33,29 @@ const createPreferenceQuery = (preferences: Preferences, page: number) => {
   return createPreferenceString(preferences) + '&page=' + page.toString();
 };
 
+const galleryIdsQueryKey = (preferences: Preferences, page: number) => {
+  return ['gallery', createPreferenceString(preferences), page];
+}
+const mediaItemQueryKey = (itemId: string) => {
+  return ['mediaItem', itemId];
+}
+
 // Hook to fetch paginated list of IDs
 export const useGalleryIds = (preferences: Preferences, page: number) => {
   return useQuery({
-    queryKey: ['mediaIds', createPreferenceString(preferences), page],
+    queryKey: galleryIdsQueryKey(preferences, page),
     queryFn: () =>
       fetch(
         `/api/gallery/ids?${createPreferenceQuery(preferences, page)}`
       ).then((res) => res.json()) as Promise<MediaID[]>,
-    staleTime: Infinity, // Disable automatic refetching
+    staleTime: Infinity,
   });
 };
 
 // Hook to fetch individual media items
 export const useMediaItem = (itemId: string) => {
   return useQuery({
-    queryKey: ['mediaItem', itemId],
+    queryKey: mediaItemQueryKey(itemId),
     queryFn: () => fetch(`/api/media/${itemId}`).then((res) => res.json()),
     staleTime: Infinity,
     enabled: !!itemId,
@@ -77,7 +87,7 @@ const prefetchGalleryPage = async (
   page: number
 ) => {
   queryClient.prefetchQuery({
-    queryKey: ['mediaIds', createPreferenceString(preferences), page],
+    queryKey: galleryIdsQueryKey(preferences, page),
     queryFn: () => fetchGalleryPage(queryClient, preferences, page),
   });
 };
@@ -95,29 +105,29 @@ export const useGallery = (preferences: Preferences, page: number) => {
   });
 };
 
-// Hook to fetch multiple media items at once
-// TODO: Not used. Look into this
-/*
-export const useMediaItems = (ids: string[]): UseQueryResult<MediaItem[]> => {
-  return useQuery({
-    queryKey: ['mediaItems', ids],
-    queryFn: () =>
-      Promise.all(ids.map(id =>
-        fetch(`/api/media/${id}`).then(res => res.json())
-      )),
-    staleTime: Infinity,
-    enabled: ids.length > 0
-  });
-};
-*/
+
+export const optimisticRemove = (queryClient: QueryClient, {itemId, preferences, page}: mutationParams) => {
+  const pageIdKey = galleryIdsQueryKey(preferences, page);
+  const currentPage = queryClient.getQueryData<MediaID[]>(pageIdKey);
+  if (currentPage) {
+    queryClient.setQueryData(
+      pageIdKey,
+      currentPage.filter((id) => id.id !== itemId)
+    );
+  }
+}
+
+const invalidatePageIds = (queryClient: QueryClient) => {
+  queryClient.invalidateQueries({ queryKey: ['mediaIds'] });
+}
 
 // Mutation hook for toggling favorites
 export const useToggleFavorite = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (itemId: string) => {
-      // Optimistically query containing this item
+    mutationFn: async ({itemId, preferences, page}: mutationParams) => {
+      // Optimistically update query containing this item
       const itemKey = ['mediaItem', itemId];
       const mediaItem = queryClient.getQueryData<MediaItem>(itemKey);
       if (mediaItem) {
@@ -127,19 +137,30 @@ export const useToggleFavorite = () => {
         });
       }
 
+      // If we're filtering by favorite status, toggling favorite on something visible will make it disappear
+      if (preferences.favorites !== 'all') {
+        console.log("Optimistic remove")
+        optimisticRemove(queryClient, {itemId, preferences, page});
+      }
+      else {
+        console.log("Keeping item because prefs are", preferences)
+      }
+
       const response = await fetch(`/api/media/${itemId}/favorite`, {
         method: 'POST',
       });
       if (!response.ok) {
         throw new Error('Failed to toggle favorite');
       }
-      console.log('Favorited...');
       return response.json() as Promise<MediaItem>;
     },
-    onSuccess: (updatedItem) => {
+    onSuccess: (updatedItem, variables) => {
       // Update the individual item cache
-      console.log('Updating fav: ', updatedItem);
       queryClient.setQueryData(['mediaItem', updatedItem.id], updatedItem);
+
+      if (variables['preferences'].favorites !== 'all') {
+        invalidatePageIds(queryClient)
+      }
     },
   });
 };
@@ -154,22 +175,13 @@ export const useTotalPages = (preferences: Preferences) => {
   });
 };
 
-type deleteParams = { itemId: string; page: number; preferences: Preferences };
 
 export const useDeleteItem = () => {
   const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: async ({ itemId, page, preferences }: deleteParams) => {
+    mutationFn: async ({ itemId, page, preferences }: mutationParams) => {
       // Optimistically remove this item from page
-      const pageIdKey = ['mediaIds', createPreferenceString(preferences), page];
-      const currentPage = queryClient.getQueryData<MediaID[]>(pageIdKey);
-      if (currentPage) {
-        queryClient.setQueryData(
-          pageIdKey,
-          currentPage.filter((id) => id.id !== itemId)
-        );
-      }
+      optimisticRemove(queryClient, {itemId, preferences, page});
 
       const response = await fetch(`/api/media/${itemId}`, {
         method: 'DELETE',
@@ -179,12 +191,7 @@ export const useDeleteItem = () => {
       }
       return itemId;
     },
-    onSuccess: (data, variables, context) => {
-      console.log('Deleted item', data);
-      console.log('Deleted variables', variables);
-      console.log('Deletion context', context);
-      queryClient.invalidateQueries({ queryKey: ['mediaIds'] });
-    },
+    onSuccess: () => {invalidatePageIds(queryClient)},
     onError: (error, variables, context) => {
       // An error happened!
       console.log('Deletion error:', context);
@@ -218,7 +225,7 @@ export const useLogout = () => {
     },
     onSuccess: () => {
       queryClient.setQueryData(['user'], null);
-      queryClient.invalidateQueries({ queryKey: ['media'] });
+      queryClient.invalidateQueries();
     },
   });
 };

@@ -52,7 +52,7 @@ const MediaGallery: React.FC<MediaGalleryProps> = ( {currentPage, totalPages, on
         // window.open(`/media/${item.file_name}`, '_blank');
         break;
       case 'favorite':
-        tf.mutate(id);
+        tf.mutate({ itemId: id, preferences, page: currentPage });
         break;
       case 'delete':
         // if (window.confirm('Are you sure you want to delete this item?')) {
