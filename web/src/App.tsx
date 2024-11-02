@@ -7,7 +7,7 @@ import {
 } from 'react-router-dom';
 import Navigation from '@navigation/components/Navigation';
 import { PaginatedMediaGallery } from '@gallery/components/PaginatedGallery';
-import { useUser, useLogout } from '@gallery/api';
+import { useUser, useLogout } from '@auth/api';
 import { Login, Register } from '@auth/components/Auth';
 
 const App: React.FC = () => {

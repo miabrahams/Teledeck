@@ -18,6 +18,8 @@ type AuthError = {
   message: string;
 } | null;
 
+// TODO: Refactor to use API layer. Currently login/logout are not implemented
+
 export const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

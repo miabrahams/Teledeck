@@ -1,9 +1,9 @@
 import React from 'react';
 import { Play, Pause, Download, Star, Trash } from 'lucide-react';
-import { MediaItem } from '../types';
-import { useMediaItem } from '@/features/gallery/api';
-import { useVideoPlayer } from '@gallery/hooks/useVideoPlayer';
-import { useMediaControls } from '@gallery/hooks/useMediaControls';
+import { MediaItem } from '@shared/types/media';
+import { useVideoPlayer } from '@/features/media/hooks/useVideoPlayer';
+import { useMediaControls } from '@media/hooks/useMediaControls';
+import { useMediaItem } from '@media/api';
 
 
 type VideoImageSwitchProps = { item: MediaItem; setFullscreenItem: Function; };

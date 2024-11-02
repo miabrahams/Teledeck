@@ -16,6 +16,8 @@ export default defineConfig({
       "@gallery": path.join(root, "features/gallery"),
       "@preferences": path.join(root, "features/preferences"),
       "@navigation": path.join(root, "features/navigation"),
+      "@media": path.join(root, "features/media"),
+      "@shared": path.join(root, "shared"),
     } as AliasOptions,
   },
   server: {

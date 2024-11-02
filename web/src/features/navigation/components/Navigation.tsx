@@ -1,12 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { User } from '@auth/types';
+import { User } from '@/shared/types/user';
 
 import ViewOptions from './ViewOptions';
 import SearchOptions from './SearchOptions';
 import SearchBox from './SearchBox';
 
-type NavigationProps = { user: User; onLogout: React.MouseEventHandler<HTMLButtonElement> };
+type NavigationProps = { user: User | undefined; onLogout: React.MouseEventHandler<HTMLButtonElement> };
 
 const Navigation: React.FC<NavigationProps> = ({ user, onLogout }) => {
   return (

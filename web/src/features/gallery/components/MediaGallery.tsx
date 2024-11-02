@@ -1,8 +1,8 @@
 import React from 'react';
-import MediaCard from './MediaCard';
-import { SearchPreferences } from '@preferences/types';
+import MediaCard from '../../media/components/MediaCard';
+import { SearchPreferences } from '@shared/types/preferences';
 import { useGallery } from '../api';
-import { MediaItem } from '../types';
+import { MediaItem } from '../../../shared/types/media';
 
 const LoadSpinner: React.FC = () => {
   return (

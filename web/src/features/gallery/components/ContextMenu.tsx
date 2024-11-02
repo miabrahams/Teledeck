@@ -1,7 +1,7 @@
 import React from 'react'
 import { Download, Star, Trash, Tag, BarChart2 } from 'lucide-react';
-import { MediaItem } from '../types';
-import { useMediaControls } from '@gallery/hooks/useMediaControls';
+import { MediaItem } from '../../../shared/types/media';
+import { useMediaControls } from '@media/hooks/useMediaControls';
 
 export type ContextMenuState = { x: number, y: number, item: MediaItem | null }
 

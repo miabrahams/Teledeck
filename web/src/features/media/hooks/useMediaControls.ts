@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { useGalleryMutations } from '../api';
+import { useGalleryMutations } from '@media/api';
 import { useAtomValue } from 'jotai';
 import { currentPageAtom } from '@gallery/state';
 import { searchPrefsAtom } from '@preferences/state';

@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { MediaItem } from '../types';
+import { MediaItem } from '../../../shared/types/media';
 
 // src/features/gallery/hooks/useContextMenu.ts
 type ContextMenuState = {
