@@ -17,17 +17,18 @@ import { useUser, useLogout } from '@/lib/api';
 const defaultPreferences: SavedPreferences = {
   search: {
     sort: 'date_desc',
-    videos: true,
+    videos: false,
     favorites: 'all',
-    search: 'date_desc',
+    search: '',
   },
   view: {
     darkmode: true,
-    showInfo: true,
+    hideInfo: false,
   },
 };
 
 const App: React.FC = () => {
+  // TODO: Zod validation so we don't wreck things? Object.apply?
   const [prefs, setPrefs] = useState<SavedPreferences>(() => {
     const stored = localStorage.getItem('userPreferences');
     return stored ?
@@ -59,11 +60,11 @@ const App: React.FC = () => {
       document.documentElement.classList.remove('dark');
     }
 
-    if (prefs.view.showInfo) {
-      document.documentElement.classList.remove('hide-info');
+    if (prefs.view.hideInfo) {
+      document.documentElement.classList.add('hide-info');
     }
     else {
-      document.documentElement.classList.add('hide-info');
+      document.documentElement.classList.remove('hide-info');
     }
   }, [prefs.view]);
 

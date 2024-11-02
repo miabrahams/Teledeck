@@ -33,15 +33,15 @@ export const favoriteOptions = {
 };
 
 export type SearchPreferences = {
-  sort: string;
+  sort: keyof typeof sortOptions;
   videos: boolean;
   favorites: keyof typeof favoriteOptions;
-  search: keyof typeof sortOptions;
+  search: string;
 };
 
 export type ViewPreferences = {
   darkmode: boolean;
-  showInfo: boolean;
+  hideInfo: boolean;
 }
 
 export type SavedPreferences = {

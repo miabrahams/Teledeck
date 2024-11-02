@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Moon, Sun, Search } from 'lucide-react';
+import { Moon, Sun, Search, Captions, CaptionsOff } from 'lucide-react';
 import {User, SavedPreferences, sortOptions, favoriteOptions} from '@/lib/types';
 
 
@@ -38,6 +38,13 @@ const Navigation: React.FC<NavigationProps> = ({
           <div className="flex items-center gap-4">
             <Link to="/" className="hover:text-gray-200">Home</Link>
             <Link to="/about" className="hover:text-gray-200">About</Link>
+            <button
+              onClick={() => {onPreferenceChange('hideInfo', !preferences.view.hideInfo)}}
+              className="p-2 bg-primary-700 dark:bg-primary-800 rounded-full hover:bg-primary-800 dark:hover:bg-primary-700"
+              aria-label="Show info"
+            >
+              {preferences.view.hideInfo ? <CaptionsOff className="w-5 h-5" /> : <Captions className="w-5 h-5" />}
+            </button>
             <button
               onClick={() => {onPreferenceChange('darkmode', !preferences.view.darkmode)}}
               className="p-2 bg-primary-700 dark:bg-primary-800 rounded-full hover:bg-primary-800 dark:hover:bg-primary-700"
