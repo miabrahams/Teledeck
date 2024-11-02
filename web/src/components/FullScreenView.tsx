@@ -3,7 +3,7 @@ import { X } from 'lucide-react';
 
 type FullscreenViewProps = {
   item: any,
-  onClose: () => {}
+  onClose: () => void
 }
 
 const FullscreenView: React.FC<FullscreenViewProps> = ({ item, onClose }) => {

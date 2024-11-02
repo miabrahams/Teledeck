@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Play, Pause, Download, Star, Trash } from 'lucide-react';
 import { MediaItem } from '@/lib/types';
 import { useMediaItem } from '@/lib/api';
@@ -14,10 +14,12 @@ type MediaItemProps = {
 
 const VideoItem: React.FC<{ item: MediaItem }> = ({ item }) => {
   const [isPlaying, setIsPlaying] = useState(false);
+  const vidRef = useRef<HTMLVideoElement>(null);
 
-  const handleVideoToggle = (videoEl: HTMLVideoElement) => {
-    if (isPlaying) { videoEl.pause(); }
-    else { videoEl.play(); }
+  const handleVideoToggle = () => {
+    if (!vidRef.current) return;
+    if (isPlaying) { vidRef.current.pause(); }
+    else { vidRef.current.play(); }
     setIsPlaying(!isPlaying);
   };
 
@@ -28,14 +30,14 @@ const VideoItem: React.FC<{ item: MediaItem }> = ({ item }) => {
         src={`/media/${item.file_name}`}
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
-        onClick={(e) => handleVideoToggle(e.target)}
+        onClick={handleVideoToggle}
+        ref={vidRef}
       />
       <button
         className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity"
         onClick={(e) => {
           e.stopPropagation();
-          const video = e.target.parentElement.querySelector('video');
-          handleVideoToggle(video);
+          handleVideoToggle();
         }}
       >
         {isPlaying ? (

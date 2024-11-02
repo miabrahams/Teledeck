@@ -115,7 +115,7 @@ const queryClient = new QueryClient({
 const AppWithProvider = () => (
   <QueryClientProvider client={queryClient}>
       <App />
-    {/* <ReactQueryDevtools /> Add this in development */}
+{/*     <ReactQueryDevtools initialIsOpen={false} /> */}
   </QueryClientProvider>
 );
 

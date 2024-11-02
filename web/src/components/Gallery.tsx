@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import MediaCard from './MediaCard';
 import FullscreenView from './FullScreenView';
-import ContextMenu from './ContextMenu';
+import { ContextMenu, ContextMenuState } from './ContextMenu';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Preferences, MediaItem } from '@/lib/types';
 import { useDeleteItem, useGalleryIds, useToggleFavorite } from '@/lib/api';
 
 type MediaGalleryProps = { currentPage: number, totalPages: number, onPageChange: (n: number) => void, preferences: Preferences };
 const MediaGallery: React.FC<MediaGalleryProps> = ( {currentPage, totalPages, onPageChange, preferences} ) => {
-  const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null);
+  const [contextMenu, setContextMenu] = useState<ContextMenuState>({ x: 0, y: 0, item: null });
   const [fullscreenItem, setFullscreenItem] = useState(null);
 
 
@@ -43,7 +43,7 @@ const MediaGallery: React.FC<MediaGalleryProps> = ( {currentPage, totalPages, on
         // }
         break;
     }
-    setContextMenu(null);
+    setContextMenu({...contextMenu, item: null});
   };
 
   if (isLoading || !idData) {
@@ -91,7 +91,7 @@ const MediaGallery: React.FC<MediaGalleryProps> = ( {currentPage, totalPages, on
           x={contextMenu.x}
           y={contextMenu.y}
           item={contextMenu.item}
-          onClose={() => setContextMenu(null)}
+          onClose={() => setContextMenu({...contextMenu, item: null})}
           onAction={handleContextAction}
         />
       )}
@@ -99,7 +99,7 @@ const MediaGallery: React.FC<MediaGalleryProps> = ( {currentPage, totalPages, on
       {fullscreenItem && (
         <FullscreenView
           item={fullscreenItem}
-          onClose={() => setFullscreenItem(null)}
+          onClose={() => {setFullscreenItem(null)}}
         />
       )}
     </div>

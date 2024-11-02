@@ -2,9 +2,11 @@ import React, { useRef, useEffect } from 'react'
 import { Download, Star, Trash, Tag, BarChart2 } from 'lucide-react';
 import { MediaItem } from '@/lib/types';
 
-type ContextMenuProps = { x: number, y: number, item: MediaItem, onClose: Function,  onAction: Function }
+export type ContextMenuState = { x: number, y: number, item: MediaItem | null }
 
-const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, onClose, onAction, item }) => {
+type ContextMenuProps = ContextMenuState & { onClose: Function,  onAction: Function }
+
+export const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, onClose, onAction, item }) => {
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -45,5 +47,3 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, onClose, onAction, item
     </div>
   );
 };
-
-export default ContextMenu;
