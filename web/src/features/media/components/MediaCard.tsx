@@ -5,10 +5,10 @@ import { useMediaControls } from '@media/hooks/useMediaControls';
 import { useMediaItem } from '@media/api';
 import { MediaItem } from '@shared/types/media';
 
+type MediaViewProps = { item: MediaItem }
 
-type VideoImageSwitchProps = { item: MediaItem; setFullscreenItem: Function; };
+type VideoImageSwitchProps = MediaViewProps & { setFullscreenItem: (item: MediaItem) => void}
 const VideoImageSwitch: React.FC<VideoImageSwitchProps> = ({ item, setFullscreenItem }) => {
-
   if (['video'].includes(item.MediaType)) {
     return <VideoItem item={item} />;
   }
@@ -26,8 +26,7 @@ const VideoImageSwitch: React.FC<VideoImageSwitchProps> = ({ item, setFullscreen
   return <div>Unsupported Media type: {}</div>;
 };
 
-
-const VideoItem: React.FC<{ item: MediaItem }> = ({ item }) => {
+const VideoItem: React.FC<MediaViewProps> = ({ item }) => {
   const { videoRef, isPlaying, togglePlay, handlePlay, handlePause } =
     useVideoPlayer();
 
@@ -57,7 +56,7 @@ const VideoItem: React.FC<{ item: MediaItem }> = ({ item }) => {
   );
 };
 
-const MediaInfo: React.FC<{ item: MediaItem }> = ({ item }) => {
+const MediaInfo: React.FC<MediaViewProps> = ({ item }) => {
   return (
     <div className="media-info">
       <div className="flex justify-between items-start mb-2">
@@ -80,6 +79,18 @@ const MediaInfo: React.FC<{ item: MediaItem }> = ({ item }) => {
   );
 };
 
+type HasChildren = { children: React.ReactNode; };
+type HasClick = { onClick: () => void; };
+
+const MediaActionButton: React.FC<HasChildren & HasClick> = ({ children, onClick }) => {
+  const buttonClass = 'p-2 bg-gray-900 bg-opacity-75 rounded-full text-white hover:bg-opacity-90';
+  return (
+    <button className={buttonClass} onClick={onClick} >
+      {children}
+    </button>
+  );
+}
+
 const MediaControls: React.FC<{
   isHovering: boolean;
   isFavorite: boolean;
@@ -90,25 +101,16 @@ const MediaControls: React.FC<{
   const controlClass = `controls opacity-${ isHovering ? '100' : '0' } transition-opacity duration-200`;
   return (
     <div className={controlClass}>
-      <button
-        onClick={handleDownload}
-        className="p-2 bg-gray-900 bg-opacity-75 rounded-full text-white hover:bg-opacity-90"
-      >
+      <MediaActionButton onClick={handleDownload} >
         <Download className="w-4 h-4" />
-      </button>
-      <button
-        onClick={handleFavorite}
-        className="p-2 bg-gray-900 bg-opacity-75 rounded-full text-white hover:bg-opacity-90"
-      >
+      </MediaActionButton>
+      <MediaActionButton onClick={handleFavorite} >
         <Star className={`w-4 h-4 ${isFavorite ? 'fill-yellow-500' : ''}`} />
-      </button>
+      </MediaActionButton>
       {!isFavorite && (
-        <button
-          onClick={handleDelete}
-          className="p-2 bg-gray-900 bg-opacity-75 rounded-full text-white hover:bg-opacity-90"
-        >
+        <MediaActionButton onClick={handleDelete}>
           <Trash className="w-4 h-4" />
-        </button>
+        </MediaActionButton>
       )}
     </div>
   );
@@ -117,9 +119,8 @@ const MediaControls: React.FC<{
 
 type MediaCardProps = {
   itemId: string;
-  setFullscreenItem: Function;
+  setFullscreenItem: (item: MediaItem) => void;
   openContextMenu: (e: React.MouseEvent, item: MediaItem) => void;
-  className?: string;
 };
 
 const MediaCard: React.FC<MediaCardProps> = ({
