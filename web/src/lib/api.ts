@@ -12,7 +12,11 @@ type ApiError = {
   message: string;
 };
 
-type mutationParams = { itemId: string; page: number; preferences: SearchPreferences };
+type mutationParams = {
+  itemId: string;
+  page: number;
+  searchPrefs: SearchPreferences;
+};
 
 // TODO: Axios?
 
@@ -136,7 +140,7 @@ export const useGalleryIds = (preferences: Preferences, page: number) => {
 };
 */
 
-export const optimisticRemove = (queryClient: QueryClient, {itemId, preferences, page}: mutationParams) => {
+export const optimisticRemove = (queryClient: QueryClient, {itemId, searchPrefs: preferences, page}: mutationParams) => {
   const pageIdKey = queryKeys.gallery.ids(preferences, page);
   const currentPage = queryClient.getQueryData<MediaID[]>(pageIdKey);
   if (currentPage) {
@@ -169,7 +173,7 @@ export const useGalleryMutations = () => {
       }
 
       // If we're filtering by favorite status, toggling favorite on something visible will make it disappear
-      if (params.preferences.favorites !== 'all') {
+      if (params.searchPrefs.favorites !== 'all') {
         console.log("Optimistic remove")
         optimisticRemove(queryClient, params);
       }
@@ -186,7 +190,7 @@ export const useGalleryMutations = () => {
       // Update the individual item cache
       queryClient.setQueryData(['mediaItem', updatedItem.id], updatedItem);
 
-      if (variables['preferences'].favorites !== 'all') {
+      if (variables['searchPrefs'].favorites !== 'all') {
         invalidatePageIds(queryClient)
       }
     },

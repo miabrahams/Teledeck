@@ -1,10 +1,10 @@
-import { atom } from 'jotai'
-import { atomWithStorage } from 'jotai/utils';
-import { FavoriteOption, SavedPreferences, SortOption } from '@/lib/types';
+import { atom, getDefaultStore } from 'jotai'
+import { atomWithStorage, createJSONStorage  } from 'jotai/utils';
+import { FavoriteOption, Preferences, SortOption } from '@/lib/types';
 
 // Ideas: Zod validation so we don't wreck things? Object.apply?
 
-const defaultPreferences: SavedPreferences = {
+const defaultPreferences: Preferences = {
   search: {
     sort: 'date_desc',
     videos: false,
@@ -17,18 +17,22 @@ const defaultPreferences: SavedPreferences = {
   },
 };
 
-export const sortModeAtom = atomWithStorage<SortOption>('sortMode', 'date_desc')
-export const showVideosAtom = atomWithStorage<boolean>('darkmode', true)
-export const favoritesAtom = atomWithStorage<FavoriteOption>('showFavorites', 'all')
-export const searchStringAtom = atomWithStorage<FavoriteOption>('searchString', 'all')
-export const darkModeAtom = atomWithStorage<boolean>('darkmode', true)
-export const hideInfoAtom = atomWithStorage<boolean>('hideinfo', false)
+const storage = createJSONStorage<any>(() => sessionStorage)
+const opts = { getOnInit: true }
+export const sortModeAtom = atomWithStorage<SortOption>('sortMode', 'date_desc', storage, opts)
+export const videosOnlyAtom = atomWithStorage<boolean>('videosOnly', false, storage, opts)
+export const favoritesAtom = atomWithStorage<FavoriteOption>('showFavorites', 'all', storage, opts)
+export const searchStringAtom = atomWithStorage<string>('searchString', '', storage, opts)
+export const darkModeAtom = atomWithStorage<boolean>('darkmode', true, storage, opts)
+export const hideInfoAtom = atomWithStorage<boolean>('hideinfo', false, storage, opts)
+
+export const currentPageAtom = atomWithStorage<number>('currentPage', 1)
 
 
-export const searchPrefs = atom(
+export const searchPrefsAtom = atom(
   (get) => {return {
     sort: get(sortModeAtom),
-    videos: get(showVideosAtom),
+    videos: get(videosOnlyAtom),
     favorites: get(favoritesAtom),
     search: get(searchStringAtom),
 }},
@@ -37,7 +41,7 @@ export const searchPrefs = atom(
       case 'sort':
         return set(sortModeAtom, value);
       case 'videos':
-        return set(showVideosAtom, value);
+        return set(videosOnlyAtom, value);
       case 'favorites':
         return set(favoritesAtom, value);
       case 'search':
@@ -47,7 +51,7 @@ export const searchPrefs = atom(
     }
 })
 
-export const viewPrefs = atom(
+export const viewPrefsAtom = atom(
   (get) => {return {
     darkmode: get(darkModeAtom),
     hideinfo: get(hideInfoAtom),
@@ -64,20 +68,40 @@ export const viewPrefs = atom(
 })
 
 
-export const prefs = atom(
+export const prefsAtom = atom(
   (get) => {return {
-      search: get(searchPrefs),
-      view: get(viewPrefs),
+      search: get(searchPrefsAtom),
+      view: get(viewPrefsAtom),
     }
   },
   (_, set, key: string, value: any) => {
     if (key in defaultPreferences.search) {
-      return set(searchPrefs, key, value);
+      return set(searchPrefsAtom, key, value);
     }
     else if (key in defaultPreferences.view) {
-      return set(viewPrefs, key, value);
+      return set(viewPrefsAtom, key, value);
     }
     else {
       console.error(`Invalid preference key: ${key}`);
     }
 })
+
+const defaultStore = getDefaultStore();
+
+defaultStore.sub(darkModeAtom, () => {
+    defaultStore.get(darkModeAtom) ?
+        document.documentElement.classList.add('dark')
+      : document.documentElement.classList.remove('dark');
+});
+
+defaultStore.sub(hideInfoAtom, () => {
+    defaultStore.get(hideInfoAtom) ?
+        document.documentElement.classList.add('hide-info')
+      : document.documentElement.classList.remove('hide-info');
+});
+
+/* Another storage option?
+defaultStore.sub(prefsAtom, () => {
+  localStorage.setItem('userPreferences', JSON.stringify(defaultStore.get(prefsAtom)));
+});
+*/
