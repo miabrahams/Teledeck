@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { SearchPreferences } from '@shared/types/preferences';
 import { API_ENDPOINTS } from './constants';
-import { createPreferenceString } from '@shared/api/serialization';
+import { withPreferences, apiHandler, apiHandlerOK } from '@shared/api/utils';
 import { MediaID, MediaItem } from '@shared/types/media';
 import { User } from '@shared/types/user';
 
@@ -10,50 +10,43 @@ const instance = axios.create()
 
 
 
-type ROUTE = typeof API_ENDPOINTS[keyof typeof API_ENDPOINTS];
-export const withPreferences = (route: ROUTE, preferences: Parameters<typeof createPreferenceString>[0]) => {
-  return `${route}?${createPreferenceString(preferences)}`
-}
-
 export const getTotalPages = async (preferences: SearchPreferences): Promise<number> => {
-  const res = await instance.get(withPreferences(API_ENDPOINTS.total_pages, preferences));
-  return await res.data;
+  const res = instance.get(withPreferences(API_ENDPOINTS.total_pages, preferences));
+  return apiHandler(res);
 }
 export const getGalleryPage = async (preferences: SearchPreferences, page: number): Promise<MediaItem[]> => {
-  const res = await instance.get(withPreferences(API_ENDPOINTS.gallery, {...preferences, page}));
-  return await res.data;
+  const res = instance.get(withPreferences(API_ENDPOINTS.gallery, {...preferences, page}));
+  return apiHandler(res);
 }
 
 
 export const getGalleryIds = async (preferences: SearchPreferences): Promise<MediaID[]> => {
-  const res = await instance.get(withPreferences(API_ENDPOINTS.gallery_ids, preferences));
-  return await res.data;
+  const res = instance.get(withPreferences(API_ENDPOINTS.gallery_ids, preferences));
+  return apiHandler(res);
 }
 
 export const getMediaItem = async (itemId: string): Promise<MediaItem> => {
-  const res = await instance.get(`/api/media/${itemId}`)
-  return await res.data as MediaItem
+  const res = instance.get(`/api/media/${itemId}`)
+  return apiHandler(res);
 }
 
 export const getUser = async (): Promise<User> => {
-  const res = await instance.get(`/api/me`)
-  return await res.data
+  const res = instance.get(`/api/me`)
+  return apiHandler(res);
 }
 
 export const postLogout = async (): Promise<boolean> => {
-  const res = await instance.post('/api/logout');
-  return res.status === 200;
+  const res = instance.post('/api/logout');
+  return apiHandlerOK(res);
 }
 
 export const postFavorite = async (itemId: string): Promise<MediaItem> => {
-  const res = await instance.post(`/api/media/${itemId}/favorite`)
-  return res.data as MediaItem;
+  const res = instance.post(`/api/media/${itemId}/favorite`)
+  return apiHandler(res);
 }
 
 export const deleteItem = async (itemId: string): Promise<boolean> => {
-  const res = await instance.delete(`/api/media/${itemId}`)
-  return res.status === 200;
+  const res = instance.delete(`/api/media/${itemId}`)
+  return apiHandlerOK(res);
 }
 
-
-export default instance
