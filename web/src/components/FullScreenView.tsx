@@ -1,8 +1,9 @@
 import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
+import { MediaItem } from '@/lib/types';
 
 type FullscreenViewProps = {
-  item: any,
+  item: MediaItem,
   onClose: () => void
 }
 
@@ -18,7 +19,7 @@ const FullscreenView: React.FC<FullscreenViewProps> = ({ item, onClose }) => {
     return () => document.removeEventListener('keydown', handleEscape);
   }, [onClose]);
 
-  const isVideo = item.mediaType.includes('video');
+  const isVideo = item.MediaType == 'video';
 
   return (
     <div
@@ -41,12 +42,12 @@ const FullscreenView: React.FC<FullscreenViewProps> = ({ item, onClose }) => {
             className="max-w-full max-h-[90vh] rounded-lg"
             controls
             autoPlay
-            src={`/media/${item.fileName}`}
+            src={`/media/${item.file_name}`}
           />
         ) : (
           <img
-            src={`/media/${item.fileName}`}
-            alt={item.fileName}
+            src={`/media/${item.file_name}`}
+            alt={item.file_name}
             className="max-w-full max-h-[90vh] rounded-lg object-contain"
           />
         )}
