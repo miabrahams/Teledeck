@@ -27,9 +27,9 @@ const VideoItem: React.FC<{ item: MediaItem }> = ({ item }) => {
   };
 
   return (
-    <div className="media-item-content cursor-pointer">
+    <div style={{contentVisibility: 'auto', objectFit: 'contain', width: '100%'}}>
       <video
-        className="w-full h-64 object-cover rounded-t-lg"
+        className="w-full object-cover rounded-t-lg"
         src={`/media/${item.file_name}`}
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
@@ -161,15 +161,14 @@ const MediaCard: React.FC<MediaItemProps> = ({
     );
   }
 
-  const cardClass = 'media-item relative group' + (item.favorite ? ' favorite' : '');
 
   return (
     <div
-      className={cardClass}
+      className={'media-item flex flex-col justify-center relative group' + (item.favorite ? ' favorite' : '')}
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
     >
-      <div className={'media-item-content cursor-pointer'}>
+      <div className={'media-item-content flex-grow cursor-pointer'}>
         <VideoImageSwitch item={item} setFullscreenItem={setFullscreenItem} />
       </div>
       <MediaInfo item={item} />
