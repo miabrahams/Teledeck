@@ -27,6 +27,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, onClose, onActio
     { icon: <Tag size={16} />, label: 'Tags', action: 'tags' },
     { icon: <BarChart2 size={16} />, label: 'Score', action: 'score' },
   ];
+  if (!item) return null;
 
   return (
     <div
