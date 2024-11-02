@@ -16,11 +16,27 @@ export type MediaGalleryProps = {
   onPageChange: (page: number) => void;
 };
 
+export const sortOptions = {
+  'date_desc': 'Newest posts first',
+  'date_asc': 'Oldest posts first',
+  'id_desc': 'Recent additions first',
+  'id_asc': 'Oldest additions first',
+  'size_desc': 'Largest files first',
+  'size_asc': 'Smallest files first',
+  'random': 'Random'
+};
+
+export const favoriteOptions = {
+  'all': 'View all posts',
+  'favorites': 'Favorites only',
+  'non-favorites': 'Non-favorites only',
+};
+
 export type Preferences = {
   sort: string;
   videos: boolean;
-  favorites: string;
-  search: string;
+  favorites: keyof typeof favoriteOptions;
+  search: keyof typeof sortOptions;
   page?: string;
   darkmode: boolean;
 };
@@ -28,3 +44,4 @@ export type Preferences = {
 export type User = {
   email: string;
 } | null;
+

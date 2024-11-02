@@ -1,23 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Moon, Sun, Search } from 'lucide-react';
-import {User, Preferences} from '@/lib/types';
+import {User, Preferences, sortOptions, favoriteOptions} from '@/lib/types';
 
-const sortOptions = [
-  { value: 'date_desc', label: 'Newest posts first' },
-  { value: 'date_asc', label: 'Oldest posts first' },
-  { value: 'id_desc', label: 'Recent additions first' },
-  { value: 'id_asc', label: 'Oldest additions first' },
-  { value: 'size_desc', label: 'Largest files first' },
-  { value: 'size_asc', label: 'Smallest files first' },
-  { value: 'random', label: 'Random' }
-];
-
-const favoriteOptions = [
-  { value: 'all', label: 'View all posts' },
-  { value: 'favorites', label: 'Favorites only' },
-  { value: 'non-favorites', label: 'Non-favorites only' }
-];
 
 type NavigationProps = {
   user: User;
@@ -73,9 +58,9 @@ const Navigation: React.FC<NavigationProps> = ({
             onChange={(e) => onPreferenceChange('sort', e.target.value)}
             className="bg-primary-700 dark:bg-primary-800 text-gray-200 rounded px-3 py-1.5 text-sm"
           >
-            {sortOptions.map(option => (
-              <option key={option.value} value={option.value}>
-                {option.label}
+            {Object.entries(sortOptions).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
               </option>
             ))}
           </select>
@@ -85,9 +70,9 @@ const Navigation: React.FC<NavigationProps> = ({
             onChange={(e) => onPreferenceChange('favorites', e.target.value)}
             className="bg-primary-700 dark:bg-primary-800 text-gray-200 rounded px-3 py-1.5 text-sm"
           >
-            {favoriteOptions.map(option => (
-              <option key={option.value} value={option.value}>
-                {option.label}
+            {Object.entries(favoriteOptions).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
               </option>
             ))}
           </select>
@@ -107,7 +92,7 @@ const Navigation: React.FC<NavigationProps> = ({
             <input
               type="text"
               value={searchValue}
-              onChange={(e) => setSearchValue(e.target.value)}
+              onChange={(e) => setSearchValue(e.target.value as keyof typeof sortOptions)}
               placeholder="Search..."
               className="pl-9 pr-4 py-1.5 rounded bg-primary-700 dark:bg-primary-800 text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
