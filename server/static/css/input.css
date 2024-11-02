@@ -46,6 +46,10 @@
   }
 */
 
+  .hide-info .media-info {
+    @apply hidden;
+  }
+
   .media-item-content {
     @apply cursor-pointer;
   }
