@@ -25,14 +25,6 @@ export type Preferences = {
   darkmode: boolean;
 };
 
-export const defaultPreferences: Preferences = {
-  sort: 'date_desc',
-  videos: true,
-  favorites: 'all',
-  search: '',
-  darkmode: true,
-};
-
 export type User = {
   email: string;
 } | null;

@@ -4,14 +4,31 @@ import FullscreenView from './FullScreenView';
 import { ContextMenu, ContextMenuState } from './ContextMenu';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Preferences, MediaItem } from '@/lib/types';
-import { useDeleteItem, useGalleryIds, useToggleFavorite } from '@/lib/api';
+import { useDeleteItem, useGalleryIds, useToggleFavorite, useTotalPages } from '@/lib/api';
+
+export const PaginatedMediaGallery: React.FC<{ preferences: Preferences }> = ({ preferences }) => {
+  const [currentPage, setCurrentPage] = useState(1);
+  let {data: totalPages} = useTotalPages(preferences);
+  totalPages = totalPages || 1;
+
+  return (
+    <MediaGallery
+      currentPage={currentPage}
+      totalPages={totalPages}
+      onPageChange={setCurrentPage}
+      preferences={preferences}
+    />
+  );
+};
+
+
+
+
 
 type MediaGalleryProps = { currentPage: number, totalPages: number, onPageChange: (n: number) => void, preferences: Preferences };
 const MediaGallery: React.FC<MediaGalleryProps> = ( {currentPage, totalPages, onPageChange, preferences} ) => {
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({ x: 0, y: 0, item: null });
   const [fullscreenItem, setFullscreenItem] = useState(null);
-
-
   const {data: idData, isLoading, error} = useGalleryIds(preferences, currentPage);
 
   const handleContextMenu = (e: React.MouseEvent, item: MediaItem) => {

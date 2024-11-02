@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   BrowserRouter as Router,
   Routes,
@@ -8,49 +8,27 @@ import {
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import Navigation from '@/components/Navigation';
-import MediaGallery from '@/components/Gallery';
+import { PaginatedMediaGallery } from '@/components/Gallery';
 import { Login, Register } from '@/components/Auth';
-import { Preferences, User, defaultPreferences } from '@/lib/types';
+import { Preferences, User } from '@/lib/types';
 import { useUser, useLogout, useTotalPages } from '@/lib/api';
 
-const App: React.FC = () => {
-  const [currentPage, setCurrentPage] = useState(1);
 
-  // TODO: query totalPages from API
-  // TODO: fetch preferences using useQuery
+const defaultPreferences: Preferences = {
+  sort: 'date_desc',
+  videos: true,
+  favorites: 'all',
+  search: '',
+  darkmode: true,
+};
+
+
+const App: React.FC = () => {
   const [preferences, setPreferences] = useState<Preferences>(() => {
     const stored = localStorage.getItem('userPreferences');
     const prefs = stored ? JSON.parse(stored) : defaultPreferences;
-    // Set dark mode to match new setting
-    if (prefs.darkmode) {
-      document.documentElement.classList.add('dark');
-    }
-    else {
-      document.documentElement.classList.remove('dark');
-    }
     return prefs
   });
-
-
-  let {data: totalPages} = useTotalPages(preferences);
-  totalPages = totalPages || 1;
-
-  // Equivalent useQuery for preferences
-  /*
-  const { data: preferences, isLoading: preferencesLoading } = useQuery({
-    queryKey: ['preferences'],
-    queryFn: () => {
-      const stored = localStorage.getItem('userPreferences');
-      const prefs: Preferences = stored ? JSON.parse(stored) : defaultPreferences;
-      return prefs;
-    },
-  });
-  */
-
-
-  const { data: user, isLoading: userLoading } = useUser();
-  const logout = useLogout();
-
 
   const handlePreferenceChange = (key: string, value: any) => {
     const newPreferences = { ...preferences, [key]: value };
@@ -58,6 +36,17 @@ const App: React.FC = () => {
     localStorage.setItem('userPreferences', JSON.stringify(newPreferences));
   };
 
+  useEffect(() => {
+    if (preferences.darkmode) {
+      document.documentElement.classList.add('dark');
+    }
+    else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [preferences.darkmode]);
+
+  const { data: user, isLoading: userLoading } = useUser();
+  const logout = useLogout();
 
   return (
     <Router>
@@ -74,10 +63,7 @@ const App: React.FC = () => {
             <Route
               path="/"
               element={
-                <MediaGallery
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  onPageChange={setCurrentPage}
+                <PaginatedMediaGallery
                   preferences={preferences}
                 />
               }
