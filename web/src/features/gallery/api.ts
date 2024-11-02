@@ -74,7 +74,7 @@ export const useGalleryIds = (preferences: Preferences, page: number) => {
 export const useMediaItem = (itemId: string) => {
   return useQuery({
     queryKey: queryKeys.gallery.item(itemId),
-    queryFn: () => fetch(`/api/media/${itemId}`).then((res) => res.json()),
+    queryFn: () => fetch(`/api/media/${itemId}`).then((res) => res.json() as Promise<MediaItem>),
     staleTime: Infinity,
     enabled: !!itemId,
   });

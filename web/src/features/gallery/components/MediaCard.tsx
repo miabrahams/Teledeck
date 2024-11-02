@@ -1,47 +1,51 @@
-import React, { useState, useRef } from 'react';
+import React from 'react';
 import { Play, Pause, Download, Star, Trash } from 'lucide-react';
 import { MediaItem } from '../types';
 import { useMediaItem } from '@/features/gallery/api';
+import { useVideoPlayer } from '@gallery/hooks/useVideoPlayer';
+import { useMediaControls } from '@gallery/hooks/useMediaControls';
 
-type MediaItemProps = {
-  itemId: string;
-  onFavorite: Function;
-  onDelete: Function;
-  setFullscreenItem: Function;
-  handleContextMenu: Function;
-  className?: string;
+
+type VideoImageSwitchProps = { item: MediaItem; setFullscreenItem: Function; };
+const VideoImageSwitch: React.FC<VideoImageSwitchProps> = ({ item, setFullscreenItem }) => {
+
+  if (['video'].includes(item.MediaType)) {
+    return <VideoItem item={item} />;
+  }
+
+  if (['image', 'photo'].includes(item.MediaType)) {
+    return (
+      <img
+        src={`/media/${item.file_name}`}
+        alt={item.file_name}
+        onClick={() => setFullscreenItem(item)}
+      />
+    );
+  }
+
+  return <div>Unsupported Media type: {}</div>;
 };
 
-const VideoItem: React.FC<{ item: MediaItem }> = ({ item }) => {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const vidRef = useRef<HTMLVideoElement>(null);
 
-  const handleVideoToggle = () => {
-    if (!vidRef.current) return;
-    if (isPlaying) {
-      vidRef.current.pause();
-    } else {
-      vidRef.current.play();
-    }
-    setIsPlaying(!isPlaying);
-  };
+const VideoItem: React.FC<{ item: MediaItem }> = ({ item }) => {
+  const { videoRef, isPlaying, togglePlay, handlePlay, handlePause } =
+    useVideoPlayer();
 
   return (
-    <div style={{contentVisibility: 'auto', objectFit: 'contain', width: '100%'}}>
+    <div
+      style={{ contentVisibility: 'auto', objectFit: 'contain', width: '100%' }}
+    >
       <video
         className="w-full object-cover rounded-t-lg"
         src={`/media/${item.file_name}`}
-        onPlay={() => setIsPlaying(true)}
-        onPause={() => setIsPlaying(false)}
-        onClick={handleVideoToggle}
-        ref={vidRef}
+        onPlay={handlePlay}
+        onPause={handlePause}
+        onClick={togglePlay}
+        ref={videoRef}
       />
       <button
         className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity"
-        onClick={(e) => {
-          e.stopPropagation();
-          handleVideoToggle();
-        }}
+        onClick={togglePlay}
       >
         {isPlaying ? (
           <Pause className="w-12 h-12 text-white" />
@@ -52,7 +56,6 @@ const VideoItem: React.FC<{ item: MediaItem }> = ({ item }) => {
     </div>
   );
 };
-
 
 const MediaInfo: React.FC<{ item: MediaItem }> = ({ item }) => {
   return (
@@ -78,29 +81,30 @@ const MediaInfo: React.FC<{ item: MediaItem }> = ({ item }) => {
 };
 
 const MediaControls: React.FC<{
-  item: MediaItem;
   isHovering: boolean;
-  onFavorite: Function;
-  onDelete: Function;
-}> = ({ item, isHovering, onFavorite, onDelete }) => {
-  const controlClass = `controls ${ isHovering ? 'opacity-100' : 'opacity-0' } transition-opacity duration-200`;
+  isFavorite: boolean;
+  handleFavorite: () => void;
+  handleDelete: () => void;
+  handleDownload: () => void;
+}> = ({ isHovering, isFavorite, handleDelete, handleDownload, handleFavorite }) => {
+  const controlClass = `controls opacity-${ isHovering ? '100' : '0' } transition-opacity duration-200`;
   return (
     <div className={controlClass}>
       <button
-        onClick={() => window.open(`/media/${item.file_name}`, '_blank')}
+        onClick={handleDownload}
         className="p-2 bg-gray-900 bg-opacity-75 rounded-full text-white hover:bg-opacity-90"
       >
         <Download className="w-4 h-4" />
       </button>
       <button
-        onClick={() => onFavorite(item)}
+        onClick={handleFavorite}
         className="p-2 bg-gray-900 bg-opacity-75 rounded-full text-white hover:bg-opacity-90"
       >
-        <Star className={`w-4 h-4 ${item.favorite ? 'fill-yellow-500' : ''}`} />
+        <Star className={`w-4 h-4 ${isFavorite ? 'fill-yellow-500' : ''}`} />
       </button>
-      {!item.favorite && (
+      {!isFavorite && (
         <button
-          onClick={() => onDelete(item)}
+          onClick={handleDelete}
           className="p-2 bg-gray-900 bg-opacity-75 rounded-full text-white hover:bg-opacity-90"
         >
           <Trash className="w-4 h-4" />
@@ -110,37 +114,27 @@ const MediaControls: React.FC<{
   );
 };
 
-type VideoImageSwitchProps = {
-  item: MediaItem;
+
+type MediaCardProps = {
+  itemId: string;
   setFullscreenItem: Function;
+  openContextMenu: (e: React.MouseEvent, item: MediaItem) => void;
+  className?: string;
 };
 
-const VideoImageSwitch: React.FC< VideoImageSwitchProps> = ({ item, setFullscreenItem }) => {
-
-  if (['video'].includes(item.MediaType)) {
-    return <VideoItem item={item} />;
-  } else if (['image', 'photo'].includes(item.MediaType)) {
-    return (
-      <img
-        src={`/media/${item.file_name}`}
-        alt={item.file_name}
-        onClick={() => setFullscreenItem(item)}
-      />
-    );
-  }
-
-  return <div>Unsupported Media type: {}</div>;
-};
-
-const MediaCard: React.FC<MediaItemProps> = ({
+const MediaCard: React.FC<MediaCardProps> = ({
   itemId,
-  onFavorite,
-  onDelete,
+  openContextMenu,
   setFullscreenItem,
 }) => {
-  const [isHovering, setIsHovering] = useState(false);
-
-  const { data: item, status, error } = useMediaItem(itemId);
+  const { data: item, error, status } = useMediaItem(itemId);
+  const {
+    isHovering,
+    setIsHovering,
+    handleFavorite,
+    handleDelete,
+    handleDownload,
+  } = useMediaControls(itemId);
 
   if (status === 'pending') {
     return (
@@ -160,22 +154,26 @@ const MediaCard: React.FC<MediaItemProps> = ({
     );
   }
 
-
   return (
     <div
-      className={'media-item flex flex-col justify-center relative group' + (item.favorite ? ' favorite' : '')}
+      className={
+        'media-item flex flex-col justify-center relative group' +
+        (item.favorite ? ' favorite' : '')
+      }
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
+      onClick={(e) => {openContextMenu(e, item)}}
     >
       <div className={'media-item-content flex-grow cursor-pointer'}>
         <VideoImageSwitch item={item} setFullscreenItem={setFullscreenItem} />
       </div>
       <MediaInfo item={item} />
       <MediaControls
-        item={item}
         isHovering={isHovering}
-        onFavorite={onFavorite}
-        onDelete={onDelete}
+        isFavorite={item.favorite}
+        handleFavorite={handleFavorite}
+        handleDelete={handleDelete}
+        handleDownload={() => {handleDownload(item.file_name)}}
       />
     </div>
   );
