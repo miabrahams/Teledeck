@@ -1,48 +1,60 @@
+
+// src/features/navigation/components/SearchOptions.tsx
 import React from 'react';
 import { useAtom } from 'jotai';
 import { searchPrefsAtom } from '@preferences/state';
 import { favoriteOptions, sortOptions } from '../constants';
+import { Select, Flex, Text, Checkbox } from '@radix-ui/themes';
 
 const SearchOptions: React.FC = () => {
   const [searchPrefs, setSearchPrefs] = useAtom(searchPrefsAtom);
 
   return (
-    <>
-      <select
+    <Flex align="center" gap="4">
+      <Select.Root
         value={searchPrefs.sort}
-        onChange={(e) => setSearchPrefs('sort', e.target.value)}
-        className="bg-primary-700 dark:bg-primary-800 text-gray-200 rounded px-3 py-1.5 text-sm"
+        onValueChange={(value) => setSearchPrefs('sort', value)}
       >
-        {Object.entries(sortOptions).map(([value, label]) => (
-          <option key={value} value={value}>
-            {label}
-          </option>
-        ))}
-      </select>
+        <Select.Trigger />
+        <Select.Content>
+          {Object.entries(sortOptions).map(([value, label]) => (
+            <Select.Item key={value} value={value}>
+              {label}
+            </Select.Item>
+          ))}
+        </Select.Content>
+      </Select.Root>
 
-      <select
+      <Select.Root
         value={searchPrefs.favorites}
-        onChange={(e) => setSearchPrefs('favorites', e.target.value)}
-        className="bg-primary-700 dark:bg-primary-800 text-gray-200 rounded px-3 py-1.5 text-sm"
+        onValueChange={(value) => setSearchPrefs('favorites', value)}
       >
-        {Object.entries(favoriteOptions).map(([value, label]) => (
-          <option key={value} value={value}>
-            {label}
-          </option>
-        ))}
-      </select>
+        <Select.Trigger />
+        <Select.Content>
+          {Object.entries(favoriteOptions).map(([value, label]) => (
+            <Select.Item key={value} value={value}>
+              {label}
+            </Select.Item>
+          ))}
+        </Select.Content>
+      </Select.Root>
 
-      <label className="flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
+      <Flex align="center" gap="2">
+        <Checkbox
+          id="videos-only"
           checked={searchPrefs.videos}
-          onChange={(e) => setSearchPrefs('videos', e.target.checked)}
-          className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+          onCheckedChange={(checked) =>
+            setSearchPrefs('videos', checked === true)
+          }
         />
-        Videos only
-      </label>
-    </>
+        <Text asChild size="2">
+          <label htmlFor="videos-only">
+            Videos only
+          </label>
+        </Text>
+      </Flex>
+    </Flex>
   );
 };
 
-export default SearchOptions
+export default SearchOptions;

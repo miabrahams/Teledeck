@@ -3,46 +3,52 @@ import { Link } from 'react-router-dom';
 import { Moon, Sun, Captions, CaptionsOff } from 'lucide-react';
 import { useAtom } from 'jotai';
 import { viewPrefsAtom } from '@preferences/state';
-
+import { Flex, IconButton, Text } from '@radix-ui/themes';
 
 const ViewOptions: React.FC = () => {
   const [viewPrefs, setViewPrefs] = useAtom(viewPrefsAtom);
 
   return (
-    <div className="flex items-center gap-4">
-      <Link to="/" className="hover:text-gray-200">
-        Home
+    <Flex align="center" gap="4">
+      <Link to="/">
+        <Text color="gray" weight="medium" size="2" highContrast>
+          Home
+        </Text>
       </Link>
-      <Link to="/about" className="hover:text-gray-200">
-        About
+      <Link to="/about">
+        <Text color="gray" weight="medium" size="2" highContrast>
+          About
+        </Text>
       </Link>
-      <button
-        onClick={() => {
-          setViewPrefs('hideinfo', !viewPrefs.hideinfo);
-        }}
-        className="p-2 bg-primary-700 dark:bg-primary-800 rounded-full hover:bg-primary-800 dark:hover:bg-primary-700"
-        aria-label="Show info"
-      >
-        {viewPrefs.hideinfo ? (
-          <CaptionsOff className="w-5 h-5" />
-        ) : (
-          <Captions className="w-5 h-5" />
-        )}
-      </button>
-      <button
-        onClick={() => {
-          setViewPrefs('darkmode', !viewPrefs.darkmode);
-        }}
-        className="p-2 bg-primary-700 dark:bg-primary-800 rounded-full hover:bg-primary-800 dark:hover:bg-primary-700"
-        aria-label="Toggle dark mode"
-      >
-        {viewPrefs.hideinfo ? (
-          <Sun className="w-5 h-5" />
-        ) : (
-          <Moon className="w-5 h-5" />
-        )}
-      </button>
-    </div>
+
+      <Flex gap="2">
+        <IconButton
+          size="2"
+          variant="soft"
+          onClick={() => setViewPrefs('hideinfo', !viewPrefs.hideinfo)}
+          aria-label={viewPrefs.hideinfo ? 'Show info' : 'Hide info'}
+        >
+          {viewPrefs.hideinfo ? (
+            <CaptionsOff width="16" height="16" />
+          ) : (
+            <Captions width="16" height="16" />
+          )}
+        </IconButton>
+
+        <IconButton
+          size="2"
+          variant="soft"
+          onClick={() => setViewPrefs('darkmode', !viewPrefs.darkmode)}
+          aria-label={viewPrefs.darkmode ? 'Light mode' : 'Dark mode'}
+        >
+          {viewPrefs.darkmode ? (
+            <Sun width="16" height="16" />
+          ) : (
+            <Moon width="16" height="16" />
+          )}
+        </IconButton>
+      </Flex>
+    </Flex>
   );
 };
 

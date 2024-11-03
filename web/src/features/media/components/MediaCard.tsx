@@ -1,3 +1,4 @@
+// src/features/media/components/MediaCard.tsx
 import React from 'react';
 import { useSetAtom } from 'jotai';
 import { Play, Pause, Download, Star, Trash } from 'lucide-react';
@@ -6,6 +7,14 @@ import { useMediaControls } from '@media/hooks/useMediaControls';
 import { useMediaItem } from '@media/api';
 import { contextMenuAtom, fullscreenItemAtom } from '@gallery/state';
 import { MediaItem } from '@shared/types/media';
+import {
+  Box,
+  Card,
+  Flex,
+  Text,
+  IconButton,
+  AspectRatio
+} from '@radix-ui/themes';
 
 type MediaViewProps = { item: MediaItem }
 
@@ -13,7 +22,6 @@ type VideoImageSwitchProps = MediaViewProps
 const VideoImageSwitch: React.FC<VideoImageSwitchProps> = ({ item }) => {
   const setFullscreenItem = useSetAtom(fullscreenItemAtom);
   const setFullscreen = React.useCallback(() => {
-    console.log("Setting fullscreen")
     setFullscreenItem(item)
   }, [item, setFullscreenItem])
 
@@ -25,115 +33,159 @@ const VideoImageSwitch: React.FC<VideoImageSwitchProps> = ({ item }) => {
     return <ImageItem item={item} setFullscreen={setFullscreen} />;
   }
 
-  return <div>Unsupported Media type: {}</div>;
+  return <Text>Unsupported Media type: {item.MediaType}</Text>;
 };
 
-
-type MediaProps = MediaViewProps & { setFullscreen: () => void}
+type MediaProps = MediaViewProps & { setFullscreen: () => void }
 const ImageItem: React.FC<MediaProps> = ({ item, setFullscreen }) => {
-    return (
+  return (
+    <AspectRatio ratio={1}>
       <img
         src={`/media/${item.file_name}`}
         alt={item.file_name}
         onClick={setFullscreen}
+        style={{
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          cursor: 'pointer'
+        }}
       />
-    );
-  }
-
+    </AspectRatio>
+  );
+}
 
 const VideoItem: React.FC<MediaProps> = ({ item, setFullscreen }) => {
-  const { videoRef, isPlaying, togglePlay, handlePlay, handlePause } =
-    useVideoPlayer();
+  const { videoRef, isPlaying, togglePlay, handlePlay, handlePause } = useVideoPlayer();
 
   return (
-    <div
-      style={{ contentVisibility: 'auto', objectFit: 'contain', width: '100%' }}
-      onClick = {setFullscreen}
-    >
-      <video
-        className="w-full object-cover rounded-t-lg"
-        src={`/media/${item.file_name}`}
-        onPlay={handlePlay}
-        onPause={handlePause}
-        onClick={togglePlay}
-        ref={videoRef}
-      />
-      <button
-        className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity"
-        onClick={togglePlay}
-      >
-        {isPlaying ? (
-          <Pause className="w-12 h-12 text-white" />
-        ) : (
-          <Play className="w-12 h-12 text-white" />
-        )}
-      </button>
-    </div>
+    <AspectRatio ratio={1}>
+      <Box position="relative" style={{ width: '100%', height: '100%' }}>
+        <video
+          onClick={togglePlay}
+          onPlay={handlePlay}
+          onPause={handlePause}
+          ref={videoRef}
+          src={`/media/${item.file_name}`}
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            cursor: 'pointer'
+          }}
+        />
+        <Flex
+          position="absolute"
+          width="100%"
+          height="100%"
+          align="center"
+          justify="center"
+          style={{
+            background: isPlaying ? 'transparent' : 'rgba(0, 0, 0, 0.3)',
+            transition: 'background-color 0.2s',
+            top: 0,
+            left: 0
+          }}
+        >
+          {!isPlaying && (
+            <Play className="w-12 h-12 text-white" />
+          )}
+        </Flex>
+      </Box>
+    </AspectRatio>
   );
 };
 
 const MediaInfo: React.FC<MediaViewProps> = ({ item }) => {
   return (
-    <div className="media-info">
-      <div className="flex justify-between items-start mb-2">
-        <h2 className="media-meta media-filename"> {item.file_name} </h2>
+    <Box p="3">
+      <Flex justify="between" align="start" mb="2">
+        <Text size="2" weight="medium" style={{ wordBreak: 'break-word' }}>
+          {item.file_name}
+        </Text>
         {item.favorite && (
-          <Star className="w-5 h-5 text-yellow-500 fill-current" />
+          <Star className="w-4 h-4 text-yellow-500 fill-current flex-shrink-0" />
         )}
-      </div>
+      </Flex>
 
-      <div className="media-meta media-channel">
-        <p>Channel: {item.channelTitle}</p>
-      </div>
-      <p className="media-meta media-date">
+      <Text size="1" color="gray">
+        Channel: {item.channelTitle}
+      </Text>
+      <Text size="1" color="gray">
         Date: {new Date(item.created_at).toLocaleDateString()}
-      </p>
+      </Text>
       {item.TelegramText && (
-        <p className="media-meta media-text truncate">{item.TelegramText}</p>
+        <Text size="1" color="gray" style={{
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap'
+        }}>
+          {item.TelegramText}
+        </Text>
       )}
-    </div>
+    </Box>
   );
 };
 
-type HasChildren = { children: React.ReactNode; };
-type HasClick = { onClick: () => void; };
-
-const MediaActionButton: React.FC<HasChildren & HasClick> = ({ children, onClick }) => {
-  const buttonClass = 'p-2 bg-gray-900 bg-opacity-75 rounded-full text-white hover:bg-opacity-90';
-  return (
-    <button className={buttonClass} onClick={onClick} >
-      {children}
-    </button>
-  );
-}
-
-const MediaControls: React.FC<{
+type MediaControlsProps = {
   isHovering: boolean;
   isFavorite: boolean;
   handleFavorite: () => void;
   handleDelete: () => void;
   handleDownload: () => void;
-}> = ({ isHovering, isFavorite, handleDelete, handleDownload, handleFavorite }) => {
-  const controlClass = `controls opacity-${ isHovering ? '100' : '0' } transition-opacity duration-200`;
+};
+
+const MediaControls: React.FC<MediaControlsProps> = ({
+  isHovering,
+  isFavorite,
+  handleDelete,
+  handleDownload,
+  handleFavorite
+}) => {
   return (
-    <div className={controlClass}>
-      <MediaActionButton onClick={handleDownload} >
-        <Download className="w-4 h-4" />
-      </MediaActionButton>
-      <MediaActionButton onClick={handleFavorite} >
-        <Star className={`w-4 h-4 ${isFavorite ? 'fill-yellow-500' : ''}`} />
-      </MediaActionButton>
-      {!isFavorite && (
-        <MediaActionButton onClick={handleDelete}>
-          <Trash className="w-4 h-4" />
-        </MediaActionButton>
-      )}
-    </div>
+    <Box
+      position="absolute"
+      top="0"
+      right="0"
+      p="2"
+      style={{
+        opacity: isHovering ? 1 : 0,
+        transition: 'opacity 0.2s ease-in-out'
+      }}
+    >
+      <Flex gap="2">
+        <IconButton
+          size="1"
+          variant="soft"
+          onClick={handleDownload}
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.7)' }}
+        >
+          <Download className="w-4 h-4" />
+        </IconButton>
+        <IconButton
+          size="1"
+          variant="soft"
+          onClick={handleFavorite}
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.7)' }}
+        >
+          <Star className={`w-4 h-4 ${isFavorite ? 'fill-yellow-500' : ''}`} />
+        </IconButton>
+        {!isFavorite && (
+          <IconButton
+            size="1"
+            variant="soft"
+            onClick={handleDelete}
+            style={{ backgroundColor: 'rgba(0, 0, 0, 0.7)' }}
+          >
+            <Trash className="w-4 h-4" />
+          </IconButton>
+        )}
+      </Flex>
+    </Box>
   );
 };
 
-
-type MediaCardProps = { itemId: string; };
+type MediaCardProps = { itemId: string };
 
 const MediaCard: React.FC<MediaCardProps> = ({ itemId }) => {
   const { data: item, error, status } = useMediaItem(itemId);
@@ -149,44 +201,54 @@ const MediaCard: React.FC<MediaCardProps> = ({ itemId }) => {
 
   if (status === 'pending') {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-      </div>
+      <Card size="1" style={{ height: '100%' }}>
+        <Flex align="center" justify="center" height="9">
+          <Text>Loading...</Text>
+        </Flex>
+      </Card>
     );
   }
-  if (status === 'error') {
+
+  if (status === 'error' || !item) {
     return (
-      <div className="text-center text-red-600 p-4">
-        <p>Error loading media: {error.message}</p>
-        <button className="mt-2 px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700">
-          Retry
-        </button>
-      </div>
+      <Card size="1">
+        <Flex direction="column" align="center" gap="2" p="4">
+          <Text color="red" size="2">Error loading media: {error?.message}</Text>
+          <IconButton size="1" variant="soft" onClick={() => window.location.reload()}>
+            Retry
+          </IconButton>
+        </Flex>
+      </Card>
     );
   }
 
   return (
-    <div
-      className={
-        'media-item flex flex-col justify-center relative group' +
-        (item.favorite ? ' favorite' : '')
-      }
+    <Card
+      size="1"
+      style={{
+        position: 'relative',
+        height: '100%',
+        transition: 'transform 0.2s ease-in-out',
+        transform: isHovering ? 'translateY(-2px)' : 'none'
+      }}
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
-      onClick={(e) => {setContextMenuAtom({x: e.pageX, y: e.pageY, item: item})}}
+      onClick={(e) => {
+        setContextMenuAtom({x: e.pageX, y: e.pageY, item: item})
+      }}
     >
-      <div className={'media-item-content flex-grow cursor-pointer'}>
+      <Box className="media-item-content">
         <VideoImageSwitch item={item} />
-      </div>
+      </Box>
       <MediaInfo item={item} />
       <MediaControls
         isHovering={isHovering}
         isFavorite={item.favorite}
         handleFavorite={handleFavorite}
         handleDelete={handleDelete}
-        handleDownload={() => {handleDownload(item.file_name)}}
+        handleDownload={() => handleDownload(item.file_name)}
       />
-    </div>
+    </Card>
   );
 };
 

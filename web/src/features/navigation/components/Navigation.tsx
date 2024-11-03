@@ -1,54 +1,80 @@
+// src/features/navigation/components/Navigation.tsx
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useAtom } from 'jotai';
+import { viewPrefsAtom } from '@preferences/state';
 import ViewOptions from './ViewOptions';
 import SearchOptions from './SearchOptions';
 import SearchBox from './SearchBox';
+import {
+  Box,
+  Container,
+  Flex,
+  Button,
+  Text,
+} from '@radix-ui/themes';
 import { User } from '@/shared/types/user';
 
-type NavigationProps = { user: User | undefined; onLogout: React.MouseEventHandler<HTMLButtonElement> };
+type NavigationProps = {
+  user: User | undefined;
+  onLogout: React.MouseEventHandler<HTMLButtonElement>
+};
 
 const Navigation: React.FC<NavigationProps> = ({ user, onLogout }) => {
-  return (
-    <nav className="bg-primary-600 p-4 dark:bg-dark-surface text-white sticky top-0 z-40">
-      <div className="container mx-auto flex flex-wrap items-center justify-between gap-4">
-        {/* Left side - Navigation and filters */}
-        <div className="flex flex-wrap items-center gap-4">
-          <ViewOptions />
-          <SearchOptions />
-          <SearchBox />
-        </div>
 
-        {/* Right side - User actions */}
-        <div className="flex items-center gap-4">
-          {user ? (
-            <>
-              <span className="text-sm">Welcome, {user.email}</span>
-              <button
-                onClick={onLogout}
-                className="px-4 py-1.5 bg-primary-700 dark:bg-primary-800 rounded text-sm hover:bg-primary-800"
-              >
-                Logout
-              </button>
-            </>
-          ) : (
-            <>
-              <Link
-                to="/register"
-                className="px-4 py-1.5 bg-primary-700 dark:bg-primary-800 rounded text-sm hover:bg-primary-800"
-              >
-                Register
-              </Link>
-              <Link
-                to="/login"
-                className="px-4 py-1.5 bg-primary-700 dark:bg-primary-800 rounded text-sm hover:bg-primary-800"
-              >
-                Login
-              </Link>
-            </>
-          )}
-        </div>
-      </div>
-    </nav>
+  return (
+    <Box
+      asChild
+      position="sticky"
+      top="0"
+      style={{
+        backgroundColor: 'var(--background-nav)',
+        zIndex: 40
+      }}
+    >
+      <nav>
+        <Container size="4">
+          <Flex justify="between" align="center" py="4" gap="4">
+            {/* Left side - Navigation and filters */}
+            <Flex align="center" gap="4">
+              {/* View Options */}
+              <ViewOptions />
+              <SearchOptions />
+              <SearchBox />
+            </Flex>
+
+            {/* Right side - User actions */}
+            <Flex align="center" gap="4">
+              {user ? (
+                <>
+                  <Text size="2">Welcome, {user.email}</Text>
+                  <Button
+                    onClick={onLogout}
+                    variant="soft"
+                    size="2"
+                  >
+                    Logout
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Link to="/register">
+                    <Button variant="soft" size="2">
+                      Register
+                    </Button>
+                  </Link>
+                  <Link to="/login">
+                    <Button variant="soft" size="2">
+                      Login
+                    </Button>
+                  </Link>
+                </>
+              )}
+            </Flex>
+          </Flex>
+        </Container>
+      </nav>
+    </Box>
   );
 };
 
