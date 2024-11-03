@@ -1,0 +1,62 @@
+// Custom CSS to maintain your dark mode preferences
+// src/theme/theme.css
+:root {
+  --color-primary: var(--blue-9);
+  --color-primary-dark: var(--blue-10);
+  --background-app: var(--slate-1);
+  --background-nav: var(--slate-2);
+}
+
+.dark {
+  --background-app: var(--slate-12);
+  --background-nav: var(--slate-11);
+}
+
+:root {
+  /* Add any custom properties needed */
+  --media-card-transition: 0.2s ease-in-out;
+  --media-hover-lift: -2px;
+}
+
+/* Ensure proper grid layout */
+.media-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-4);
+  padding: var(--space-4);
+}
+
+/* Ensure cards fill their grid space */
+.media-gallery > * {
+  height: 100%;
+  display: flex;
+}
+
+/* Style adjustments for cards */
+.rt-Card {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Ensure media content fills available space */
+.media-item-content {
+  flex: 1;
+  min-height: 0; /* Important for proper flexbox behavior */
+}
+
+/* Dark mode specific adjustments */
+.dark .rt-Card {
+  background-color: var(--slate-3);
+}
+
+/* Hide info when toggle is active */
+.hide-info .media-info {
+  display: none;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .media-gallery {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  }
+}
