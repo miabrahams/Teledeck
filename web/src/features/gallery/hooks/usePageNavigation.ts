@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { useAtom, useAtomValue } from 'jotai';
 import { useTotalPages } from '../api';
 import { currentPageAtom } from '../state';
@@ -40,4 +40,16 @@ export const usePageNavigation = () => {
     hasNextPage: currentPage < totalPages,
     hasPreviousPage: currentPage > 1,
   };
+};
+
+export const useKeyboardNavigation = (nextPage: () => void, previousPage: () => void) => {
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight') nextPage();
+      if (e.key === 'ArrowLeft') previousPage();
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [nextPage, previousPage]);
 };
