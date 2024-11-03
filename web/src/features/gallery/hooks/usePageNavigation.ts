@@ -8,7 +8,11 @@ import { searchPrefsAtom } from '@preferences/state';
 export const usePageNavigation = () => {
   const searchPrefs = useAtomValue(searchPrefsAtom);
   const [currentPage, setCurrentPage] = useAtom(currentPageAtom);
-  const { data: totalPages = 1 } = useTotalPages(searchPrefs);
+  let { data: totalPages } = useTotalPages(searchPrefs);
+
+  if (totalPages === undefined) {
+    totalPages = 1;
+  }
 
   const changePage = useCallback(
     (n: number) => {

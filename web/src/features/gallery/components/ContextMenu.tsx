@@ -1,15 +1,14 @@
 import React from 'react'
 import { Download, Star, Trash, Tag, BarChart2 } from 'lucide-react';
-import { MediaItem } from '../../../shared/types/media';
 import { useMediaControls } from '@media/hooks/useMediaControls';
+import { ContextMenuState } from '@gallery/hooks/useContextMenu';
 
-export type ContextMenuState = { x: number, y: number, item: MediaItem | null }
 
 type ContextMenuProps = { state: ContextMenuState, menuRef: React.RefObject<HTMLDivElement>  }
 
 export const ContextMenu: React.FC<ContextMenuProps> = ({ state, menuRef }) => {
 
-  const {handleFavorite, handleDelete, handleDownload, } = useMediaControls(state.item?.id || '');
+  const {handleFavorite, handleDelete, handleDownload } = useMediaControls(state.item?.id || '');
 
   const actions = [
     { icon: <Download size={16} />, label: 'Download', action: () => {handleDownload(state.item?.file_name ?? "")} },

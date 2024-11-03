@@ -1,8 +1,8 @@
 import React from 'react';
 import MediaCard from '../../media/components/MediaCard';
-import { SearchPreferences } from '@shared/types/preferences';
 import { useGallery } from '../api';
-import { MediaItem } from '../../../shared/types/media';
+import { useAtomValue } from 'jotai';
+import { searchPrefsAtom } from '@preferences/state';
 
 const LoadSpinner: React.FC = () => {
   return (
@@ -32,25 +32,13 @@ const ErrorStatus: React.FC<{message: string}> = ({message}) => {
 }
 
 
-type MediaGalleryProps = {
-  searchPrefs: SearchPreferences;
-  currentPage: number;
-  openContextMenu: (e: React.MouseEvent, item: MediaItem) => void;
-  setFullscreenItem: Function;
-};
+type MediaGalleryProps = { currentPage: number; };
 
-const MediaGallery: React.FC<MediaGalleryProps> = ({
-  searchPrefs,
-  currentPage,
-  openContextMenu,
-  setFullscreenItem,
-}) => {
+const MediaGallery: React.FC<MediaGalleryProps> = ({ currentPage }) => {
+  const searchPrefs = useAtomValue(searchPrefsAtom);
   const { data, isLoading, error } = useGallery(searchPrefs, currentPage);
-
   if (isLoading) return <LoadSpinner />;
-
   if (error) return <ErrorStatus message={error.message} />;
-
   if (!data) return <EmptyMessage />;
 
   return (
@@ -59,8 +47,6 @@ const MediaGallery: React.FC<MediaGalleryProps> = ({
         <MediaCard
           key={mediaItem.id}
           itemId={mediaItem.id}
-          openContextMenu={openContextMenu}
-          setFullscreenItem={setFullscreenItem}
         />
       ))}
     </div>

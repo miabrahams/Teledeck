@@ -84,8 +84,7 @@ defaultStore.sub(hideInfoAtom, () => {
       : document.documentElement.classList.remove('hide-info');
 });
 
-/* Another storage option?
+// See if this works
 defaultStore.sub(prefsAtom, () => {
   localStorage.setItem('userPreferences', JSON.stringify(defaultStore.get(prefsAtom)));
 });
-*/

@@ -1,38 +1,54 @@
 import React from 'react';
+import { useSetAtom } from 'jotai';
 import { Play, Pause, Download, Star, Trash } from 'lucide-react';
 import { useVideoPlayer } from '@media/hooks/useVideoPlayer';
 import { useMediaControls } from '@media/hooks/useMediaControls';
 import { useMediaItem } from '@media/api';
+import { contextMenuAtom, fullscreenItemAtom } from '@gallery/state';
 import { MediaItem } from '@shared/types/media';
 
 type MediaViewProps = { item: MediaItem }
 
-type VideoImageSwitchProps = MediaViewProps & { setFullscreenItem: (item: MediaItem) => void}
-const VideoImageSwitch: React.FC<VideoImageSwitchProps> = ({ item, setFullscreenItem }) => {
+type VideoImageSwitchProps = MediaViewProps
+const VideoImageSwitch: React.FC<VideoImageSwitchProps> = ({ item }) => {
+  const setFullscreenItem = useSetAtom(fullscreenItemAtom);
+  const setFullscreen = React.useCallback(() => {
+    console.log("Setting fullscreen")
+    setFullscreenItem(item)
+  }, [item, setFullscreenItem])
+
   if (['video'].includes(item.MediaType)) {
-    return <VideoItem item={item} />;
+    return <VideoItem item={item} setFullscreen={setFullscreen} />;
   }
 
   if (['image', 'photo'].includes(item.MediaType)) {
-    return (
-      <img
-        src={`/media/${item.file_name}`}
-        alt={item.file_name}
-        onClick={() => setFullscreenItem(item)}
-      />
-    );
+    return <ImageItem item={item} setFullscreen={setFullscreen} />;
   }
 
   return <div>Unsupported Media type: {}</div>;
 };
 
-const VideoItem: React.FC<MediaViewProps> = ({ item }) => {
+
+type MediaProps = MediaViewProps & { setFullscreen: () => void}
+const ImageItem: React.FC<MediaProps> = ({ item, setFullscreen }) => {
+    return (
+      <img
+        src={`/media/${item.file_name}`}
+        alt={item.file_name}
+        onClick={setFullscreen}
+      />
+    );
+  }
+
+
+const VideoItem: React.FC<MediaProps> = ({ item, setFullscreen }) => {
   const { videoRef, isPlaying, togglePlay, handlePlay, handlePause } =
     useVideoPlayer();
 
   return (
     <div
       style={{ contentVisibility: 'auto', objectFit: 'contain', width: '100%' }}
+      onClick = {setFullscreen}
     >
       <video
         className="w-full object-cover rounded-t-lg"
@@ -117,17 +133,9 @@ const MediaControls: React.FC<{
 };
 
 
-type MediaCardProps = {
-  itemId: string;
-  setFullscreenItem: (item: MediaItem) => void;
-  openContextMenu: (e: React.MouseEvent, item: MediaItem) => void;
-};
+type MediaCardProps = { itemId: string; };
 
-const MediaCard: React.FC<MediaCardProps> = ({
-  itemId,
-  openContextMenu,
-  setFullscreenItem,
-}) => {
+const MediaCard: React.FC<MediaCardProps> = ({ itemId }) => {
   const { data: item, error, status } = useMediaItem(itemId);
   const {
     isHovering,
@@ -136,6 +144,8 @@ const MediaCard: React.FC<MediaCardProps> = ({
     handleDelete,
     handleDownload,
   } = useMediaControls(itemId);
+
+  const setContextMenuAtom = useSetAtom(contextMenuAtom);
 
   if (status === 'pending') {
     return (
@@ -163,10 +173,10 @@ const MediaCard: React.FC<MediaCardProps> = ({
       }
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
-      onClick={(e) => {openContextMenu(e, item)}}
+      onClick={(e) => {setContextMenuAtom({x: e.pageX, y: e.pageY, item: item})}}
     >
       <div className={'media-item-content flex-grow cursor-pointer'}>
-        <VideoImageSwitch item={item} setFullscreenItem={setFullscreenItem} />
+        <VideoImageSwitch item={item} />
       </div>
       <MediaInfo item={item} />
       <MediaControls

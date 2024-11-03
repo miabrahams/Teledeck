@@ -1,38 +1,31 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useAtom } from 'jotai';
 import MediaGallery from './MediaGallery';
 import FullscreenView from './FullScreenView';
 import Pagination from './Pagination';
-import { useAtomValue } from 'jotai';
-import { searchPrefsAtom } from '@preferences/state';
 import { ContextMenu } from './ContextMenu';
 import { useContextMenu } from '../hooks/useContextMenu'
-import { usePageNavigation } from '../hooks/usePageNavigation'
+import { usePageNavigation } from '@gallery/hooks/usePageNavigation';
+import { fullscreenItemAtom } from '@gallery/state';
 
 export const PaginatedMediaGallery: React.FC = () => {
-  const searchPrefs = useAtomValue(searchPrefsAtom);
-  const [fullscreenItem, setFullscreenItem] = useState(null);
+  const [ fullscreenItem, setFullscreenItem ] = useAtom(fullscreenItemAtom);
+  const { contextMenuState, contextMenuRef } = useContextMenu()
   const { currentPage } = usePageNavigation()
-  const {contextMenuState, openContextMenu, contextMenuRef } = useContextMenu()
+
+  const P = React.useMemo(() => <Pagination />, [ currentPage ])
 
   return (
-
     <div id="media-index">
-      <Pagination />
-        <MediaGallery
-          currentPage={currentPage}
-          searchPrefs={searchPrefs}
-          openContextMenu={openContextMenu}
-          setFullscreenItem={setFullscreenItem}
-        />
-      <Pagination />
-
+        { P }
+        <MediaGallery currentPage={currentPage} />
+        { P }
       {contextMenuState.item && (
         <ContextMenu
           state = {contextMenuState}
           menuRef = {contextMenuRef}
         />
       )}
-
       {fullscreenItem && (
         <FullscreenView
           item={fullscreenItem}
@@ -40,7 +33,6 @@ export const PaginatedMediaGallery: React.FC = () => {
         />
       )}
     </div>
-
   );
 };
 

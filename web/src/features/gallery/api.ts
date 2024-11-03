@@ -14,7 +14,10 @@ export const useTotalPages = (preferences: SearchPreferences) => {
     queryKey: queryKeys.gallery.numPages(preferences),
     queryFn: () => getTotalPages(preferences),
   });
+
+
 };
+
 
 // Hook to fetch paginated list of IDs (unused)
 export const useGalleryIds = (preferences: SearchPreferences, page: number) => {

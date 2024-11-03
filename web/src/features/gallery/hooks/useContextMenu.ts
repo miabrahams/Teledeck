@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { MediaItem } from '../../../shared/types/media';
 
 // src/features/gallery/hooks/useContextMenu.ts
-type ContextMenuState = {
+export type ContextMenuState = {
   x: number;
   y: number;
   item: MediaItem | null;
