@@ -542,4 +542,6 @@ async def client_update(ctx: TLContext):
     for c in consumers:
         c.cancel()
 
-    ctx.write(f"Processing complete. \nFinished tasks: {ctx.progress.tasks[0].completed}")
+    ctx.write(f"Finished tasks: {ctx.progress.tasks[0].completed}")
+    # Print date
+    ctx.write(f"Update complete: {datetime.now()}")
