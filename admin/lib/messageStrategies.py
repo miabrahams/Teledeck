@@ -19,26 +19,27 @@ from models.telegram import TelegramMetadata
 
 class TDContext:
     tclient: TelegramClient
-    ctx: Engine
+    engine: Engine
 
 async def NoMessages() -> AsyncIterable[Message]:
     return
     yield
 
-def get_messages(ctx: TDContext, entity: Entity, limit: int)-> AsyncIterable[Message]:
+def get_all_messages(ctx: TDContext, entity: Entity, limit: int)-> AsyncIterable[Message]:
     return ctx.tclient.iter_messages(entity, limit)
 
 
-def get_old_messages(ctx: TDContext, entity: Entity, limit: int):
+def get_oldest_messages(ctx: TDContext, entity: Entity, limit: int):
+    # TODO: Check add_offset
     return ctx.tclient.iter_messages(entity, limit, reverse=True, add_offset=500)
 
 
 def get_urls(ctx: TDContext, entity: Entity, limit: int):
-    return ctx.tclient.iter_messages(entity, filter=InputMessagesFilterUrl)
+    return ctx.tclient.iter_messages(entity, limit, filter=InputMessagesFilterUrl)
 
 
-def get_all_videos(ctx: TDContext, entity: Entity):
-    return ctx.tclient.iter_messages(entity, filter=InputMessagesFilterVideo)
+def get_all_videos(ctx: TDContext, entity: Entity, limit: int):
+    return ctx.tclient.iter_messages(entity, limit, filter=InputMessagesFilterVideo)
 
 
 async def get_unread_messages(ctx: TDContext, channel: Channel) -> AsyncIterable[Message]:
@@ -56,7 +57,7 @@ async def get_unread_messages(ctx: TDContext, channel: Channel) -> AsyncIterable
         return NoMessages()
 
 
-def get_new_messages(ctx: TDContext, channel: Channel, limit: int):
+def get_messages_since_db_update(ctx: TDContext, channel: Channel, limit: int):
     with Session(ctx.engine) as session:
         query = (
             select(TelegramMetadata.message_id)
@@ -68,7 +69,7 @@ def get_new_messages(ctx: TDContext, channel: Channel, limit: int):
     if last_seen_post:
         return ctx.tclient.iter_messages(channel, limit, min_id=last_seen_post)
     else:
-        return get_messages(ctx, channel, limit)
+        return get_all_messages(ctx, channel, limit)
 
 
 def get_earlier_messages(ctx: TDContext, channel: Channel, limit: int):
@@ -85,5 +86,5 @@ def get_earlier_messages(ctx: TDContext, channel: Channel, limit: int):
         # TODO: is oldest_seen_post a List??
         return ctx.tclient.iter_messages(channel, limit, offset_id=oldest_seen_post)
     else:
-        return get_messages(ctx, channel, limit)
+        return get_all_messages(ctx, channel, limit)
 
