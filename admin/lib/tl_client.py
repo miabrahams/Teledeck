@@ -7,6 +7,7 @@ from telethon.tl.types import ( # type: ignore
     Channel,
     InputChannel,
     InputPeerChannel,
+    PeerChannel,
     Document,
     DialogFilter,
     TypeMessageMedia,
@@ -290,21 +291,25 @@ async def message_task_wrapper(ctx: TLContext, message: Message, channel: Channe
 
 async def get_target_channels(ctx: TLContext) -> AsyncGenerator[Channel, None]:
     with Session(ctx.engine) as session:
-        channel_ids = session.exec(select(ChannelModel).where(ChannelModel.check == 1)).all()
+        channel_ids = session.exec(select(ChannelModel).where(ChannelModel.check == 1).where(ChannelModel.title.like("%Khael%"))).all()
 
 
     for channel_id in channel_ids:
         try:
-            input_id = await ctx.tclient.get_input_entity(channel_id.id)
+            input_id = await ctx.tclient.get_input_entity(PeerChannel(channel_id.id))
             channel = await ctx.tclient.get_entity(input_id)
             if not isinstance(channel, Channel):
                 raise ValueError(f"Channel not found: {channel_id.id}. Got {channel}")
             yield channel
         except Exception as e:
-            err_msg = f"Failed to get channel: {channel_id.id}"
+            if isinstance(channel, Channel):
+                err_msg = f"Failed to get channel: {channel_id.id} {channel.title}"
+            else:
+                err_msg = f"Failed to get channel: {channel_id.id}"
             ctx.write(err_msg)
             ctx.write(str(e))
-            ctx.logger.add_data(f"Failed to get channel: {channel_id.id}. Error: {str(e)}")
+            ctx.logger.add_data(err_msg)
+            ctx.logger.add_data(str(e))
 
 
     # channelTasks = [ctx.tclient.get_entity() for channel_id in channel_ids]
@@ -381,18 +386,19 @@ async def message_task_consumer(ctx: TLContext, queue: MessageTaskQueue):
 async def get_channel_messages(ctx: TLContext, channel: Channel) -> AsyncGenerator[Message, None]:
     ctx.write(f"Processing channel: {channel.title}")
 
-    import messageStrategies as strat
+    from . import messageStrategies as strat
 
-    # limit = cfg.DEFAULT_FETCH_LIMIT
-    # fetch_messages_task = get_messages(ctx, channel, limit)
+    limit = cfg.DEFAULT_FETCH_LIMIT
+    fetch_messages_task = strat.get_all_messages(ctx, channel, limit)
     # fetch_messages_task = get_old_messages(ctx, channel, limit)
     # fetch_messages_task = get_new_messages(ctx, channel, limit)
     # fetch_messages_task = get_earlier_messages(ctx, channel, limit)
     # fetch_messages_task = get_all_videos(ctx, channel)
     # fetch_messages_task = get_urls(ctx, channel, limit)
-    # fetch_messages_task = strat.get_messages_since_db_update(ctx, channel, limit)
+    # fetch_messages_task = await strat.get_unread_messages(ctx, channel)
 
-    fetch_messages_task = await strat.get_unread_messages(ctx, channel)
+
+    # fetch_messages_task = strat.get_messages_since_db_update(ctx, channel, limit)
 
     async for message in fetch_messages_task:
         yield message
