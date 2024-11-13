@@ -10,7 +10,6 @@ from telethon.tl.types import ( # type: ignore
 from telethon.hints import Entity # type: ignore
 from telethon.tl.types.messages import ChatFull as ChatFullMessage
 from typing import Any, cast, AsyncIterable
-from os import environ
 from sqlmodel import Session, select, Column, Integer
 from models.telegram import TelegramMetadata
 
