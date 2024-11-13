@@ -42,4 +42,4 @@ stop-classifier:
 	@cd AI && ./stop-classifier.sh
 
 vite:
-	@cd web && npm i && npm run dev
+	@cd web && npm i && npm run share
