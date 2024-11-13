@@ -8,23 +8,26 @@ from typing import Any, Optional, Coroutine
 
 
 class RichConsoleLogger:
-    console: Console
+    console: Optional[Console]
+    progress_table: Table
     progress: Progress
     overall_task: Optional[TaskID]
-    progress_table: Table
 
     def __init__(self):
-        self.console = Console()
+        # TODO: Sort out when overall_task is defined. Or maybe just
+        self.progress = Progress()
+        self.console = None
+        self.overall_task = None
 
 
-    def begin_download(self):
+    async def run(self, total_tasks, iter: Coroutine[Any, Any, None]):
+
         self.progress_table = Table.grid()
         self.progress_table.add_row(Panel(self.progress, title="Download Progress", border_style="green", padding=(1, 1)))
 
-    async def run(self, total_tasks, iter: Coroutine[Any, Any, None]):
-        with Progress() as progress:
-            self.progress = progress
-            self.overall_task = progress.add_task("[yellow]Overall Progress", total=total_tasks)
+        with Live(self.progress_table, refresh_per_second=10) as live:
+            self.console = live.console
+            self.overall_task = self.progress.add_task("[yellow]Overall Progress", total=total_tasks)
             await iter
 
     async def update_message(self, new_message: str):
@@ -36,4 +39,7 @@ class RichConsoleLogger:
             self.progress.update(self.overall_task, advance=1)
 
     def write(self, *args, **kwargs):
-        self.progress.print(*args, **kwargs)
+        if self.console:
+            self.console.print(*args, **kwargs)
+        else:
+            print(*args, **kwargs)

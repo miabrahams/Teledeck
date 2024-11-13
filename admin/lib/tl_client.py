@@ -94,15 +94,14 @@ async def process_with_backoff(callback: Coroutine[Any, Any, None], task_label: 
 
 
 async def download_media(ctx: TLContext, downloadable: Message | TypeMessageMedia | Document) -> Optional[pathlib.Path]:
-    with ctx.console.progress:
-        download_task = ctx.console.progress.add_task("[cyan]Downloading", total=100)
+    download_task = ctx.console.progress.add_task("[cyan]Downloading", total=100)
 
-        def progress_callback(current: int, total: int):
-            ctx.console.progress.update(download_task, completed=current, total=total)
+    def progress_callback(current: int, total: int):
+        ctx.console.progress.update(download_task, completed=current, total=total)
 
-        result = await ctx.tclient.download_media(downloadable, str(cfg.MEDIA_PATH), progress_callback=progress_callback)
+    result = await ctx.tclient.download_media(downloadable, str(cfg.MEDIA_PATH), progress_callback=progress_callback)
 
-        ctx.console.progress.remove_task(download_task)
+    ctx.console.progress.remove_task(download_task)
 
     if isinstance(result, str):
         return pathlib.Path(result)
@@ -382,18 +381,18 @@ async def message_task_consumer(ctx: TLContext, queue: MessageTaskQueue):
 async def get_channel_messages(ctx: TLContext, channel: Channel) -> AsyncGenerator[Message, None]:
     ctx.write(f"Processing channel: {channel.title}")
 
-    from .messageStrategies import get_unread_messages, get_messages_since_db_update
-    limit = cfg.DEFAULT_FETCH_LIMIT
+    import messageStrategies as strat
 
+    # limit = cfg.DEFAULT_FETCH_LIMIT
     # fetch_messages_task = get_messages(ctx, channel, limit)
     # fetch_messages_task = get_old_messages(ctx, channel, limit)
     # fetch_messages_task = get_new_messages(ctx, channel, limit)
     # fetch_messages_task = get_earlier_messages(ctx, channel, limit)
     # fetch_messages_task = get_all_videos(ctx, channel)
     # fetch_messages_task = get_urls(ctx, channel, limit)
+    # fetch_messages_task = strat.get_messages_since_db_update(ctx, channel, limit)
 
-    # fetch_messages_task = await get_unread_messages(ctx, channel)
-    fetch_messages_task = await get_messages_since_db_update(ctx, channel, limit)
+    fetch_messages_task = await strat.get_unread_messages(ctx, channel)
 
     async for message in fetch_messages_task:
         yield message
