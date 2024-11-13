@@ -10,30 +10,21 @@ from telethon.tl.types import ( # type: ignore
     Document,
     DialogFilter,
     TypeMessageMedia,
-    InputMessagesFilterUrl,
-    InputMessagesFilterVideo,
     ExportedMessageLink
 )
-from telethon.hints import Entity # type: ignore
 from telethon.errors import FloodWaitError # type: ignore
-from telethon.tl.types.messages import ChatFull as ChatFullMessage, WebPage, DialogFilters # type: ignore
-from rich.console import Console
-from rich.progress import Progress, TaskID
-from rich.panel import Panel
-from rich.live import Live
-from rich.table import Table
-from dotenv import load_dotenv
-from typing import AsyncGenerator, Coroutine, List, Any, Optional, Tuple, cast, AsyncIterable
-from os import environ
+from telethon.tl.types.messages import ChatFull as WebPage, DialogFilters # type: ignore
+from typing import AsyncGenerator, Coroutine, List, Any, Optional, Tuple, cast
 import pathlib
 import asyncio
-import json
 import uuid
 import random
 from datetime import datetime
 from sqlmodel import create_engine, Session, select
 from models.telegram import MediaItem, MediaType, ChannelModel, TelegramMetadata
 from .config import Settings
+from .DataLogger import DataLogger
+from .ConsoleLogger import RichConsoleLogger
 
 
 QueueItem = Tuple[Channel, Message]
@@ -49,40 +40,25 @@ semaphore = asyncio.Semaphore(cfg.MAX_CONCURRENT_TASKS)
 # TODO: Remove async from console operations
 class TLContext:
     tclient: TelegramClient
-    console: Console
-    progress: Progress
-    overall_task: Optional[TaskID]
     data: List[Any]
+    logger: DataLogger
+    console: RichConsoleLogger
 
     def __init__(self, tclient: TelegramClient):
         self.tclient = tclient
         self.engine = create_engine(f"sqlite:///{cfg.DB_PATH}")
-        self.console = Console()
-        self.progress = Progress()
         self.overall_task = None
         self.data = []
+        self.logger = DataLogger(cfg.UPDATE_PATH)
+        self.console = RichConsoleLogger()
 
-    async def init_progress(self, total_tasks: int):
-        self.overall_task = self.progress.add_task("[yellow]Overall Progress", total=total_tasks)
+    def write(self, *args, **kwargs) -> None:
+        self.console.write(*args, **kwargs)
 
-    async def update_message(self, new_message: str):
-        if self.overall_task is not None:
-            self.progress.update(self.overall_task, description=new_message)
+    def save_data(self) -> None:
+        # TODO: Make this automatic
+        self.logger.save_data()
 
-    async def update_progress(self):
-        if self.overall_task is not None:
-            self.progress.update(self.overall_task, advance=1)
-
-    def add_data(self, datum: Any):
-        self.data.append(datum)
-
-    def save_data(self):
-        if len(self.data) > 0:
-            filename = save_to_json(self.data)
-            self.progress.print(f"Exported data to {filename}")
-
-    def write(self, message: str):
-        self.progress.print(message)
 
 async def get_context():
     tclient = TelegramClient(cfg.SESSION_FILE, int(cfg.TELEGRAM_API_ID), cfg.TELEGRAM_API_HASH)
@@ -118,32 +94,21 @@ async def process_with_backoff(callback: Coroutine[Any, Any, None], task_label: 
 
 
 async def download_media(ctx: TLContext, downloadable: Message | TypeMessageMedia | Document) -> Optional[pathlib.Path]:
-    with ctx.progress:
-        download_task = ctx.progress.add_task("[cyan]Downloading", total=100)
+    with ctx.console.progress:
+        download_task = ctx.console.progress.add_task("[cyan]Downloading", total=100)
 
         def progress_callback(current: int, total: int):
-            ctx.progress.update(download_task, completed=current, total=total)
+            ctx.console.progress.update(download_task, completed=current, total=total)
 
         result = await ctx.tclient.download_media(downloadable, str(cfg.MEDIA_PATH), progress_callback=progress_callback)
 
-        ctx.progress.remove_task(download_task)
+        ctx.console.progress.remove_task(download_task)
 
     if isinstance(result, str):
         return pathlib.Path(result)
     return None
 
 
-
-def save_to_json(data: Any):
-    cfg.UPDATE_PATH.mkdir(parents=True, exist_ok=True)
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M")
-    unique_id = str(uuid.uuid4())[:4]
-    filename = cfg.UPDATE_PATH / f"data_{timestamp}_{unique_id}.json"
-
-    with open(filename, "w") as f:
-        json.dump(data, f, indent=2)
-
-    return filename
 
 
 async def get_message_link(ctx: TLContext, channel: InputChannel, message: Message) -> Optional[ExportedMessageLink]:
@@ -209,7 +174,7 @@ async def extract_forward(ctx: TLContext, message: Message) -> None:
                 session.commit()
                 log_msg = {"Forwarded to channel" : fwd_channel.stringify()}
                 ctx.write(repr(log_msg))
-                ctx.add_data(log_msg)
+                ctx.logger.add_data(log_msg)
 
 
 
@@ -321,7 +286,7 @@ async def message_task_wrapper(ctx: TLContext, message: Message, channel: Channe
     except Exception as e:
         ctx.write(f"Failed to process message: {str(message.date)} in channel {channel.title}")
         ctx.write(repr(e))
-    await ctx.update_progress()
+    await ctx.console.update_progress()
 
 
 async def get_target_channels(ctx: TLContext) -> AsyncGenerator[Channel, None]:
@@ -340,7 +305,7 @@ async def get_target_channels(ctx: TLContext) -> AsyncGenerator[Channel, None]:
             err_msg = f"Failed to get channel: {channel_id.id}"
             ctx.write(err_msg)
             ctx.write(str(e))
-            ctx.add_data(f"Failed to get channel: {channel_id.id}. Error: {str(e)}")
+            ctx.logger.add_data(f"Failed to get channel: {channel_id.id}. Error: {str(e)}")
 
 
     # channelTasks = [ctx.tclient.get_entity() for channel_id in channel_ids]
@@ -417,16 +382,18 @@ async def message_task_consumer(ctx: TLContext, queue: MessageTaskQueue):
 async def get_channel_messages(ctx: TLContext, channel: Channel) -> AsyncGenerator[Message, None]:
     ctx.write(f"Processing channel: {channel.title}")
 
-    from .messageStrategies import get_unread_messages
+    from .messageStrategies import get_unread_messages, get_messages_since_db_update
+    limit = cfg.DEFAULT_FETCH_LIMIT
 
-    # fetch_messages_task = get_messages(ctx, channel, DEFAULT_FETCH_LIMIT)
-    # fetch_messages_task = get_old_messages(ctx, channel, DEFAULT_FETCH_LIMIT)
-    # fetch_messages_task = get_new_messages(ctx, channel, DEFAULT_FETCH_LIMIT)
-    # fetch_messages_task = get_earlier_messages(ctx, channel, DEFAULT_FETCH_LIMIT)
+    # fetch_messages_task = get_messages(ctx, channel, limit)
+    # fetch_messages_task = get_old_messages(ctx, channel, limit)
+    # fetch_messages_task = get_new_messages(ctx, channel, limit)
+    # fetch_messages_task = get_earlier_messages(ctx, channel, limit)
     # fetch_messages_task = get_all_videos(ctx, channel)
-    # fetch_messages_task = get_urls(ctx, channel, DEFAULT_FETCH_LIMIT)
+    # fetch_messages_task = get_urls(ctx, channel, limit)
 
-    fetch_messages_task = await get_unread_messages(ctx, channel)
+    # fetch_messages_task = await get_unread_messages(ctx, channel)
+    fetch_messages_task = await get_messages_since_db_update(ctx, channel, limit)
 
     async for message in fetch_messages_task:
         yield message
@@ -441,17 +408,13 @@ async def client_update(ctx: TLContext):
     consumers = [asyncio.create_task(message_task_consumer(ctx, queue)) for _ in range(cfg.MAX_CONCURRENT_TASKS)]
 
     num_tasks = await gather_messages
-    await ctx.init_progress(num_tasks)
+    ctx.write("Tasks gathered: ", num_tasks)
 
-    progress_table = Table.grid()
-    progress_table.add_row(Panel(ctx.progress, title="Download Progress", border_style="green", padding=(1, 1)))
-
-    with Live(progress_table, console=ctx.console, refresh_per_second=10):
-        await queue.join()
+    await ctx.console.run(num_tasks, queue.join())
 
     for c in consumers:
         c.cancel()
 
-    ctx.write(f"Finished tasks: {ctx.progress.tasks[0].completed}")
-    # Print date
+    ctx.write(f"Gathered tasks: {num_tasks}")
+    ctx.write(f"Finished tasks: {ctx.console.progress.tasks[0].completed}")
     ctx.write(f"Update complete: {datetime.now()}")
