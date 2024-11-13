@@ -31,41 +31,18 @@ import json
 import uuid
 import random
 from datetime import datetime
-from sqlmodel import create_engine, Session, select, Column, Integer
+from sqlmodel import create_engine, Session, select
 from models.telegram import MediaItem, MediaType, ChannelModel, TelegramMetadata
+from .config import Settings
 
-
-load_dotenv()  # take environment variables from .env.
-api_id = environ["TG_API_ID"]
-api_hash = environ["TG_API_HASH"]
-phone = environ["TG_PHONE"]
-session_file = "user"
 
 QueueItem = Tuple[Channel, Message]
 MessageTaskQueue = asyncio.Queue[QueueItem]
 Downloadable = Document | File
 
-# Paths
-# TODO: Load from .env
-MEDIA_PATH = pathlib.Path("./static/media/")
-ORPHAN_PATH = pathlib.Path("./recyclebin/orphan/")
-DB_PATH = pathlib.Path("./teledeck.db")
-UPDATE_PATH = pathlib.Path("./data/update_info")
-NEST_TQDM = True
-DEFAULT_FETCH_LIMIT = 65
+cfg = Settings()
 
-# Flood prevention
-MAX_CONCURRENT_TASKS = 5
-DELAY = 0.1
-semaphore = asyncio.Semaphore(MAX_CONCURRENT_TASKS)
-
-
-# For SLOW_MODE
-SLOW_MODE = True
-ADDITIONAL_DELAY = [5, 10]
-if SLOW_MODE:
-    MAX_CONCURRENT_TASKS = 1
-
+semaphore = asyncio.Semaphore(cfg.MAX_CONCURRENT_TASKS)
 
 
 # TODO: Enable cleanup using `with` statement; __enter__ and __exit__
@@ -79,7 +56,7 @@ class TLContext:
 
     def __init__(self, tclient: TelegramClient):
         self.tclient = tclient
-        self.engine = create_engine(f"sqlite:///{DB_PATH}")
+        self.engine = create_engine(f"sqlite:///{cfg.DB_PATH}")
         self.console = Console()
         self.progress = Progress()
         self.overall_task = None
@@ -108,7 +85,7 @@ class TLContext:
         self.progress.print(message)
 
 async def get_context():
-    tclient = TelegramClient(session_file, int(api_id), api_hash)
+    tclient = TelegramClient(cfg.SESSION_FILE, int(cfg.TELEGRAM_API_ID), cfg.TELEGRAM_API_HASH)
     await tclient.connect()
     ctx = TLContext(tclient)
     return ctx
@@ -118,7 +95,7 @@ async def get_context():
 async def exponential_backoff(attempt: int):
     wait_time = 2**attempt
     print(f"Rate limit hit. Waiting for {wait_time} seconds before retrying.")
-    await asyncio.sleep(10 * DELAY * wait_time)
+    await asyncio.sleep(10 * cfg.RETRY_BASE_DELAY * wait_time)
 
 
 async def process_with_backoff(callback: Coroutine[Any, Any, None], task_label: str) -> None:
@@ -126,10 +103,10 @@ async def process_with_backoff(callback: Coroutine[Any, Any, None], task_label: 
         max_attempts = 5
         for attempt in range(max_attempts):
             try:
-                if SLOW_MODE:
-                    await asyncio.sleep(random.uniform(*ADDITIONAL_DELAY))
+                if cfg.SLOW_MODE:
+                    await asyncio.sleep(random.uniform(*cfg.SLOW_MODE_DELAY))
                 else:
-                    await asyncio.sleep(DELAY)
+                    await asyncio.sleep(cfg.RETRY_BASE_DELAY)
                 await callback
                 break
             except FloodWaitError:
@@ -147,7 +124,7 @@ async def download_media(ctx: TLContext, downloadable: Message | TypeMessageMedi
         def progress_callback(current: int, total: int):
             ctx.progress.update(download_task, completed=current, total=total)
 
-        result = await ctx.tclient.download_media(downloadable, str(MEDIA_PATH), progress_callback=progress_callback)
+        result = await ctx.tclient.download_media(downloadable, str(cfg.MEDIA_PATH), progress_callback=progress_callback)
 
         ctx.progress.remove_task(download_task)
 
@@ -158,10 +135,10 @@ async def download_media(ctx: TLContext, downloadable: Message | TypeMessageMedi
 
 
 def save_to_json(data: Any):
-    UPDATE_PATH.mkdir(parents=True, exist_ok=True)
+    cfg.UPDATE_PATH.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M")
     unique_id = str(uuid.uuid4())[:4]
-    filename = UPDATE_PATH / f"data_{timestamp}_{unique_id}.json"
+    filename = cfg.UPDATE_PATH / f"data_{timestamp}_{unique_id}.json"
 
     with open(filename, "w") as f:
         json.dump(data, f, indent=2)
@@ -330,7 +307,7 @@ async def process_message(ctx: TLContext, message: Message, channel: Channel) ->
             session.commit()
     except Exception as e:
         ctx.write(f"Database insertion failed: {e}")
-        file_path.rename(ORPHAN_PATH / file_name)
+        file_path.rename(cfg.ORPHAN_PATH / file_name)
         ctx.write(f"Moved {file_name} to orphans directory.")
 
     await message.mark_read()
@@ -347,78 +324,9 @@ async def message_task_wrapper(ctx: TLContext, message: Message, channel: Channe
     await ctx.update_progress()
 
 
-##### Message filtering strategies
-
-async def NoMessages() -> AsyncIterable[Message]:
-    return
-    yield
-
-def get_messages(ctx: TLContext, entity: Entity, limit: int)-> AsyncIterable[Message]:
-    return ctx.tclient.iter_messages(entity, limit)
-
-
-def get_old_messages(ctx: TLContext, entity: Entity, limit: int):
-    return ctx.tclient.iter_messages(entity, limit, reverse=True, add_offset=500)
-
-
-def get_urls(ctx: TLContext, entity: Entity, limit: int):
-    return ctx.tclient.iter_messages(entity, filter=InputMessagesFilterUrl)
-
-
-def get_all_videos(ctx: TLContext, entity: Entity):
-    return ctx.tclient.iter_messages(entity, filter=InputMessagesFilterVideo)
-
-
-async def get_unread_messages(ctx: TLContext, channel: Channel) -> AsyncIterable[Message]:
-    full: Any = await ctx.tclient(functions.channels.GetFullChannelRequest(cast(InputChannel, channel)))
-    if not isinstance(full, ChatFullMessage):
-        raise ValueError("Full channel cannot be retrieved")
-    full_channel = full.full_chat
-    unread_count = getattr(full_channel, "unread_count")
-    if not isinstance(unread_count, int):
-        raise ValueError("Unread count not available: ", full_channel.stringify())
-    if unread_count > 0:
-        print(f"Unread messages in {channel.title}: {unread_count}")
-        return ctx.tclient.iter_messages(channel, limit=unread_count)
-    else:
-        return NoMessages()
-
-
-def get_new_messages(ctx: TLContext, channel: Channel, limit: int):
-    with Session(ctx.engine) as session:
-        query = (
-            select(TelegramMetadata.message_id)
-            .where(TelegramMetadata.channel_id == channel.id)
-            .order_by(Column("message_id", Integer).desc())  # Find the last message_id
-        )
-        last_seen_post = session.exec(query).first()
-
-    if last_seen_post:
-        return ctx.tclient.iter_messages(channel, limit, min_id=last_seen_post)
-    else:
-        return get_messages(ctx, channel, limit)
-
-
-def get_earlier_messages(ctx: TLContext, channel: Channel, limit: int):
-    with Session(ctx.engine) as session:
-
-        query = (
-            select(TelegramMetadata.message_id)
-            .where(TelegramMetadata.channel_id == channel.id)
-            .order_by(Column("message_id", Integer))
-        )
-        oldest_seen_post = session.exec(query).first()
-
-    if oldest_seen_post is not None:
-        # TODO: is oldest_seen_post a List??
-        return ctx.tclient.iter_messages(channel, limit, offset_id=oldest_seen_post)
-    else:
-        return get_messages(ctx, channel, limit)
-
-
 async def get_target_channels(ctx: TLContext) -> AsyncGenerator[Channel, None]:
     with Session(ctx.engine) as session:
-        channel_ids = session.exec(select(ChannelModel).where(ChannelModel.check)).all()
+        channel_ids = session.exec(select(ChannelModel).where(ChannelModel.check == 1)).all()
 
 
     for channel_id in channel_ids:
@@ -509,6 +417,8 @@ async def message_task_consumer(ctx: TLContext, queue: MessageTaskQueue):
 async def get_channel_messages(ctx: TLContext, channel: Channel) -> AsyncGenerator[Message, None]:
     ctx.write(f"Processing channel: {channel.title}")
 
+    from .messageStrategies import get_unread_messages
+
     # fetch_messages_task = get_messages(ctx, channel, DEFAULT_FETCH_LIMIT)
     # fetch_messages_task = get_old_messages(ctx, channel, DEFAULT_FETCH_LIMIT)
     # fetch_messages_task = get_new_messages(ctx, channel, DEFAULT_FETCH_LIMIT)
@@ -528,7 +438,7 @@ async def client_update(ctx: TLContext):
 
     gather_messages = asyncio.create_task(message_task_producer(ctx, get_target_channels(ctx), queue))
 
-    consumers = [asyncio.create_task(message_task_consumer(ctx, queue)) for _ in range(MAX_CONCURRENT_TASKS)]
+    consumers = [asyncio.create_task(message_task_consumer(ctx, queue)) for _ in range(cfg.MAX_CONCURRENT_TASKS)]
 
     num_tasks = await gather_messages
     await ctx.init_progress(num_tasks)
