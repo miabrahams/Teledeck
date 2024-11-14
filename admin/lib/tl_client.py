@@ -25,6 +25,8 @@ from .config import Settings
 from .DataLogger import DataLogger
 from .ConsoleLogger import RichConsoleLogger
 from .utils import process_with_backoff
+from .DatabaseService import DatabaseService
+from . import messageStrategies as strat
 
 
 QueueItem = Tuple[Channel, Message]
@@ -43,10 +45,12 @@ class TLContext:
     data: List[Any]
     logger: DataLogger
     console: RichConsoleLogger
+    db: DatabaseService
 
     def __init__(self, tclient: TelegramClient):
         self.tclient = tclient
         self.engine = create_engine(f"sqlite:///{cfg.DB_PATH}")
+        self.db = DatabaseService(self.engine)
         self.overall_task = None
         self.data = []
         self.logger = DataLogger(cfg.UPDATE_PATH)
@@ -357,26 +361,33 @@ async def message_task_consumer(ctx: TLContext, queue: MessageTaskQueue):
             # print("Message link: ", link.stringify())
         queue.task_done()
 
-async def get_channel_messages(ctx: TLContext, channel: Channel) -> AsyncGenerator[Message, None]:
-    ctx.write(f"Processing channel: {channel.title}")
 
-    from . import messageStrategies as strat
-
+async def get_channel_messages(context: TLContext, channel: Channel) -> AsyncGenerator[Message, None]:
+    """Get messages from a channel based on strategy."""
+    context.write(f"Processing channel: {channel.title}")
     limit = cfg.DEFAULT_FETCH_LIMIT
-    fetch_messages_task = strat.get_all_messages(ctx, channel, limit)
-    # fetch_messages_task = get_old_messages(ctx, channel, limit)
-    # fetch_messages_task = get_new_messages(ctx, channel, limit)
-    # fetch_messages_task = get_earlier_messages(ctx, channel, limit)
-    # fetch_messages_task = get_all_videos(ctx, channel)
-    # fetch_messages_task = get_urls(ctx, channel, limit)
-    # fetch_messages_task = await strat.get_unread_messages(ctx, channel)
+    tclient = context.tclient
 
+    match cfg.MESSAGE_STRATEGY:
+        case "all":
+            strategy = strat.get_all_messages(tclient, channel, limit)
+        case "db":
+            last_seen_post = context.db.get_last_seen_post(channel.id)
+            strategy = strat.get_messages_since_db_update(tclient, channel, last_seen_post, limit)
+        case "oldest":
+            strategy = strat.get_oldest_messages(tclient, channel, limit)
+        case "before":
+            before_id = context.db.get_last_seen_post(channel.id)
+            strategy = strat.get_earlier_unseen_messages(tclient, channel, before_id, limit)
+        case "urls":
+            strategy = strat.get_urls(tclient, channel, limit)
+        case "videos":
+            strategy = strat.get_all_videos(tclient, channel, limit)
+        case "unread":
+            strategy = await strat.get_unread_messages(tclient, channel)
 
-    # fetch_messages_task = strat.get_messages_since_db_update(ctx, channel, limit)
-
-    async for message in fetch_messages_task:
+    async for message in strategy:
         yield message
-
 
 
 async def client_update(ctx: TLContext):
