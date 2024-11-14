@@ -13,19 +13,18 @@ from telethon.tl.types import ( # type: ignore
     TypeMessageMedia,
     ExportedMessageLink
 )
-from telethon.errors import FloodWaitError # type: ignore
 from telethon.tl.types.messages import ChatFull as WebPage, DialogFilters # type: ignore
-from typing import AsyncGenerator, Coroutine, List, Any, Optional, Tuple, cast
+from typing import AsyncGenerator, List, Any, Optional, Tuple, cast
 import pathlib
 import asyncio
 import uuid
-import random
 from datetime import datetime
 from sqlmodel import create_engine, Session, select
 from models.telegram import MediaItem, MediaType, ChannelModel, TelegramMetadata
 from .config import Settings
 from .DataLogger import DataLogger
 from .ConsoleLogger import RichConsoleLogger
+from .utils import process_with_backoff
 
 
 QueueItem = Tuple[Channel, Message]
@@ -68,30 +67,6 @@ async def get_context():
     return ctx
 
 
-
-async def exponential_backoff(attempt: int):
-    wait_time = 2**attempt
-    print(f"Rate limit hit. Waiting for {wait_time} seconds before retrying.")
-    await asyncio.sleep(10 * cfg.RETRY_BASE_DELAY * wait_time)
-
-
-async def process_with_backoff(callback: Coroutine[Any, Any, None], task_label: str) -> None:
-    async with semaphore:
-        max_attempts = 5
-        for attempt in range(max_attempts):
-            try:
-                if cfg.SLOW_MODE:
-                    await asyncio.sleep(random.uniform(*cfg.SLOW_MODE_DELAY))
-                else:
-                    await asyncio.sleep(cfg.RETRY_BASE_DELAY)
-                await callback
-                break
-            except FloodWaitError:
-                if attempt < max_attempts - 1:
-                    await exponential_backoff(attempt)
-                else:
-                    print(f"Max attempts reached. Skipping: {task_label}")
-                    return
 
 
 async def download_media(ctx: TLContext, downloadable: Message | TypeMessageMedia | Document) -> Optional[pathlib.Path]:
@@ -279,12 +254,12 @@ async def process_message(ctx: TLContext, message: Message, channel: Channel) ->
 
 
 async def message_task_wrapper(ctx: TLContext, message: Message, channel: Channel):
-    message_label = f"{message.id} - {channel.title}"
     try: # Process message
-        await process_with_backoff(process_message(ctx, message, channel), message_label)
+        cb = process_message(ctx, message, channel)
+        await process_with_backoff(cb, cfg.MAX_RETRY_ATTEMPTS, cfg.RETRY_BASE_DELAY, cfg.SLOW_MODE, cfg.SLOW_MODE_DELAY)
         await message.mark_read()
     except Exception as e:
-        ctx.write(f"Failed to process message: {str(message.date)} in channel {channel.title}")
+        ctx.write(f"Failed to process message: {message.id} in channel {channel.title}")
         ctx.write(repr(e))
     await ctx.console.update_progress()
 
@@ -292,7 +267,6 @@ async def message_task_wrapper(ctx: TLContext, message: Message, channel: Channe
 async def get_target_channels(ctx: TLContext) -> AsyncGenerator[Channel, None]:
     with Session(ctx.engine) as session:
         channel_ids = session.exec(select(ChannelModel).where(ChannelModel.check == 1).where(ChannelModel.title.like("%Khael%"))).all()
-
 
     for channel_id in channel_ids:
         try:
