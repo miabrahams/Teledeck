@@ -10,16 +10,16 @@ from telethon.tl.types import ( # type: ignore
     PeerChannel,
     Document,
     DialogFilter,
-    TypeMessageMedia,
     ExportedMessageLink
 )
 from telethon.tl.types.messages import ChatFull as WebPage, DialogFilters # type: ignore
-from typing import AsyncGenerator, List, Any, Optional, Tuple, cast
+from typing import AsyncGenerator, List, Any, Optional, cast
 import pathlib
 import asyncio
 import uuid
 from datetime import datetime
 from sqlmodel import create_engine, Session, select
+from sqlalchemy.engine import Engine
 from models.telegram import MediaItem, MediaType, ChannelModel, TelegramMetadata
 from .config import Settings
 from .DataLogger import DataLogger
@@ -27,11 +27,9 @@ from .ConsoleLogger import RichConsoleLogger
 from .utils import process_with_backoff
 from .DatabaseService import DatabaseService
 from . import messageStrategies as strat
+from .types import QueueItem, MessageTaskQueue, Downloadable, DownloadItem
 
 
-QueueItem = Tuple[Channel, Message]
-MessageTaskQueue = asyncio.Queue[QueueItem]
-Downloadable = Document | File
 
 cfg = Settings()
 
@@ -46,17 +44,19 @@ class TLContext:
     logger: DataLogger
     console: RichConsoleLogger
     db: DatabaseService
+    engine: Engine
 
-    def __init__(self, tclient: TelegramClient):
+    def __init__(self, tclient: TelegramClient, engine: Engine):
         self.tclient = tclient
-        self.engine = create_engine(f"sqlite:///{cfg.DB_PATH}")
-        self.db = DatabaseService(self.engine)
+        self.engine = engine
+        self.db = DatabaseService(engine)
         self.overall_task = None
         self.data = []
         self.logger = DataLogger(cfg.UPDATE_PATH)
         self.console = RichConsoleLogger()
 
     def write(self, *args, **kwargs) -> None:
+        # TODO: Move to logger
         self.console.write(*args, **kwargs)
 
     def save_data(self) -> None:
@@ -66,14 +66,16 @@ class TLContext:
 
 async def get_context():
     tclient = TelegramClient(cfg.SESSION_FILE, int(cfg.TELEGRAM_API_ID), cfg.TELEGRAM_API_HASH)
-    await tclient.connect()
-    ctx = TLContext(tclient)
+    conn = tclient.connect()
+    engine = create_engine(f"sqlite:///{cfg.DB_PATH}")
+    await conn
+    ctx = TLContext(tclient, engine)
     return ctx
 
 
 
 
-async def download_media(ctx: TLContext, downloadable: Message | TypeMessageMedia | Document) -> Optional[pathlib.Path]:
+async def download_media(ctx: TLContext, downloadable: Downloadable) -> Optional[pathlib.Path]:
     download_task = ctx.console.progress.add_task("[cyan]Downloading", total=100)
 
     def progress_callback(current: int, total: int):
@@ -97,8 +99,8 @@ async def get_message_link(ctx: TLContext, channel: InputChannel, message: Messa
         return result
     return None
 
-def find_web_preview(message: Message) -> (Tuple[Document, int, int] | None):
 
+def find_web_preview(message: Message) -> DownloadItem | None:
     if not getattr(message, "web_preview", None):
         return None
     page = message.web_preview
@@ -108,11 +110,11 @@ def find_web_preview(message: Message) -> (Tuple[Document, int, int] | None):
         return None
     if page.document.mime_type == "video/mp4":
         download_target = page.document
-        return download_target, download_target.id, 1  # has mime_type
+        return DownloadItem(download_target, download_target.id, True)  # has mime_type
     return None
 
 
-async def extract_media(ctx: TLContext, message: Message) -> Tuple[Downloadable, int, int] | None:
+async def extract_media(ctx: TLContext, message: Message) -> DownloadItem | None:
     preview = find_web_preview(message)
     if preview:
         return preview
@@ -129,7 +131,7 @@ async def extract_media(ctx: TLContext, message: Message) -> Tuple[Downloadable,
         elif file.sticker_set:
             ctx.write(f"Skipping sticker: {file_id}")
         else:
-            return file, file_id, 0
+            return DownloadItem(file, file_id, False, file.mime_type or "unknown/unknown")
     else:
         ctx.write(f"No media found: {message.id}")
     return None
@@ -161,42 +163,43 @@ async def process_message(ctx: TLContext, message: Message, channel: Channel) ->
 
     await extract_forward(ctx, message)
 
-    extracted = await extract_media(ctx, message)
-    if not extracted:
+    dl = await extract_media(ctx, message)
+    if not dl:
         return
-
-    download_target, file_id, from_preview = extracted
 
     # Check for existing files
-    with Session(ctx.engine) as session:
-        query = select(MediaItem, TelegramMetadata).where(MediaItem.id == TelegramMetadata.media_item_id).where(TelegramMetadata.file_id == file_id).where(TelegramMetadata.from_preview == from_preview)
-        existingResult: Optional[Tuple[MediaItem, TelegramMetadata]] = session.exec(query).first()
+    with Session(ctx.db.engine) as session:
+        existing_result = ctx.db._get_existing_media(session, dl)
 
-    if existingResult is not None:
-        (mediaItem, telegramMetadata) = existingResult
-        fileSize = getattr(message.file, "size", None)
-        if mediaItem.file_size != fileSize:
-            ctx.write(message.stringify())
-            ctx.write(mediaItem.file_name)
-            raise AssertionError(f"File size mismatch: {mediaItem.file_size} vs {fileSize}")
-        # Update legacy entries
-        if not telegramMetadata.message_id:
-            telegramMetadata.message_id = message.id
-            telegramMetadata.channel_id = channel.id
-            session.commit()
-        ctx.write(f"Skipping download for existing file_id: {file_id}")
-        return
+        if existing_result is not None:
+            (mediaItem, telegramMetadata) = existing_result
+            fileSize = getattr(message.file, "size", None)
+            if mediaItem.file_size != fileSize:
+                ctx.write(message.stringify())
+                ctx.write(mediaItem.file_name)
+                raise AssertionError(f"File size mismatch: {mediaItem.file_size} vs {fileSize}")
+            # Update legacy entries
+            if not telegramMetadata.message_id:
+                telegramMetadata.message_id = message.id
+                telegramMetadata.channel_id = channel.id
+                session.commit()
+            ctx.write(f"Skipping download for existing file_id: {dl.id}")
+            return
 
-
-    if isinstance(download_target, Document):
-        mime_type = download_target.mime_type
-        file_path = await download_media(ctx, download_target)
+    if isinstance(dl.target, Document | File):
+        mime_type = dl.mime_type
+        file_path = await download_media(ctx, dl.target)
     else:
-        mime_type = download_target.mime_type
-        file_path = await download_media(ctx, download_target.media)
+        if getattr(dl.target, 'media', None) is None:
+            ctx.write("Unknown message - ")
+        if dl.target.media is None:
+            ctx.write("No target found")
+            return
+        mime_type = dl.mime_type
+        file_path = await download_media(ctx, dl.target.media)
     if not file_path:
-        ctx.write(repr(download_target))
-        raise ValueError(f"Failed to download file: {file_id}")
+        ctx.write(repr(dl.target))
+        raise ValueError(f"Failed to download file: {dl.id}")
 
     file_path = pathlib.Path(file_path)
     new_item_id = uuid.uuid4().hex
@@ -238,13 +241,13 @@ async def process_message(ctx: TLContext, message: Message, channel: Channel) ->
             session.add(
                 TelegramMetadata(
                     media_item_id = new_item_id,
-                    file_id=file_id,
+                    file_id=dl.id,
                     channel_id=channel.id,
                     date=getattr(message, "date", datetime.now()),
                     text=getattr(message, "text", ""),
                     url=f"/media/{file_name}",
                     message_id=message.id,
-                    from_preview=from_preview,
+                    from_preview=dl.from_preview,
                 )
             )
 
@@ -270,6 +273,7 @@ async def message_task_wrapper(ctx: TLContext, message: Message, channel: Channe
 
 async def get_target_channels(ctx: TLContext) -> AsyncGenerator[Channel, None]:
     with Session(ctx.engine) as session:
+        # XXX: Extract this filtering logic to a separate function
         channel_ids = session.exec(select(ChannelModel).where(ChannelModel.check == 1).where(ChannelModel.title.like("%Khael%"))).all()
 
     for channel_id in channel_ids:
