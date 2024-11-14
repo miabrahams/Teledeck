@@ -16,18 +16,17 @@ from telethon.tl.types.messages import ChatFull as WebPage, DialogFilters # type
 from typing import AsyncGenerator, List, Any, Optional, cast
 import pathlib
 import asyncio
-import uuid
 from datetime import datetime
 from sqlmodel import create_engine, Session, select
 from sqlalchemy.engine import Engine
-from models.telegram import MediaItem, MediaType, ChannelModel, TelegramMetadata
+from models.telegram import ChannelModel
 from .config import Settings
 from .DataLogger import DataLogger
 from .ConsoleLogger import RichConsoleLogger
 from .utils import process_with_backoff
 from .DatabaseService import DatabaseService
 from . import messageStrategies as strat
-from .types import QueueItem, MessageTaskQueue, Downloadable, DownloadItem
+from .types import QueueItem, MessageTaskQueue, Downloadable, MediaItem, DownloadItem
 
 
 
@@ -100,7 +99,7 @@ async def get_message_link(ctx: TLContext, channel: InputChannel, message: Messa
     return None
 
 
-def find_web_preview(message: Message) -> DownloadItem | None:
+def find_web_preview(message: Message) -> MediaItem | None:
     if not getattr(message, "web_preview", None):
         return None
     page = message.web_preview
@@ -110,11 +109,11 @@ def find_web_preview(message: Message) -> DownloadItem | None:
         return None
     if page.document.mime_type == "video/mp4":
         download_target = page.document
-        return DownloadItem(download_target, download_target.id, True)  # has mime_type
+        return MediaItem(download_target, download_target.id, True)  # has mime_type
     return None
 
 
-async def extract_media(ctx: TLContext, message: Message) -> DownloadItem | None:
+async def extract_media(ctx: TLContext, message: Message) -> MediaItem | None:
     preview = find_web_preview(message)
     if preview:
         return preview
@@ -131,7 +130,7 @@ async def extract_media(ctx: TLContext, message: Message) -> DownloadItem | None
         elif file.sticker_set:
             ctx.write(f"Skipping sticker: {file_id}")
         else:
-            return DownloadItem(file, file_id, False, file.mime_type or "unknown/unknown")
+            return MediaItem(file, file_id, False, file.mime_type)
     else:
         ctx.write(f"No media found: {message.id}")
     return None
@@ -163,48 +162,25 @@ async def process_message(ctx: TLContext, message: Message, channel: Channel) ->
 
     await extract_forward(ctx, message)
 
-    dl = await extract_media(ctx, message)
-    if not dl:
+    item = await extract_media(ctx, message)
+    if not item:
         return
 
-    # Check for existing files
-    with Session(ctx.db.engine) as session:
-        existing_result = ctx.db._get_existing_media(session, dl)
-
-        if existing_result is not None:
-            (mediaItem, telegramMetadata) = existing_result
-            fileSize = getattr(message.file, "size", None)
-            if mediaItem.file_size != fileSize:
-                ctx.write(message.stringify())
-                ctx.write(mediaItem.file_name)
-                raise AssertionError(f"File size mismatch: {mediaItem.file_size} vs {fileSize}")
-            # Update legacy entries
-            if not telegramMetadata.message_id:
-                telegramMetadata.message_id = message.id
-                telegramMetadata.channel_id = channel.id
-                session.commit()
-            ctx.write(f"Skipping download for existing file_id: {dl.id}")
-            return
-
-    if isinstance(dl.target, Document | File):
-        mime_type = dl.mime_type
-        file_path = await download_media(ctx, dl.target)
+    if isinstance(item.target, Document | File):
+        file_path = await download_media(ctx, item.target)
     else:
-        if getattr(dl.target, 'media', None) is None:
-            ctx.write("Unknown message - ")
-        if dl.target.media is None:
+        if item.target.media is None:
             ctx.write("No target found")
             return
-        mime_type = dl.mime_type
-        file_path = await download_media(ctx, dl.target.media)
+        file_path = await download_media(ctx, item.target.media)
     if not file_path:
-        ctx.write(repr(dl.target))
-        raise ValueError(f"Failed to download file: {dl.id}")
+        ctx.write(repr(item.target))
+        raise ValueError(f"Failed to download file: {item.id}")
 
     file_path = pathlib.Path(file_path)
-    new_item_id = uuid.uuid4().hex
     file_name = file_path.parts[-1]
     file_size = file_path.stat().st_size
+    mime_type = item.mime_type
 
     if mime_type is None:
         ctx.write("WARNING: No MIME info.")
@@ -218,40 +194,13 @@ async def process_message(ctx: TLContext, message: Message, channel: Channel) ->
             media_type = "photo"
         else:
             media_type = "document"
-    ctx.write(f"mime_type: {mime_type}   -  Media type: {media_type}")
+
+    dlItem = DownloadItem(
+        **item.__dict__, file_name=file_name, file_size=file_size, mime_type=mime_type, media_type=media_type
+    )
 
     try:
-        with Session(ctx.engine) as session:
-            media_type_query = session.exec(select(MediaType).where(MediaType.type == media_type)).first()
-            if not media_type_query:
-                raise ValueError(f"Media type not found: {media_type}")
-            session.add(
-                MediaItem(
-                    id = new_item_id,
-                    created_at=datetime.now(),
-                    updated_at=datetime.now(),
-                    source_id=1,
-                    seen = False,
-                    media_type_id=media_type_query.id,
-                    file_size=file_size,
-                    file_name=file_name,
-                )
-            )
-
-            session.add(
-                TelegramMetadata(
-                    media_item_id = new_item_id,
-                    file_id=dl.id,
-                    channel_id=channel.id,
-                    date=getattr(message, "date", datetime.now()),
-                    text=getattr(message, "text", ""),
-                    url=f"/media/{file_name}",
-                    message_id=message.id,
-                    from_preview=dl.from_preview,
-                )
-            )
-
-            session.commit()
+        ctx.db.save_media_item(ctx.console, dlItem, channel.id, message)
     except Exception as e:
         ctx.write(f"Database insertion failed: {e}")
         file_path.rename(cfg.ORPHAN_PATH / file_name)
