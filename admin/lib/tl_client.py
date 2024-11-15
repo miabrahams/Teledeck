@@ -5,14 +5,12 @@ from telethon.tl.custom.file import File # type: ignore
 from telethon.tl.custom.forward import Forward # type: ignore
 from telethon.tl.types import ( # type: ignore
     Channel,
-    InputChannel,
     InputPeerChannel,
     PeerChannel,
     Document,
     DialogFilter,
-    ExportedMessageLink
 )
-from telethon.tl.types.messages import ChatFull as WebPage, DialogFilters # type: ignore
+from telethon.tl.types.messages import DialogFilters # type: ignore
 from typing import AsyncGenerator, List, Any, Optional, cast
 import pathlib
 import asyncio
@@ -27,6 +25,7 @@ from .utils import process_with_backoff
 from .DatabaseService import DatabaseService
 from . import messageStrategies as strat
 from .types import QueueItem, MessageTaskQueue, Downloadable, MediaItem, DownloadItem
+from .api import find_web_preview, get_message_link
 
 
 
@@ -90,30 +89,7 @@ async def download_media(ctx: TLContext, downloadable: Downloadable) -> Optional
 
 
 
-
-async def get_message_link(ctx: TLContext, channel: InputChannel, message: Message) -> Optional[ExportedMessageLink]:
-    messageLinkRequest = functions.channels.ExportMessageLinkRequest(channel, message.id)
-    result: Any = await ctx.tclient(messageLinkRequest)
-    if isinstance(result, ExportedMessageLink):
-        return result
-    return None
-
-
-def find_web_preview(message: Message) -> MediaItem | None:
-    if not getattr(message, "web_preview", None):
-        return None
-    page = message.web_preview
-    if not isinstance(page, WebPage):
-        return None
-    if not isinstance(page.document, Document):
-        return None
-    if page.document.mime_type == "video/mp4":
-        download_target = page.document
-        return MediaItem(download_target, download_target.id, True)  # has mime_type
-    return None
-
-
-async def extract_media(ctx: TLContext, message: Message) -> MediaItem | None:
+async def extract_media(ctx: TLContext, message: Message, channel: Channel) -> MediaItem | None:
     preview = find_web_preview(message)
     if preview:
         return preview
@@ -121,11 +97,11 @@ async def extract_media(ctx: TLContext, message: Message) -> MediaItem | None:
         file: File = message.file
         file_id = file.media.id
         if getattr(file, "size", 0) > 1_000_000_000:
-            """
-            messageLink = get_message_link(ctx, channel, message)
-            ctx.write(messageLink.stringify())
-            ctx.add_data(messageLink.link)
-            """
+            if cfg.WRITE_MESSAGE_LINKS:
+                messageLink = await get_message_link(ctx.tclient, channel, message)
+                if messageLink is not None:
+                    ctx.write(messageLink.stringify())
+                    ctx.logger.add_data({"large file found": messageLink.link})
             ctx.write(f"*****Skipping large file*****: {file_id}")
         elif file.sticker_set:
             ctx.write(f"Skipping sticker: {file_id}")
@@ -162,7 +138,7 @@ async def process_message(ctx: TLContext, message: Message, channel: Channel) ->
 
     await extract_forward(ctx, message)
 
-    item = await extract_media(ctx, message)
+    item = await extract_media(ctx, message, channel)
     if not item:
         return
 

@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     UPDATE_PATH: pathlib.Path = pathlib.Path("./data/update_info")
     DEFAULT_FETCH_LIMIT: int = 65
     MESSAGE_STRATEGY: str = "unread"
+    WRITE_MESSAGE_LINKS: bool = False
 
     model_config = SettingsConfigDict(env_file='.env', env_file_encoding='utf-8')
 
