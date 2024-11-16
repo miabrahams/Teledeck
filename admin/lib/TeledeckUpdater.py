@@ -22,7 +22,7 @@ async def with_context(cb: ServiceRoutine):
         await cb(cfg, ctx)
 
 
-class TeledeckClient:
+class TeledeckUpdater:
     def __init__(self, cfg: Settings, ctx: TLContext):
         self.cfg = cfg
         self.ctx = ctx

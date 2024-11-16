@@ -3,7 +3,7 @@ from telethon import hints
 from telethon.tl.custom.dialog import Dialog
 from typing import cast
 from .config import Settings
-from .tl_client import TeledeckClient
+from .TeledeckUpdater import TeledeckUpdater
 from .ChannelManager import ChannelManager
 from .MediaProcessor import ProcessingConfig, MediaProcessor
 
@@ -38,5 +38,5 @@ async def channel_check_list_sync(cfg: Settings, ctx: TLContext):
     cm.db.update_channel_list(target_channels)
 
 async def run_update(cfg: Settings, ctx: TLContext):
-    client = TeledeckClient(cfg, ctx)
+    client = TeledeckUpdater(cfg, ctx)
     await client.run_update()

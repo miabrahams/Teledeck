@@ -8,7 +8,7 @@ from tqdm import tqdm
 from dotenv import load_dotenv
 from sqlmodel import create_engine, Session, select
 from models.telegram import Tag, MediaItem
-from lib.tl_client import with_context
+from admin.lib.TeledeckUpdater import with_context
 from lib.commands import save_forwards, channel_check_list_sync, run_update
 from lib.types import ServiceRoutine
 
