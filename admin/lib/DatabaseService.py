@@ -2,18 +2,21 @@
 from datetime import datetime
 import uuid
 from sqlmodel import Session, select, Column, Integer
-from typing import Optional, Tuple, List
+from typing import Optional, Tuple, List, Any
+from telethon.types import Channel
+from telethon.tl.custom.message import Message
 
-from .ConsoleLogger import RichConsoleLogger
+from .Logger import RichLogger
 from models.telegram import (
-    Message, MediaItem, TelegramMetadata, MediaType,
+    MediaItem, TelegramMetadata, MediaType,
     ChannelModel
 )
 from .types import DownloadItem
+from sqlmodel import create_engine
 
 class DatabaseService:
-    def __init__(self, engine):
-        self.engine = engine
+    def __init__(self, db_path):
+        self.engine = create_engine(f"sqlite:///{db_path}")
 
     def get_last_seen_post(self, channel_id: int) -> int | None:
         with Session(self.engine) as session:
@@ -34,7 +37,7 @@ class DatabaseService:
             return session.exec(query).first()
 
     def save_media_item(self,
-                       console: RichConsoleLogger,
+                       logger: RichLogger,
                        item: DownloadItem,
                        channel_id: int,
                        message: Message) -> None:
@@ -42,7 +45,7 @@ class DatabaseService:
             # First check if media already exists
             existing = self._get_existing_media(session, item)
             if existing:
-                console.write(f"Found existing file_id: {item.id}")
+                logger.write(f"Found existing file_id: {item.id}")
                 self._update_existing_media(session, existing, item, channel_id, message)
                 # TODO: add more detail
                 return
@@ -120,3 +123,45 @@ class DatabaseService:
         if not media_type:
             raise ValueError(f"Media type not found: {type_name}")
         return media_type
+
+
+    def get_channels_to_check(self, conds: list[Any]) -> List[ChannelModel]:
+        # Get list of channel IDs to check.
+        with Session(self.engine) as session:
+            statement = select(ChannelModel).where(ChannelModel.check == 1)
+            for cond in conds:
+                statement = statement.where(cond)
+            return [
+                channel for channel in
+                session.exec(statement).all()
+            ]
+
+    def add_channel_if_not_exists(self, logger: RichLogger, channel_id: int, channel_title: str) -> None:
+        # Add a channel to the database if it doesn't exist.
+        # TODO: Add error handling
+        with Session(self.engine) as session:
+            if not session.exec(
+                select(ChannelModel).where(ChannelModel.id == channel_id)
+            ).first():
+                newChannel = ChannelModel(id=channel_id, title=channel_title)
+                session.add(newChannel)
+                session.commit()
+                log_msg = {"Forwarded to channel": channel_title}
+                logger.write(repr(log_msg))
+                logger.add_data(log_msg)
+
+    def update_channel_list(self, target_channels: List[Channel]):
+        with Session(self.engine) as session:
+            for channel in session.exec(select(ChannelModel)).all():
+                channel.check = False
+            session.commit()
+
+        with Session(self.engine) as session:
+            for channel in target_channels:
+                existingChannel = session.get(ChannelModel, {"id": channel.id})
+                if existingChannel:
+                    existingChannel.check = True
+                    session.commit()
+                else:
+                    session.add(ChannelModel(id=channel.id, title=channel.title, check=True))
+                    session.commit()

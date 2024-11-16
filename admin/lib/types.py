@@ -7,7 +7,6 @@ from telethon.tl.custom.file import File # type: ignore
 from telethon.tl.types import ( # type: ignore
     Channel,
     Document,
-    MessageMediaPhoto,
     MessageMediaWebPage,
 )
 
