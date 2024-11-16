@@ -35,16 +35,23 @@ class MediaProcessor:
         self.client = ctx.client
         self.config = cfg
 
-
     async def process_message(self, message: Message, channel: Channel):
+        return await self._process_message(MediaContext(message, channel))
+
+    def save_message_info(self, mCtx: MediaContext, info: dict):
+        self.logger.save_to_json({"message": mCtx.message.id, "channel": mCtx.channel.title, "info": info})
+
+    async def _process_message(self, mCtx: MediaContext):
         """Main entry point for processing media content"""
-        mCtx = MediaContext(message, channel)
 
         try:
             # Handle forwarded content
             await self.process_forward(mCtx)
 
             ## TODO: Check for long text messages and save them in the log. Could be fun
+            mText = mCtx.message.text
+            if mText and len(mText) > 300:
+                self.save_message_info(mCtx, {"long_message": mText})
 
             media_item = await self._extract_media(mCtx)
             if not media_item:
@@ -56,7 +63,7 @@ class MediaProcessor:
 
 
         except Exception as e:
-            self.logger.write(f"failed to process message {message.id} in channel {channel.title}: {e}")
+            self.logger.write(f"failed to process message {mCtx.message.id} in channel {mCtx.channel.title}: {e}")
             raise MediaError(f"Message processing failed: {str(e)}", mCtx.error("processing")) from e
 
 
