@@ -18,9 +18,10 @@ from datetime import datetime
 from .config import Settings
 from .Logger import RichLogger
 from .utils import process_with_backoff
+from .QueueManager import QueueManager
 from .DatabaseService import DatabaseService
 from . import messageStrategies as strat
-from .types import QueueItem, MessageTaskQueue, Downloadable, MediaItem, DownloadItem
+from .types import Downloadable, MediaItem, DownloadItem
 from .api import find_web_preview, get_message_link
 
 
@@ -232,28 +233,6 @@ async def channel_check_list_sync(ctx: TLContext):
 
 
 
-async def message_task_producer(ctx: TLContext, channels: AsyncGenerator[Channel, None], queue: MessageTaskQueue) -> int:
-    total_tasks = 0
-    async for channel in channels:
-        async for message in get_channel_messages(ctx, channel):
-            total_tasks += 1
-            await queue.put((channel, message))
-    return total_tasks
-
-
-async def message_task_consumer(ctx: TLContext, queue: MessageTaskQueue):
-    while True:
-        (channel, message) = await queue.get()
-        try:
-            await message_task_wrapper(ctx, message, channel)
-        except Exception as e:
-            import traceback
-            ctx.logger.write("******Failed to process message: \n" + str(e))
-            ctx.logger.write("\n".join(map(str, [channel.title, message.id, getattr(message, "text", ""), type(message.media)])))
-            ctx.logger.write(traceback.format_exc())
-            # link = await get_message_link(ctx, channel, message)
-            # print("Message link: ", link.stringify())
-        queue.task_done()
 
 
 async def get_channel_messages(context: TLContext, channel: Channel) -> AsyncGenerator[Message, None]:
@@ -285,19 +264,26 @@ async def get_channel_messages(context: TLContext, channel: Channel) -> AsyncGen
 
 
 async def client_update(ctx: TLContext):
-    queue = asyncio.Queue[QueueItem]()
 
-    gather_messages = asyncio.create_task(message_task_producer(ctx, get_target_channels(ctx), queue))
+    qm = QueueManager(ctx.logger, cfg.MAX_CONCURRENT_TASKS)
 
-    consumers = [asyncio.create_task(message_task_consumer(ctx, queue)) for _ in range(cfg.MAX_CONCURRENT_TASKS)]
+    gather_messages = asyncio.create_task(
+        qm.producer(
+            get_target_channels(ctx),
+            lambda channel: get_channel_messages(ctx, channel)
+        ))
+
+
+    def process_message(message: Message, channel: Channel):
+        return message_task_wrapper(ctx, message, channel)
+    qm.create_consumers(process_message)
 
     num_tasks = await gather_messages
     ctx.logger.write("Tasks gathered: ", num_tasks)
 
-    await ctx.logger.run(num_tasks, queue.join())
+    await ctx.logger.run(num_tasks, qm.wait())
 
-    for c in consumers:
-        c.cancel()
+    qm.finish()
 
     ctx.logger.write(f"Gathered tasks: {num_tasks}")
     ctx.logger.write(f"Finished tasks: {ctx.logger.progress.tasks[0].completed}")

@@ -1,6 +1,6 @@
 from typing import Optional, Tuple
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Protocol, Callable, Coroutine, AsyncGenerator, Any
 import asyncio
 from telethon.tl.custom.message import Message # type: ignore
 from telethon.tl.custom.file import File # type: ignore
@@ -14,6 +14,11 @@ QueueItem = Tuple[Channel, Message]
 MessageTaskQueue = asyncio.Queue[QueueItem]
 DLMedia = MessageMediaWebPage | Document | File
 Downloadable = DLMedia | Message
+
+TaskWrapper = Callable[[Message, Channel], Coroutine[Any, Any, None]]
+ChannelGenerator = AsyncGenerator[Channel, None]
+MessageGenerator = AsyncGenerator[Message]
+MessageFetcher = Callable[[Channel], MessageGenerator]
 
 @dataclass
 class MediaItem:
