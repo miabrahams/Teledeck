@@ -38,7 +38,7 @@ class MediaProcessor:
     async def process_message(self, message: Message, channel: Channel):
         return await self._process_message(MediaContext(message, channel))
 
-    def save_message_info(self, mCtx: MediaContext, info: dict):
+    def log_message_info(self, mCtx: MediaContext, info: dict):
         self.logger.save_to_json({"message": mCtx.message.id, "channel": mCtx.channel.title, "info": info})
 
     async def _process_message(self, mCtx: MediaContext):
@@ -48,10 +48,9 @@ class MediaProcessor:
             # Handle forwarded content
             await self.process_forward(mCtx)
 
-            ## TODO: Check for long text messages and save them in the log. Could be fun
             mText = mCtx.message.text
             if mText and len(mText) > 300:
-                self.save_message_info(mCtx, {"long_message": mText})
+                self.log_message_info(mCtx, {"long_message": mText})
 
             media_item = await self._extract_media(mCtx)
             if not media_item:

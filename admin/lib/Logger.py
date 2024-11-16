@@ -16,18 +16,22 @@ class RichLogger:
     console: Optional[Console]
     progress_table: Table
     progress: Progress
-    overall_task: Optional[TaskID]
+    _overall_task: Optional[TaskID]
     data: List
     update_path: Path
 
     def __init__(self, update_path: Path):
-        # TODO: Sort out when overall_task is defined?
         self.progress = Progress()
         self.console = None
-        self.overall_task = None
+        self._overall_task = None
         self.data = []
         self.update_path = update_path
 
+    @property
+    def overall_task(self):
+        if self._overall_task is None:
+            raise ValueError("attempted to access overall_task before starting")
+        return self._overall_task
 
     async def run(self, total_tasks, iter: Coroutine[Any, Any, None]):
 
@@ -36,23 +40,20 @@ class RichLogger:
 
         with Live(self.progress_table, refresh_per_second=10) as live:
             self.console = live.console
-            self.overall_task = self.progress.add_task("[yellow]Overall Progress", total=total_tasks)
+            self._overall_task = self.progress.add_task("[yellow]Overall Progress", total=total_tasks)
             await iter
 
     async def update_message(self, new_message: str):
-        if self.overall_task is not None:
-            self.progress.update(self.overall_task, description=new_message)
+        self.progress.update(self.overall_task, description=new_message)
 
     async def update_progress(self):
-        if self.overall_task is not None:
-            self.progress.update(self.overall_task, advance=1)
+        self.progress.update(self.overall_task, advance=1)
 
     def write(self, *args, **kwargs):
         if self.console:
             self.console.print(*args, **kwargs)
         else:
             print(*args, **kwargs)
-
 
     def add_data(self, datum: Any):
         self.data.append(datum)
