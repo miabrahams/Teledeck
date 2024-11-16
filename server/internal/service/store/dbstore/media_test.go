@@ -14,7 +14,7 @@ import (
 // Todo: Create test database
 func getDB() (*gorm.DB, error) {
 
-	db := database.MustOpen("/home/abrahams/apps/TG-Collector/teledeck.db")
+	db := database.MustOpen("~/apps/TG-Collector/teledeck.db")
 
 	return db, nil
 }

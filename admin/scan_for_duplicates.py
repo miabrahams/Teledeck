@@ -102,5 +102,5 @@ def find_duplicates(directory: str):
     print(f"{d} duplicates found.")
 
 # Example usage
-directory_path = '/home/abrahams/apps/TG-Collector/static/media'
+directory_path = '~/apps/Teledeck/static/media'
 find_duplicates(directory_path)
