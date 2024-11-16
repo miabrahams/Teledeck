@@ -26,9 +26,6 @@ from .api import find_web_preview, get_message_link
 
 
 
-## TODO: WHERE DID THIS GO
-# # semaphore = asyncio.Semaphore(cfg.MAX_CONCURRENT_TASKS)
-
 ## TODO: REMOVE FROM GLOBAL
 cfg = Settings()
 
