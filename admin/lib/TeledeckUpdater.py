@@ -1,14 +1,15 @@
-from telethon.tl.custom.message import Message # type: ignore
-from telethon.tl.types import Channel
 import asyncio
 from datetime import datetime
-from .config import Settings, BackoffConfig, ProcessingConfig, QueueManagerConfig, StrategyConfig
+from telethon.tl.custom.message import Message # type: ignore
+from telethon.tl.types import Channel
+from .config import Settings, BackoffConfig, ProcessingConfig, QueueManagerConfig, StrategyConfig, UpdaterConfig
 from BackoffManager import BackoffManager
 from QueueManager import QueueManager
 from MessageFetcher import MessageFetcher
 from TLContext import TLContext
 from MediaProcessor import MediaProcessor
 from ChannelManager import ChannelManager
+from channelStrategies import ChannelProvider
 
 class TeledeckUpdater:
     def __init__(self, cfg: Settings, ctx: TLContext):
@@ -17,43 +18,53 @@ class TeledeckUpdater:
         self.queue_manager = QueueManager(self.logger, QueueManagerConfig.from_config(cfg))
         self.cm = ChannelManager(ctx)
         self.backoff = BackoffManager(BackoffConfig.from_config(cfg))
-        self.mf = MessageFetcher(ctx.client, ctx.db, StrategyConfig.from_config(cfg))
         self.processor = MediaProcessor(ctx, ProcessingConfig.from_config(cfg))
 
-    async def process_message(self, message: Message, channel: Channel):
-        await self.processor.process_message(message, channel)
-        await message.mark_read()
-
-
-    async def message_task_wrapper(self, message: Message, channel: Channel):
-        try: # Process message
-            cb = self.process_message(message, channel)
+    async def message_task_wrapper(self, cb, message: Message, channel: Channel):
+        try:
             await self.backoff.process_with_backoff(cb)
-            await message.mark_read()
         except Exception as e:
             self.logger.write(f"Failed to process message: {message.id} in channel {channel.title}")
             self.logger.write(repr(e))
         await self.logger.update_progress()
 
+    async def process_channels(self,
+                             channel_provider: ChannelProvider,
+                             updater_config: UpdaterConfig):
+        """Process channels using the provided configuration"""
 
-    async def run_update(self):
-        gather_messages = asyncio.create_task(
-            self.queue_manager.producer(
-                self.cm.get_target_channels(),
-                self.mf.get_channel_messages
-            ))
+        # Configure message fetcher with specified strategy
+        mf = MessageFetcher(self.ctx.client, self.ctx.db, StrategyConfig(
+            strategy=updater_config.message_strategy,
+            limit=updater_config.message_limit or 0
+        ))
 
-        def process_message(message: Message, channel: Channel):
-            return self.message_task_wrapper(message, channel)
+        # Set up message gathering
+        gather_messages = self.queue_manager.producer(
+            channel_provider.get_channels(self.cm),
+            mf.get_channel_messages
+        )
+
+        # Configure message processor
+        async def process_message(message, channel):
+            await self.processor.process_message(message, channel)
+            if updater_config.mark_read:
+                await message.mark_read()
+            await self.logger.update_progress()
+
         self.queue_manager.create_consumers(process_message)
 
+        # Run processing
         num_tasks = await gather_messages
-        self.logger.write("Tasks gathered: ", num_tasks)
+        self.logger.write(f"Found {num_tasks} messages to process")
 
         await self.logger.run(num_tasks, self.queue_manager.wait())
 
         self.queue_manager.finish()
-
-        self.logger.write(f"Gathered tasks: {num_tasks}")
-        self.logger.write(f"Finished tasks: {self.logger.progress.tasks[0].completed}")
-        self.logger.write(f"Update complete: {datetime.now()}")
+        self.logger.write(
+            f"{updater_config.description} complete - \n"
+            f"Gathered tasks: {num_tasks}\n"
+            f"Finished tasks: {self.logger.progress.tasks[0].completed}\n"
+            f"processed {self.logger.progress.tasks[0].completed} messages\n"
+            f"Update complete: {datetime.now()}\n"
+        )

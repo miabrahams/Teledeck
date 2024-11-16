@@ -36,6 +36,7 @@ class QueueManager:
                 await callback(message, channel)
             except Exception as e:
                 import traceback
+                # TODO: add proper exception handling
                 self.logger.write("******Failed to process message: \n" + str(e))
                 self.logger.write("\n".join(map(str, [channel.title, message.id, getattr(message, "text", ""), type(message.media)])))
                 self.logger.write(traceback.format_exc())
@@ -48,8 +49,8 @@ class QueueManager:
     def create_consumers(self, callback: TaskWrapper):
         """Start message processing consumers."""
 
-        return [
-            asyncio.create_task(self.consumer(callback))for _ in range(self.config.max_consumers)
+        self.consumers = [
+            asyncio.create_task(self.consumer(callback))for _ in range(self.config.max_concurrent_tasks)
             ]
 
 

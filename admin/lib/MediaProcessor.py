@@ -25,7 +25,7 @@ class MediaContext:
             **kwargs
         )
 
-
+# TODO: Use Protocol
 class MediaProcessor:
     """Handles extraction and processing of media from Telegram messages"""
 
@@ -137,7 +137,7 @@ class MediaProcessor:
                 if getattr(item.target, "media", None) is None:
                     self.logger.write("No target found")
                     return None
-                file_path = await self._download_file(item.target.media)
+                file_path = await self._download_file(item.target.media) #TODO: Check Webpage handling
 
             if not file_path:
                 self.logger.write(repr(item.target))

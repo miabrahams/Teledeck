@@ -1,11 +1,12 @@
-from .TLContext import TLContext
 from telethon import hints
-from telethon.tl.custom.dialog import Dialog
 from typing import cast
-from .config import Settings
+from telethon.tl.custom.dialog import Dialog
+from .config import Settings, UpdaterConfig
+from .TLContext import TLContext
 from .TeledeckUpdater import TeledeckUpdater
 from .ChannelManager import ChannelManager
 from .MediaProcessor import ProcessingConfig, MediaProcessor
+from .channelStrategies import SingleChannelNameLookup, AllChannelsInFolder
 
 async def save_forwards(chat_name: str, cfg: Settings, ctx: TLContext):
     mp = MediaProcessor(ctx, ProcessingConfig.from_config(cfg))
@@ -38,5 +39,24 @@ async def channel_check_list_sync(cfg: Settings, ctx: TLContext):
     cm.db.update_channel_list(target_channels)
 
 async def run_update(cfg: Settings, ctx: TLContext):
-    client = TeledeckUpdater(cfg, ctx)
-    await client.run_update()
+    """Run normal update process"""
+    updater = TeledeckUpdater(cfg, ctx)
+    provider = AllChannelsInFolder()
+    config = UpdaterConfig(
+        message_strategy="unread",
+        message_limit=cfg.DEFAULT_FETCH_LIMIT,
+        description="Update"
+    )
+    await updater.process_channels(provider, config)
+
+async def run_export(channel_name: str, cfg: Settings, ctx: TLContext):
+    """Export all messages from a channel"""
+    updater = TeledeckUpdater(cfg, ctx)
+    provider = SingleChannelNameLookup(channel_name)
+    config = UpdaterConfig(
+        message_strategy="all",
+        message_limit=None,  # No limit for export
+        mark_read=False,  # Don't mark as read during export
+        description="Export"
+    )
+    await updater.process_channels(provider, config)

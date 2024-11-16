@@ -5,6 +5,7 @@ from sqlmodel import Session, select, Column, Integer
 from typing import Optional, Tuple, List, Any
 from telethon.types import Channel
 from telethon.tl.custom.message import Message
+from .config import DatabaseConfig
 
 from .Logger import RichLogger
 from models.telegram import (
@@ -15,8 +16,8 @@ from .types import DownloadItem
 from sqlmodel import create_engine
 
 class DatabaseService:
-    def __init__(self, db_path):
-        self.engine = create_engine(f"sqlite:///{db_path}")
+    def __init__(self, config: DatabaseConfig):
+        self.engine = create_engine(f"sqlite:///{config.db_path}")
 
     def get_last_seen_post(self, channel_id: int) -> int | None:
         with Session(self.engine) as session:

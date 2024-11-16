@@ -1,5 +1,5 @@
 import asyncio
-from typing import AsyncGenerator, List, Any, cast
+from typing import AsyncGenerator, Optional, List, Any, cast
 from telethon.tl.types import (
     Channel,
     PeerChannel,
@@ -7,20 +7,20 @@ from telethon.tl.types import (
     DialogFilter
 )
 from telethon.tl.types.messages import DialogFilters # type: ignore
-from .TLContext import TLContext
+from telethon.tl.custom import Dialog # type: ignore
+from TLContext import TLContext
 from telethon import functions as tlfunctions
+from models.telegram import ChannelModel # Todo: move this to db operations
 
 
 class ChannelManager:
     def __init__(self, ctx: TLContext):
-        self.db = self.db
+        self.db = ctx.db
         self.client = ctx.client
         self.logger = ctx.logger
 
-    async def get_target_channels(self) -> AsyncGenerator[Channel, None]:
-        # TODO: Extract this filtering logic to a separate function
-        # nameMatch = ChannelModel.title.like("%Khael%")
-        channel_models = self.db.get_channels_to_check([])
+    async def get_target_channels(self, channel_filter: Optional[List[Any]] = None) -> AsyncGenerator[Channel, None]:
+        channel_models = self.db.get_channels_to_check(channel_filter or [])
 
         for channel_model in channel_models:
             try:
@@ -38,6 +38,33 @@ class ChannelManager:
                 self.logger.write(str(e))
                 self.logger.add_data(err_msg)
                 self.logger.add_data(str(e))
+
+    async def lookup_channel_by_name(self, name: str) -> Channel:
+        """Look up a channel by fuzzy matching name"""
+        lName = name.lower()
+        try:
+            async for dialog in self.client.iter_dialogs():
+                if not isinstance(dialog, Dialog):
+                    self.logger.write(f"Unexpected dialog type: {type(dialog)}")
+                    continue
+                if not isinstance(dialog.input_entity, InputPeerChannel):
+                    continue
+                if dialog.name.lower().find(lName) == -1:
+                    continue
+
+                channel = dialog.entity
+                if not isinstance(channel, Channel):
+                    raise ValueError(f"Unexpected channel type for channel {channel.stringify()}")
+                return channel
+
+            raise ValueError(f"Failed to get channel: {name}")
+        except Exception as e:
+            self.logger.write(f"Error looking up channel: {str(e)}")
+            raise e
+
+    async def get_channel_by_name(self, name: str):
+        nameMatch = ChannelModel.title.like(f"%{name}%")
+        return self.get_target_channels(nameMatch)
 
 
     async def get_update_folder_channels(self) -> List[Channel]:
