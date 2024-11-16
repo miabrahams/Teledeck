@@ -1,4 +1,3 @@
-from sqlalchemy import Engine
 from telethon import TelegramClient, functions # type: ignore
 from telethon.tl.custom.message import Message # type: ignore
 from telethon.tl.types import ( # type: ignore
@@ -19,7 +18,6 @@ async def NoMessages() -> AsyncIterable[Message]:
 
 def get_all_messages(tclient: TelegramClient, entity: Entity, limit: int)-> AsyncIterable[Message]:
     return tclient.iter_messages(entity, limit)
-
 
 def get_oldest_messages(tclient: TelegramClient, entity: Entity, limit: int):
     # TODO: Test for correctness

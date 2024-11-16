@@ -2,27 +2,25 @@ from telethon.client.telegramclient import TelegramClient # type: ignore
 from telethon.tl.types import ( # type: ignore
     Channel,
 )
-from .config import Settings
+from .config import StrategyConfig
 from .DatabaseService import DatabaseService
 from . import messageStrategies as strat
-from .types import MessageGenerator
+from .types import MessageGenerator, MessageIter
 
 
 class MessageFetcher:
-    def __init__(self, client: TelegramClient, db: DatabaseService, config: Settings):
+    def __init__(self, client: TelegramClient, db: DatabaseService, cfg: StrategyConfig):
         self.client = client
         self.db = db
-        self.config = config
+        self.config = cfg
 
     async def get_channel_messages(self, channel: Channel) -> MessageGenerator:
-        strategy = await self._get_strategy(channel,
-                                            self.config.DEFAULT_FETCH_LIMIT,
-                                            self.config.MESSAGE_STRATEGY)
+        strategy = await self._get_strategy(channel, self.config.strategy, self.config.limit)
         async for message in strategy:
             yield message
 
 
-    async def _get_strategy(self, channel: Channel, limit: int, strategy: str):
+    async def _get_strategy(self, channel: Channel, strategy: str, limit: int) -> MessageIter:
         match strategy:
             case "all":
                 return strat.get_all_messages(self.client, channel, limit)

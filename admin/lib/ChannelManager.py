@@ -11,14 +11,11 @@ from .TLContext import TLContext
 from telethon import functions as tlfunctions
 
 
-
-
-
 class ChannelManager:
     def __init__(self, ctx: TLContext):
         self.db = self.db
-        self.client = self.client
-        self.logger = self.logger
+        self.client = ctx.client
+        self.logger = ctx.logger
 
     async def get_target_channels(self) -> AsyncGenerator[Channel, None]:
         # TODO: Extract this filtering logic to a separate function

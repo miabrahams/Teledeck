@@ -1,6 +1,6 @@
 from typing import Optional, Tuple
 from dataclasses import dataclass
-from typing import Protocol, Callable, Coroutine, AsyncGenerator, Any
+from typing import Protocol, Callable, Coroutine, AsyncGenerator, AsyncIterable, Any
 import asyncio
 from telethon.tl.custom.message import Message # type: ignore
 from telethon.tl.custom.file import File # type: ignore
@@ -20,6 +20,7 @@ Downloadable = DLMedia | Message
 TaskWrapper = Callable[[Message, Channel], Coroutine[Any, Any, None]]
 ChannelGenerator = AsyncGenerator[Channel, None]
 MessageGenerator = AsyncGenerator[Message]
+MessageIter = AsyncIterable[Message]
 ChannelMessageRetriever = Callable[[Channel], MessageGenerator]
 ServiceRoutine = Callable[[Settings, TLContext], Coroutine[Any, Any, None]]
 

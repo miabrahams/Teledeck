@@ -1,23 +1,37 @@
 from telethon.client.telegramclient import TelegramClient # type: ignore
 from typing import Optional
-from .config import Settings
+from dataclasses import dataclass
+from .config import Settings, TelethonConfig
 from .Logger import RichLogger
 from .DatabaseService import DatabaseService
+from .types import ServiceRoutine
 
+async def with_context(cfg: Settings, cb: ServiceRoutine):
+    db_service = DatabaseService(cfg.DB_PATH)
+    logger = RichLogger(cfg.UPDATE_PATH)
+    async with TLContextProvider(cfg, logger, db_service) as ctx:
+        await cb(cfg, ctx)
+
+@dataclass
 class TLContext:
-    def __init__(self, config: Settings, logger: RichLogger, db: DatabaseService):
-        self.config = config
+    config: Settings
+    logger: RichLogger
+    db: DatabaseService
+    client: TelegramClient
+
+
+class TLContextProvider:
+    def __init__(self, settings: Settings, logger: RichLogger, db: DatabaseService):
+        self.settings = settings
+        self.config =  TelethonConfig.from_config(settings)
         self.logger = logger
         self.db = db
-        self.session_file = config.SESSION_FILE
-        self.api_id = int(config.TELEGRAM_API_ID)
-        self.api_hash = config.TELEGRAM_API_HASH
         self._client: Optional[TelegramClient] = None
 
     async def __aenter__(self):
-        self._client = TelegramClient(self.session_file, self.api_id, self.api_hash)
+        self._client = TelegramClient(self.config.session_file, self.config.api_id, self.config.api_hash)
         await self._client.connect()
-        return self
+        return TLContext(self.settings, self.logger, self.db, self.client)
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         if exc_type is not None:

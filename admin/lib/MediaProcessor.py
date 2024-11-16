@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 from telethon.tl.custom.message import Message
@@ -9,34 +8,18 @@ from .TLContext import TLContext
 from .types import Downloadable, MediaItem, DownloadItem
 from .api import find_web_preview, get_message_link
 from .exceptions import MediaProcessingError
-from .config import Settings
+from .config import ProcessingConfig
 
-
-@dataclass
-class ProcessingConfig:
-    """Configuration for media processing"""
-    media_path: Path
-    orphan_path: Path
-    write_message_links: bool = False
-    max_file_size: int = 1_000_000_000 # 1GB default
-
-    @staticmethod
-    def from_config(cfg: Settings) -> "ProcessingConfig":
-        return ProcessingConfig(
-            media_path=cfg.MEDIA_PATH,
-            orphan_path=cfg.ORPHAN_PATH,
-            write_message_links=cfg.WRITE_MESSAGE_LINKS
-        )
 
 
 class MediaProcessor:
     """Handles extraction and processing of media from Telegram messages"""
 
-    def __init__(self, ctx:TLContext, config:ProcessingConfig):
+    def __init__(self, ctx:TLContext, cfg:ProcessingConfig):
         self.logger = ctx.logger
         self.db = ctx.db
         self.client = ctx.client
-        self.config = config
+        self.config = cfg
 
 
     async def process_message(self, message: Message, channel: Channel):

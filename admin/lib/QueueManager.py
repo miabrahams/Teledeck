@@ -1,4 +1,5 @@
 import asyncio
+from config import QueueManagerConfig
 from .Logger import RichLogger
 from .types import QueueItem, TaskWrapper, ChannelGenerator, ChannelMessageRetriever
 
@@ -7,13 +8,14 @@ from .types import QueueItem, TaskWrapper, ChannelGenerator, ChannelMessageRetri
 class QueueManager:
     logger: RichLogger
     queue: asyncio.Queue[QueueItem]
-    max_consumers: int
+    config: QueueManagerConfig
     consumers: list[asyncio.Task[None]]
 
-    def __init__(self, logger: RichLogger, max_consumers: int):
+    def __init__(self, logger: RichLogger, cfg: QueueManagerConfig):
         self.logger = logger
         self.queue: asyncio.Queue[QueueItem] = asyncio.Queue()
-        self.max_consumers = max_consumers
+        self.config = cfg
+        self.consumers = []
 
     async def producer(self, channels: ChannelGenerator, fetcher: ChannelMessageRetriever) -> int:
         """Produce message processing tasks."""
@@ -47,7 +49,7 @@ class QueueManager:
         """Start message processing consumers."""
 
         return [
-            asyncio.create_task(self.consumer(callback))for _ in range(self.max_consumers)
+            asyncio.create_task(self.consumer(callback))for _ in range(self.config.max_consumers)
             ]
 
 

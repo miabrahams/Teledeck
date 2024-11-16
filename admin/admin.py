@@ -8,12 +8,14 @@ from tqdm import tqdm
 from dotenv import load_dotenv
 from sqlmodel import create_engine, Session, select
 from models.telegram import Tag, MediaItem
-from admin.lib.TeledeckUpdater import with_context
+from admin.lib.TLContext import with_context
 from lib.commands import save_forwards, channel_check_list_sync, run_update
 from lib.types import ServiceRoutine
+from lib.config import Settings
 
 
 load_dotenv()
+cfg = Settings()
 
 engine = create_engine("sqlite:///" + environ['DB_PATH'])
 
@@ -54,7 +56,7 @@ def find_orphans(media_path: pathlib.Path, orphan_path: pathlib.Path):
 
 def run_with_context(func: ServiceRoutine):
     async def task():
-        t = with_context(func)
+        t = with_context(cfg, func)
         await t
 
     asyncio.get_event_loop().run_until_complete(task())
