@@ -18,7 +18,7 @@ Downloadable = DLMedia | Message
 TaskWrapper = Callable[[Message, Channel], Coroutine[Any, Any, None]]
 ChannelGenerator = AsyncGenerator[Channel, None]
 MessageGenerator = AsyncGenerator[Message]
-MessageFetcher = Callable[[Channel], MessageGenerator]
+ChannelMessageRetriever = Callable[[Channel], MessageGenerator]
 
 @dataclass
 class MediaItem:

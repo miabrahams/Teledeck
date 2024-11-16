@@ -19,8 +19,8 @@ from .config import Settings
 from .Logger import RichLogger
 from .utils import process_with_backoff
 from .QueueManager import QueueManager
+from .MessageFetcher import MessageFetcher
 from .DatabaseService import DatabaseService
-from . import messageStrategies as strat
 from .types import Downloadable, MediaItem, DownloadItem
 from .api import find_web_preview, get_message_link
 
@@ -232,45 +232,13 @@ async def channel_check_list_sync(ctx: TLContext):
 
 
 
-
-
-
-async def get_channel_messages(context: TLContext, channel: Channel) -> AsyncGenerator[Message, None]:
-    """Get messages from a channel based on strategy."""
-    context.logger.write(f"Processing channel: {channel.title}")
-    limit = cfg.DEFAULT_FETCH_LIMIT
-    tclient = context.tclient
-
-    match cfg.MESSAGE_STRATEGY:
-        case "all":
-            strategy = strat.get_all_messages(tclient, channel, limit)
-        case "db":
-            last_seen_post = context.db.get_last_seen_post(channel.id)
-            strategy = strat.get_messages_since_db_update(tclient, channel, last_seen_post, limit)
-        case "oldest":
-            strategy = strat.get_oldest_messages(tclient, channel, limit)
-        case "before":
-            before_id = context.db.get_last_seen_post(channel.id)
-            strategy = strat.get_earlier_unseen_messages(tclient, channel, before_id, limit)
-        case "urls":
-            strategy = strat.get_urls(tclient, channel, limit)
-        case "videos":
-            strategy = strat.get_all_videos(tclient, channel, limit)
-        case "unread":
-            strategy = await strat.get_unread_messages(tclient, channel)
-
-    async for message in strategy:
-        yield message
-
-
 async def client_update(ctx: TLContext):
-
     qm = QueueManager(ctx.logger, cfg.MAX_CONCURRENT_TASKS)
-
+    mf = MessageFetcher(ctx.tclient, ctx.db, cfg)
     gather_messages = asyncio.create_task(
         qm.producer(
             get_target_channels(ctx),
-            lambda channel: get_channel_messages(ctx, channel)
+            mf.get_channel_messages
         ))
 
 

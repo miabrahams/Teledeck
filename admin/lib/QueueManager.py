@@ -1,6 +1,6 @@
 import asyncio
 from .Logger import RichLogger
-from .types import QueueItem, TaskWrapper, ChannelGenerator, MessageFetcher
+from .types import QueueItem, TaskWrapper, ChannelGenerator, ChannelMessageRetriever
 
 
 
@@ -15,7 +15,7 @@ class QueueManager:
         self.queue: asyncio.Queue[QueueItem] = asyncio.Queue()
         self.max_consumers = max_consumers
 
-    async def producer(self, channels: ChannelGenerator, fetcher: MessageFetcher) -> int:
+    async def producer(self, channels: ChannelGenerator, fetcher: ChannelMessageRetriever) -> int:
         """Produce message processing tasks."""
         total_tasks = 0
         async for channel in channels:
