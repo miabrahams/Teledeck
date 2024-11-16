@@ -1,18 +1,16 @@
 import json
-from sqlmodel import create_engine, Session, select
-from dotenv import load_dotenv
+import asyncio
+from functools import partial
 import pathlib
-from models.telegram import Tag, MediaItem
 import argparse
 from os import environ
 from tqdm import tqdm
-from lib.tl_client import extract_forward, channel_check_list_sync, with_context, client_update
+from dotenv import load_dotenv
+from sqlmodel import create_engine, Session, select
+from models.telegram import Tag, MediaItem
+from lib.tl_client import with_context
+from lib.commands import save_forwards, channel_check_list_sync, run_update
 from lib.types import ServiceRoutine
-from lib.TLContext import TLContext
-from telethon import hints
-from telethon.tl.custom.dialog import Dialog
-import asyncio
-from typing import cast
 
 
 load_dotenv()
@@ -52,31 +50,12 @@ def find_orphans(media_path: pathlib.Path, orphan_path: pathlib.Path):
                 item.rename(orphan_path.joinpath(name))
                 print(f"No file found: {name}")
 
-async def save_forwards(ctx: TLContext, chat_name: str):
-    # resolved = get_peer_id(chat_id)
-    entity: hints.EntityLike | None = None
-    async for d in ctx.client.iter_dialogs():
-        dialog = cast(Dialog, d)
-        if dialog.name == chat_name:
-            entity = dialog.entity
-            break
-    if not entity:
-        print("Could not find chat.")
-        return
-
-    n = 0
-    async for message in ctx.client.iter_messages(entity, limit=5000):
-        try:
-            await extract_forward(ctx, message)
-        except Exception as e:
-            print(e)
-        n += 1
-        print(n)
 
 
 def run_with_context(func: ServiceRoutine):
     async def task():
-        await with_context(func)
+        t = with_context(func)
+        await t
 
     asyncio.get_event_loop().run_until_complete(task())
 
@@ -99,10 +78,10 @@ if __name__ == '__main__':
         find_orphans(pathlib.Path(directory_path), pathlib.Path(orphan_path))
 
     elif args.save_forwards:
-        run_with_context(lambda _, ctx: save_forwards(ctx, args.save_forwards))
+        run_with_context(partial(save_forwards, args.save_forwards))
 
     elif args.update_channels:
         run_with_context(channel_check_list_sync)
 
     elif args.client_update:
-        run_with_context(client_update)
+        run_with_context(run_update)
