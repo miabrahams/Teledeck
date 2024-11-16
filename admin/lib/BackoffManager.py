@@ -3,7 +3,7 @@ import asyncio
 import random
 from config import BackoffConfig
 
-from .exceptions import TelegramClientError
+from .exceptions import RateLimitError
 
 class BackoffManager:
     def __init__(self, cfg: BackoffConfig):
@@ -25,4 +25,4 @@ class BackoffManager:
                 if attempt < self.config.max_attempts - 1:
                     await self.exponential_backoff(attempt, self.config.base_delay)
                 else:
-                    raise TelegramClientError(f"Max attempts reached: {str(e)}")
+                    raise RateLimitError("Max attempts reached", 1337) from e

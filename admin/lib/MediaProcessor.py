@@ -7,9 +7,23 @@ from telethon.tl.types import Channel, Document
 from .TLContext import TLContext
 from .types import Downloadable, MediaItem, DownloadItem
 from .api import find_web_preview, get_message_link
-from .exceptions import MediaProcessingError
+from .exceptions import ErrorContext, MediaError, DownloadError
 from .config import ProcessingConfig
 
+
+class MediaContext:
+    def __init__(self, message: Message, channel: Channel):
+        self.message = message
+        self.channel = channel
+
+    def error(self, operation, **kwargs):
+        return ErrorContext.new(
+            operation=operation,
+            message_id=self.message.id,
+            channel_id=self.channel.id,
+            channel_title=self.channel.title,
+            **kwargs
+        )
 
 
 class MediaProcessor:
@@ -24,35 +38,36 @@ class MediaProcessor:
 
     async def process_message(self, message: Message, channel: Channel):
         """Main entry point for processing media content"""
+        mCtx = MediaContext(message, channel)
 
         try:
             # Handle forwarded content
-            await self.process_forward(message)
+            await self.process_forward(mCtx)
 
             ## TODO: Check for long text messages and save them in the log. Could be fun
 
-            media_item = await self._extract_media(message, channel)
+            media_item = await self._extract_media(mCtx)
             if not media_item:
                 return
 
-            download_item = await self._download_media(media_item, message)
+            download_item = await self._download_media(mCtx, media_item)
             if download_item:
-                self._save_media_item(download_item, channel, message)
+                self._save_media_item(mCtx, download_item)
 
 
         except Exception as e:
             self.logger.write(f"failed to process message {message.id} in channel {channel.title}: {e}")
-            raise MediaProcessingError(f"Message processing failed: {str(e)}") from e
+            raise MediaError(f"Message processing failed: {str(e)}", mCtx.error("processing")) from e
 
 
-    async def process_forward(self, message: Message):
+    async def process_forward(self, mCtx: MediaContext):
         """Process forwarded content"""
 
-        forward = getattr(message, "forward", None)
+        forward = getattr(mCtx.message, "forward", None)
         if not forward or not forward.is_channel:
             return
 
-        self.logger.write(f"Found forward: {message.id}")
+        self.logger.write(f"Found forward: {mCtx.message.id}")
         try:
             fwd_channel = await self.client.get_entity(getattr(forward, "chat_id"))
             if not isinstance(fwd_channel, Channel):
@@ -69,23 +84,23 @@ class MediaProcessor:
             self.logger.write(f"Failed to process forward: {str(e)}")
 
 
-    async def _extract_media(self, message: Message, channel: Channel) -> Optional[MediaItem]:
+    async def _extract_media(self, mCtx: MediaContext) -> Optional[MediaItem]:
         """Extract media content from message"""
 
-        preview = find_web_preview(message)
+        preview = find_web_preview(mCtx.message)
         if preview:
             return preview
 
-        if not isinstance(message.file, File):
-            self.logger.write(f"No media found: {message.id}")
+        if not isinstance(mCtx.message.file, File):
+            self.logger.write(f"No media found: {mCtx.message.id}")
             return None
 
 
-        file: File = message.file
+        file: File = mCtx.message.file
         file_id = file.media.id
         # Size check
         if getattr(file, "size", 0) > self.config.max_file_size:
-            return await self._handle_large_file(message, channel, file.name, file_id)
+            return await self._handle_large_file(mCtx, file.name, file_id)
 
         if file.sticker_set:
             self.logger.write(f"Skipping sticker: {file_id}")
@@ -94,11 +109,11 @@ class MediaProcessor:
         return MediaItem(file, file_id, False, file.mime_type)
 
 
-    async def _handle_large_file(self, message: Message, channel: Channel,
+    async def _handle_large_file(self, mCtx: MediaContext,
                                  file_name: Optional[str],
                                  file_id: int) -> None:
         if self.config.write_message_links:
-            messageLink = await get_message_link(self.client, channel, message)
+            messageLink = await get_message_link(self.client, mCtx.channel, mCtx.message)
             if messageLink is not None:
                 self.logger.write(messageLink.stringify())
                 self.logger.add_data({"large file found": messageLink.link})
@@ -106,7 +121,7 @@ class MediaProcessor:
 
 
 
-    async def _download_media(self, item: MediaItem, message: Message) -> Optional[DownloadItem]:
+    async def _download_media(self, mCtx: MediaContext, item: MediaItem) -> Optional[DownloadItem]:
         """Download media content and prepare download item"""
 
         try:
@@ -120,9 +135,9 @@ class MediaProcessor:
 
             if not file_path:
                 self.logger.write(repr(item.target))
-                raise MediaProcessingError(f"Failed to download file: {item.id}")
+                raise DownloadError("Failed to download file", mCtx.error("download_media"))
 
-            return self._create_download_item(item, file_path, message)
+            return self._create_download_item(mCtx, item, file_path)
 
         except Exception as e:
             self.logger.write(f"Download failed: {str(e)}")
@@ -148,12 +163,12 @@ class MediaProcessor:
             self.logger.progress.remove_task(download_task)
 
 
-    def _create_download_item(self, item: MediaItem, file_path: Path, message: Message) -> DownloadItem:
+    def _create_download_item(self, mCtx: MediaContext, item: MediaItem, file_path: Path) -> DownloadItem:
         """Create download item from the downloaded file"""
         file_name = file_path.parts[-1]
         file_size = file_path.stat().st_size
         mime_type = item.mime_type or "unknown/unknown"
-        media_type = self._determine_media_type(mime_type, message)
+        media_type = self._determine_media_type(mCtx, mime_type)
 
         return DownloadItem(
             target=item.target,
@@ -166,17 +181,17 @@ class MediaProcessor:
         )
 
 
-    def _determine_media_type(self, mime_type: str, message: Message) -> str:
+    def _determine_media_type(self, mCtx: MediaContext, mime_type: str) -> str:
         mtype = mime_type.split("/")[0]
         if mtype in ("video", "image"):
             return mtype
-        if message.photo:
+        if mCtx.message.photo:
             return "photo"
         return "document"
 
-    def _save_media_item(self, item: DownloadItem, channel: Channel, message: Message):
+    def _save_media_item(self, mCtx: MediaContext, item: DownloadItem):
         try:
-            self.db.save_media_item(self.logger, item, channel.id, message)
+            self.db.save_media_item(self.logger, item, mCtx.channel.id, mCtx.message)
         except Exception as e:
             self.logger.write(f"Database insertion failed: {e}")
             file_path = self.config.media_path / item.file_name
