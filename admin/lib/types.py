@@ -9,6 +9,8 @@ from telethon.tl.types import ( # type: ignore
     Document,
     MessageMediaWebPage,
 )
+from .config import Settings
+from .TLContext import TLContext
 
 QueueItem = Tuple[Channel, Message]
 MessageTaskQueue = asyncio.Queue[QueueItem]
@@ -19,6 +21,7 @@ TaskWrapper = Callable[[Message, Channel], Coroutine[Any, Any, None]]
 ChannelGenerator = AsyncGenerator[Channel, None]
 MessageGenerator = AsyncGenerator[Message]
 ChannelMessageRetriever = Callable[[Channel], MessageGenerator]
+ServiceRoutine = Callable[[Settings, TLContext], Coroutine[Any, Any, None]]
 
 @dataclass
 class MediaItem:

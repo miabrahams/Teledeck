@@ -1,5 +1,4 @@
 from telethon import functions # type: ignore
-from telethon.client.telegramclient import TelegramClient # type: ignore
 from telethon.tl.custom.message import Message # type: ignore
 from telethon.tl.custom.file import File # type: ignore
 from telethon.tl.custom.forward import Forward # type: ignore
@@ -16,46 +15,22 @@ import pathlib
 import asyncio
 from datetime import datetime
 from .config import Settings
-from .Logger import RichLogger
 from .utils import process_with_backoff
 from .QueueManager import QueueManager
 from .MessageFetcher import MessageFetcher
 from .DatabaseService import DatabaseService
-from .types import Downloadable, MediaItem, DownloadItem
+from .types import Downloadable, MediaItem, DownloadItem, ServiceRoutine
+from .Logger import RichLogger
+from .TLContext import TLContext
 from .api import find_web_preview, get_message_link
 
 
 
+## TODO: WHERE DID THIS GO
+# # semaphore = asyncio.Semaphore(cfg.MAX_CONCURRENT_TASKS)
+
+## TODO: REMOVE FROM GLOBAL
 cfg = Settings()
-
-semaphore = asyncio.Semaphore(cfg.MAX_CONCURRENT_TASKS)
-
-
-# TODO: Enable cleanup using `with` statement; __enter__ and __exit__
-class TLContext:
-    tclient: TelegramClient
-    logger: RichLogger
-    db: DatabaseService
-
-    def __init__(self, tclient: TelegramClient, dbService: DatabaseService):
-        self.tclient = tclient
-        self.db = dbService
-        self.logger = RichLogger(cfg.UPDATE_PATH)
-
-    def save_data(self) -> None:
-        # TODO: Make this automatic
-        self.logger.save_data()
-
-
-async def get_context():
-    tclient = TelegramClient(cfg.SESSION_FILE, int(cfg.TELEGRAM_API_ID), cfg.TELEGRAM_API_HASH)
-    conn = tclient.connect()
-    dbService = DatabaseService(cfg.DB_PATH)
-    await conn
-    ctx = TLContext(tclient, dbService)
-    return ctx
-
-
 
 
 async def download_media(ctx: TLContext, downloadable: Downloadable) -> Optional[pathlib.Path]:
@@ -64,7 +39,7 @@ async def download_media(ctx: TLContext, downloadable: Downloadable) -> Optional
     def progress_callback(current: int, total: int):
         ctx.logger.progress.update(download_task, completed=current, total=total)
 
-    result = await ctx.tclient.download_media(downloadable, str(cfg.MEDIA_PATH), progress_callback=progress_callback)
+    result = await ctx.client.download_media(downloadable, str(cfg.MEDIA_PATH), progress_callback=progress_callback)
 
     ctx.logger.progress.remove_task(download_task)
 
@@ -83,7 +58,7 @@ async def extract_media(ctx: TLContext, message: Message, channel: Channel) -> M
         file_id = file.media.id
         if getattr(file, "size", 0) > 1_000_000_000:
             if cfg.WRITE_MESSAGE_LINKS:
-                messageLink = await get_message_link(ctx.tclient, channel, message)
+                messageLink = await get_message_link(ctx.client, channel, message)
                 if messageLink is not None:
                     ctx.logger.write(messageLink.stringify())
                     ctx.logger.add_data({"large file found": messageLink.link})
@@ -104,7 +79,7 @@ async def extract_forward(ctx: TLContext, message: Message) -> None:
 
     if forward.is_channel:
         # fwd_channel: Channel = await forward.get_input_chat()
-        fwd_channel = await ctx.tclient.get_entity(getattr(forward, "chat_id"))
+        fwd_channel = await ctx.client.get_entity(getattr(forward, "chat_id"))
         if not isinstance(fwd_channel, Channel):
             ctx.logger.write(f"*************Unexpected non-channel forward: {getattr(forward, 'chat_id')}")
             return
@@ -181,8 +156,8 @@ async def get_target_channels(ctx: TLContext) -> AsyncGenerator[Channel, None]:
 
     for channel_model in channel_models:
         try:
-            inputPeerChannel = await ctx.tclient.get_input_entity(PeerChannel(channel_model.id))
-            channel = await ctx.tclient.get_entity(inputPeerChannel)
+            inputPeerChannel = await ctx.client.get_input_entity(PeerChannel(channel_model.id))
+            channel = await ctx.client.get_entity(inputPeerChannel)
             if not isinstance(channel, Channel):
                 raise ValueError(f"Channel not found: {channel_model.id}. Got {channel}")
             yield channel
@@ -197,14 +172,14 @@ async def get_target_channels(ctx: TLContext) -> AsyncGenerator[Channel, None]:
             ctx.logger.add_data(str(e))
 
 
-    # channelTasks = [ctx.tclient.get_entity() for channel_id in channel_ids]
+    # channelTasks = [ctx.client.get_entity() for channel_id in channel_ids]
     # target_channels = await asyncio.gather(*channelTasks)
     # ctx.logger.write(f"{len(target_channels)} channels found")
     # return cast(List[Channel], target_channels)
 
 
 async def get_update_folder_channels(ctx: TLContext) -> List[Channel]:
-    chat_folders: Any  = await ctx.tclient(functions.messages.GetDialogFiltersRequest())
+    chat_folders: Any  = await ctx.client(functions.messages.GetDialogFiltersRequest())
     if not isinstance(chat_folders, DialogFilters):
         raise ValueError("Could not find folders")
 
@@ -217,13 +192,13 @@ async def get_update_folder_channels(ctx: TLContext) -> List[Channel]:
 
     peer_channels = [peer for peer in media_folder.include_peers if isinstance(peer, InputPeerChannel)]
 
-    target_channels = await asyncio.gather( *[ctx.tclient.get_entity(peer) for peer in peer_channels])
+    target_channels = await asyncio.gather( *[ctx.client.get_entity(peer) for peer in peer_channels])
     ctx.logger.write(f"{len(target_channels)} channels found")
 
     return cast(List[Channel], target_channels)
 
 
-async def channel_check_list_sync(ctx: TLContext):
+async def channel_check_list_sync(cfg: Settings, ctx: TLContext):
     target_channels = await get_update_folder_channels(ctx)
     ctx.logger.write("Found channels:")
     titles = [f"{n}: {channel.title}" for n, channel in enumerate(target_channels)]
@@ -231,10 +206,18 @@ async def channel_check_list_sync(ctx: TLContext):
     ctx.db.update_channel_list(target_channels)
 
 
+async def with_context(cb: ServiceRoutine):
+    cfg = Settings()
+    db_service = DatabaseService(cfg.DB_PATH)
+    logger = RichLogger(cfg.UPDATE_PATH)
+    async with TLContext(cfg, logger, db_service) as ctx:
+        await cb(cfg, ctx)
 
-async def client_update(ctx: TLContext):
+
+async def client_update(cfg: Settings, ctx: TLContext):
     qm = QueueManager(ctx.logger, cfg.MAX_CONCURRENT_TASKS)
-    mf = MessageFetcher(ctx.tclient, ctx.db, cfg)
+
+    mf = MessageFetcher(ctx.client, ctx.db, cfg)
     gather_messages = asyncio.create_task(
         qm.producer(
             get_target_channels(ctx),

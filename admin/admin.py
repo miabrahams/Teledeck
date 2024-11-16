@@ -6,11 +6,13 @@ from models.telegram import Tag, MediaItem
 import argparse
 from os import environ
 from tqdm import tqdm
-from lib.tl_client import get_context, extract_forward, channel_check_list_sync, client_update
+from lib.tl_client import extract_forward, channel_check_list_sync, with_context, client_update
+from lib.types import ServiceRoutine
+from lib.TLContext import TLContext
 from telethon import hints
 from telethon.tl.custom.dialog import Dialog
 import asyncio
-from typing import cast, Callable, Awaitable, Any
+from typing import cast
 
 
 load_dotenv()
@@ -50,11 +52,10 @@ def find_orphans(media_path: pathlib.Path, orphan_path: pathlib.Path):
                 item.rename(orphan_path.joinpath(name))
                 print(f"No file found: {name}")
 
-async def save_forwards(chat_name: str):
-    ctx = await get_context()
+async def save_forwards(ctx: TLContext, chat_name: str):
     # resolved = get_peer_id(chat_id)
     entity: hints.EntityLike | None = None
-    async for d in ctx.tclient.iter_dialogs():
+    async for d in ctx.client.iter_dialogs():
         dialog = cast(Dialog, d)
         if dialog.name == chat_name:
             entity = dialog.entity
@@ -64,7 +65,7 @@ async def save_forwards(chat_name: str):
         return
 
     n = 0
-    async for message in ctx.tclient.iter_messages(entity, limit=5000):
+    async for message in ctx.client.iter_messages(entity, limit=5000):
         try:
             await extract_forward(ctx, message)
         except Exception as e:
@@ -72,14 +73,10 @@ async def save_forwards(chat_name: str):
         n += 1
         print(n)
 
-    ctx.save_data()
 
-
-def run_with_context(func: Callable[[Any], Awaitable[Any]]):
+def run_with_context(func: ServiceRoutine):
     async def task():
-        ctx = await get_context()
-        await func(ctx)
-        ctx.save_data()
+        await with_context(func)
 
     asyncio.get_event_loop().run_until_complete(task())
 
@@ -102,7 +99,7 @@ if __name__ == '__main__':
         find_orphans(pathlib.Path(directory_path), pathlib.Path(orphan_path))
 
     elif args.save_forwards:
-        asyncio.get_event_loop().run_until_complete(save_forwards(args.save_forwards))
+        run_with_context(lambda _, ctx: save_forwards(ctx, args.save_forwards))
 
     elif args.update_channels:
         run_with_context(channel_check_list_sync)
