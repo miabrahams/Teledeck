@@ -131,6 +131,7 @@ class MediaProcessor:
         """Download media content and prepare download item"""
 
         try:
+            print(item.target)
             if isinstance(item.target, Document | File):
                 file_path = await self._download_file(item.target)
             else:
@@ -146,8 +147,11 @@ class MediaProcessor:
             return self._create_download_item(mCtx, item, file_path)
 
         except Exception as e:
+            # Print trace
+            import traceback
+            traceback.print_exc()
             self.logger.write(f"Download failed: {str(e)}")
-            return None
+            raise
 
     async def _download_file(self, downloadable: Downloadable) -> Optional[Path]:
         download_task = self.logger.progress.add_task("[cyan]Downloading", total=100)

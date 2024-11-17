@@ -25,13 +25,17 @@ class TeledeckUpdater:
         except Exception as e:
             self.logger.write(f"Failed to process message: {message.id} in channel {channel.title}")
             self.logger.write(repr(e))
+            raise
         await self.logger.update_progress()
 
     async def process_channels(self,
                              channel_provider: ChannelProvider,
                              updater_config: UpdaterConfig):
         """Process channels using the provided configuration"""
+        await self.logger.run(100, self._process_channels(channel_provider, updater_config))
 
+
+    async def _process_channels(self, channel_provider: ChannelProvider, updater_config: UpdaterConfig):
         # Configure message fetcher with specified strategy
         mf = MessageFetcher(self.ctx.client, self.ctx.db, StrategyConfig(
             strategy=updater_config.message_strategy,
@@ -39,6 +43,7 @@ class TeledeckUpdater:
         ))
 
         # Set up message gathering
+        # TODO: Add a progress bar to track channel updating
         gather_messages = self.queue_manager.producer(
             channel_provider.get_channels(self.cm),
             mf.get_channel_messages
@@ -51,13 +56,18 @@ class TeledeckUpdater:
                 await message.mark_read()
             await self.logger.update_progress()
 
+
         self.queue_manager.create_consumers(process_message)
+
+        gm = await gather_messages
+        self.logger.progress.update(self.logger.overall_task, total=gm)
 
         # Run processing
         num_tasks = await gather_messages
         self.logger.write(f"Found {num_tasks} messages to process")
 
-        await self.logger.run(num_tasks, self.queue_manager.wait())
+        # Logger is broken!! Need to think about what we're actually doing here.
+        await self.queue_manager.wait()
 
         self.queue_manager.finish()
         self.logger.write(

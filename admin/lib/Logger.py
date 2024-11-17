@@ -21,6 +21,7 @@ class RichLogger:
     update_path: Path
 
     def __init__(self, update_path: Path):
+        self.progress_table = Table.grid()
         self.progress = Progress()
         self.console = None
         self._overall_task = None
@@ -31,11 +32,11 @@ class RichLogger:
     def overall_task(self):
         if self._overall_task is None:
             raise ValueError("attempted to access overall_task before starting")
+            # print("attempted to access overall_task before starting!!")
         return self._overall_task
 
     async def run(self, total_tasks, iter: Coroutine[Any, Any, None]):
 
-        self.progress_table = Table.grid()
         self.progress_table.add_row(Panel(self.progress, title="Download Progress", border_style="green", padding=(1, 1)))
 
         with Live(self.progress_table, refresh_per_second=10) as live:
@@ -44,10 +45,18 @@ class RichLogger:
             await iter
 
     async def update_message(self, new_message: str):
-        self.progress.update(self.overall_task, description=new_message)
+        # TODO: DO NOT DO THIS
+        if self._overall_task:
+            self.progress.update(self._overall_task, description=new_message)
+        else:
+            print(new_message)
 
     async def update_progress(self):
-        self.progress.update(self.overall_task, advance=1)
+        if self._overall_task:
+            self.progress.update(self.overall_task, advance=1)
+        else:
+            # print("Progress not started")
+            pass
 
     def write(self, *args, **kwargs):
         if self.console:
