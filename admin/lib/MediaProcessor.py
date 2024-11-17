@@ -132,7 +132,7 @@ class MediaProcessor:
 
         try:
             print(item.target)
-            if isinstance(item.target, Document | File):
+            if isinstance(item.target, Document):
                 file_path = await self._download_file(item.target)
             else:
                 if getattr(item.target, "media", None) is None:

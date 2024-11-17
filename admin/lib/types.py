@@ -10,8 +10,8 @@ from telethon.tl.types import ( # type: ignore
     MessageMediaWebPage,
 )
 
-QueueItem = Tuple[Channel, Message]
-MessageTaskQueue = asyncio.Queue[QueueItem]
+MessageQueueItem = Tuple[Channel, Message]
+MessageTaskQueue = asyncio.Queue[MessageQueueItem]
 DLMedia = MessageMediaWebPage | Document | File
 Downloadable = DLMedia | Message
 

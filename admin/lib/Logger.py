@@ -16,7 +16,8 @@ class RichLogger:
     console: Optional[Console]
     progress_table: Table
     progress: Progress
-    _overall_task: Optional[TaskID]
+    _channels_task: Optional[TaskID]
+    _messages_task: Optional[TaskID]
     data: List
     update_path: Path
 
@@ -24,39 +25,44 @@ class RichLogger:
         self.progress_table = Table.grid()
         self.progress = Progress()
         self.console = None
-        self._overall_task = None
+        self._channels_task = None
+        self._messages_task = None
         self.data = []
         self.update_path = update_path
 
     @property
-    def overall_task(self):
-        if self._overall_task is None:
-            raise ValueError("attempted to access overall_task before starting")
-            # print("attempted to access overall_task before starting!!")
-        return self._overall_task
+    def channels_task(self):
+        if self._channels_task is None:
+            raise ValueError("attempted to access channel_task before starting")
+        return self._channels_task
 
-    async def run(self, total_tasks, iter: Coroutine[Any, Any, None]):
+    @property
+    def messages_task(self):
+        if self._messages_task is None:
+            raise ValueError("attempted to access download_task before starting")
+        return self._messages_task
 
-        self.progress_table.add_row(Panel(self.progress, title="Download Progress", border_style="green", padding=(1, 1)))
 
+    async def run(self, channels_estimate, iter: Coroutine[Any, Any, None]):
+        self.progress_table.add_row(Panel(self.progress, title="Update Progress", border_style="green", padding=(1, 1)))
         with Live(self.progress_table, refresh_per_second=10) as live:
             self.console = live.console
-            self._overall_task = self.progress.add_task("[yellow]Overall Progress", total=total_tasks)
+            self._channels_task = self.progress.add_task("[green]Channel Scan Progress", total=channels_estimate)
+            self._messages_task = self.progress.add_task("[yellow]Download Progress", total=channels_estimate * 5)
             await iter
 
-    async def update_message(self, new_message: str):
-        # TODO: DO NOT DO THIS
-        if self._overall_task:
-            self.progress.update(self._overall_task, description=new_message)
-        else:
-            print(new_message)
+    def setNumChannels(self, c: int):
+        self.progress.update(self.channels_task, total=c)
 
-    async def update_progress(self):
-        if self._overall_task:
-            self.progress.update(self.overall_task, advance=1)
-        else:
-            # print("Progress not started")
-            pass
+    def setNumMessages(self, m: int):
+        self.progress.update(self.messages_task, total=m)
+
+    def finish_channel(self):
+        self.progress.update(self.channels_task, advance=1)
+
+    def finish_message(self):
+        self.progress.update(self.messages_task, advance=1)
+
 
     def write(self, *args, **kwargs):
         if self.console:
