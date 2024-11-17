@@ -132,16 +132,30 @@ class MediaProcessor:
 
         try:
             print(item.target)
+            final_target = item.target
+            #TODO: Check Webpage handling logic
             if isinstance(item.target, Document):
-                file_path = await self._download_file(item.target)
+                final_target = item.target
+            elif isinstance(item.target, File):
+                final_target = item.target.media
             else:
-                if getattr(item.target, "media", None) is None:
-                    self.logger.write("No target found")
-                    return None
-                file_path = await self._download_file(item.target.media) #TODO: Check Webpage handling
+                self.logger.write("Unknown target type")
+                final_target = item.target.media
+
+            if final_target is None:
+                self.logger.write("No target found.")
+                self.logger.write(item.target.stringify()) # file?
+                return None
+
+            existing = self.db.find_existing_media(final_target.id)
+            if existing:
+                self.logger.write(f"Found existing file_id: {final_target.id}")
+                self.logger.write(final_target.stringify())
+                return None
+            file_path = await self._download_file(final_target)
 
             if not file_path:
-                self.logger.write(repr(item.target))
+                self.logger.write(repr(final_target))
                 raise DownloadError("Failed to download file", mCtx.error("download_media"))
 
             return self._create_download_item(mCtx, item, file_path)

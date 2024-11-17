@@ -10,7 +10,8 @@ from .config import DatabaseConfig
 from .Logger import RichLogger
 from models.telegram import (
     MediaItem, TelegramMetadata, MediaType,
-    ChannelModel
+    ChannelModel,
+    Document
 )
 from .types import DownloadItem
 from sqlmodel import create_engine
@@ -44,7 +45,7 @@ class DatabaseService:
                        message: Message) -> None:
         with Session(self.engine) as session:
             # First check if media already exists
-            existing = self._get_existing_media(session, item)
+            existing = self.get_existing_media(session, item)
             if existing:
                 logger.write(f"Found existing file_id: {item.id}")
                 self._update_existing_media(session, existing, item, channel_id, message)
@@ -90,6 +91,18 @@ class DatabaseService:
             .where(TelegramMetadata.file_id == download_item.id)
             .where(TelegramMetadata.from_preview == int(download_item.from_preview))
         ).first()
+
+
+    ## External callers
+    def find_existing_media(self,
+                          download_item: Document) -> Optional[Tuple[MediaItem, TelegramMetadata]]:
+        with Session(self.engine) as session:
+            return session.exec(
+                select(MediaItem, TelegramMetadata)
+                .where(MediaItem.id == TelegramMetadata.media_item_id)
+                .where(TelegramMetadata.file_id == download_item.id)
+            ).first()
+
 
 
     def get_media_type(self, type_name: str) -> Optional[MediaType]:
