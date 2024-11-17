@@ -3,7 +3,7 @@ from rich.progress import Progress, TaskID
 from rich.panel import Panel
 from rich.live import Live
 from rich.table import Table
-from typing import Any, Optional, Coroutine, List, Any
+from typing import Any, Optional, Coroutine, List
 import json
 from datetime import datetime
 import uuid

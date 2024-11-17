@@ -1,7 +1,7 @@
 # utils.py
 import asyncio
 import random
-from config import BackoffConfig
+from .config import BackoffConfig
 
 from .exceptions import RateLimitError
 

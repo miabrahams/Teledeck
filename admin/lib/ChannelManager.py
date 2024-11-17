@@ -1,5 +1,6 @@
 import asyncio
 from typing import AsyncGenerator, Optional, List, Any, cast
+from telethon import functions as tlfunctions
 from telethon.tl.types import (
     Channel,
     PeerChannel,
@@ -8,9 +9,8 @@ from telethon.tl.types import (
 )
 from telethon.tl.types.messages import DialogFilters # type: ignore
 from telethon.tl.custom import Dialog # type: ignore
-from TLContext import TLContext
-from telethon import functions as tlfunctions
 from models.telegram import ChannelModel # Todo: move this to db operations
+from .TLContext import TLContext
 
 
 class ChannelManager:

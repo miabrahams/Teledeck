@@ -1,5 +1,5 @@
 import asyncio
-from config import QueueManagerConfig
+from .config import QueueManagerConfig
 from .Logger import RichLogger
 from .types import QueueItem, TaskWrapper, ChannelGenerator, ChannelMessageRetriever
 

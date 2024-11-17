@@ -1,15 +1,14 @@
-import asyncio
 from datetime import datetime
 from telethon.tl.custom.message import Message # type: ignore
 from telethon.tl.types import Channel
 from .config import Settings, BackoffConfig, ProcessingConfig, QueueManagerConfig, StrategyConfig, UpdaterConfig
-from BackoffManager import BackoffManager
-from QueueManager import QueueManager
-from MessageFetcher import MessageFetcher
-from TLContext import TLContext
-from MediaProcessor import MediaProcessor
-from ChannelManager import ChannelManager
-from channelStrategies import ChannelProvider
+from .BackoffManager import BackoffManager
+from .QueueManager import QueueManager
+from .MessageFetcher import MessageFetcher
+from .TLContext import TLContext
+from .MediaProcessor import MediaProcessor
+from .ChannelManager import ChannelManager
+from .channelStrategies import ChannelProvider
 
 class TeledeckUpdater:
     def __init__(self, cfg: Settings, ctx: TLContext):

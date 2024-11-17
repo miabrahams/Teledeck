@@ -1,16 +1,10 @@
+from typing import Callable, Coroutine, Any
 from telethon.client.telegramclient import TelegramClient # type: ignore
 from typing import Optional
 from dataclasses import dataclass
 from .config import Settings, TelethonConfig, DatabaseConfig
 from .Logger import RichLogger
 from .DatabaseService import DatabaseService
-from .types import ServiceRoutine
-
-async def with_context(cfg: Settings, cb: ServiceRoutine):
-    db_service = DatabaseService(DatabaseConfig.from_config(cfg))
-    logger = RichLogger(cfg.UPDATE_PATH)
-    async with TLContextProvider(cfg, logger, db_service) as ctx:
-        return cb(cfg, ctx)
 
 @dataclass
 class TLContext:
@@ -19,6 +13,13 @@ class TLContext:
     db: DatabaseService
     client: TelegramClient
 
+ServiceRoutine = Callable[[Settings, TLContext], Coroutine[Any, Any, None]]
+
+async def with_context(cfg: Settings, cb: ServiceRoutine):
+    db_service = DatabaseService(DatabaseConfig.from_config(cfg))
+    logger = RichLogger(cfg.UPDATE_PATH)
+    async with TLContextProvider(cfg, logger, db_service) as ctx:
+        return await cb(cfg, ctx)
 
 class TLContextProvider:
     def __init__(self, settings: Settings, logger: RichLogger, db: DatabaseService):
