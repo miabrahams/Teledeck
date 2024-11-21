@@ -147,7 +147,7 @@ class MediaProcessor:
                 self.logger.write(item.target.stringify()) # file?
                 return None
 
-            existing = self.db.find_existing_media(final_target.id)
+            existing = self.db.find_existing_media(final_target)
             if existing:
                 self.logger.write(f"Found existing file_id: {final_target.id}")
                 self.logger.write(final_target.stringify())

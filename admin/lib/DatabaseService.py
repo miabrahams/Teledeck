@@ -3,7 +3,10 @@ from datetime import datetime
 import uuid
 from sqlmodel import Session, select, Column, Integer
 from typing import Optional, Tuple, List, Any
-from telethon.types import Channel
+from telethon.types import (
+    Channel,
+    Document
+)
 from telethon.tl.custom.message import Message
 from .config import DatabaseConfig
 
@@ -11,7 +14,6 @@ from .Logger import RichLogger
 from models.telegram import (
     MediaItem, TelegramMetadata, MediaType,
     ChannelModel,
-    Document
 )
 from .types import DownloadItem
 from sqlmodel import create_engine
@@ -45,7 +47,7 @@ class DatabaseService:
                        message: Message) -> None:
         with Session(self.engine) as session:
             # First check if media already exists
-            existing = self.get_existing_media(session, item)
+            existing = self._get_existing_media(session, item)
             if existing:
                 logger.write(f"Found existing file_id: {item.id}")
                 self._update_existing_media(session, existing, item, channel_id, message)
