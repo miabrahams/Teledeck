@@ -1,7 +1,7 @@
 # db_manager.py
 from datetime import datetime
 import uuid
-from sqlmodel import Session, select, Column, Integer
+from sqlmodel import Session, select, Column, Integer, SQLModel
 from typing import Optional, Tuple, List, Any
 from telethon.types import (
     Channel,
@@ -13,14 +13,17 @@ from .config import DatabaseConfig
 from .Logger import RichLogger
 from models.telegram import (
     MediaItem, TelegramMetadata, MediaType,
-    ChannelModel,
+    ChannelModel, Source, MediaItemTag, Tag
 )
 from .types import DownloadItem
 from sqlmodel import create_engine
 
 class DatabaseService:
     def __init__(self, config: DatabaseConfig):
+        needs_init = not config.db_path.exists()
         self.engine = create_engine(f"sqlite:///{config.db_path}")
+        if needs_init:
+            self._init_db()
 
     def get_last_seen_post(self, channel_id: int) -> int | None:
         with Session(self.engine) as session:
@@ -30,6 +33,14 @@ class DatabaseService:
                 .order_by(Column("message_id", Integer).desc())  # Find the last message_id
             )
             return session.exec(query).first()
+
+    def _init_db(self):
+        SQLModel.metadata.create_all(self.engine)
+
+        with Session(self.engine) as session:
+            session.add_all([Source(name=name) for name in ["telegram", "twitter", "furaffinity", "deviantart", "e621"]])
+            session.add_all([MediaType(type=type) for type in ["photo", "video", "jpeg", "webp", "gif", "png", "document", "image"]])
+            session.commit()
 
     def get_earliest_seen_post(self, channel_id: int) -> int | None:
         with Session(self.engine) as session:

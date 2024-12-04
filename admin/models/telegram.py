@@ -31,14 +31,14 @@ class ChannelModel(SQLModel, table=True):
 class Source(SQLModel, table=True):
     __tablename__ = 'sources'
 
-    id: int = Field(primary_key=True)
+    id: int = Field(primary_key=True, default=None)
     name: str = Field(nullable=False, unique=True)
     media_items: List["MediaItem"] = Relationship(back_populates="source")
 
 class MediaType(SQLModel, table=True):
     __tablename__ = 'media_types'
 
-    id: int = Field(primary_key=True)
+    id: int = Field(primary_key=True, default=None)
     type: str = Field(nullable=False, unique=True)
     media_items: List["MediaItem"] = Relationship(back_populates="media_type")
 

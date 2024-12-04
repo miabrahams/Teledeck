@@ -10,7 +10,7 @@ from sqlalchemy import Engine
 from models.telegram import Tag, MediaItem
 from lib.TLContext import with_context, ServiceRoutine
 from lib.commands import save_forwards, channel_check_list_sync, run_update, run_export
-from lib.config import Settings, create_export_overrides
+from lib.config import Settings, create_export_location
 
 
 load_dotenv()
@@ -93,5 +93,5 @@ if __name__ == '__main__':
 
     elif args.export_channel:
         export_path = Path(args.export_path) if args.export_path else cfg.EXPORT_PATH / str(args.export_channel)
-        overrides = create_export_overrides(args.export_channel, Path(args.export_path), cfg)
+        overrides = create_export_location(args.export_channel, Path(args.export_path), cfg)
         run_with_context(overrides, partial(run_export, args.export_channel))

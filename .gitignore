@@ -11,6 +11,7 @@ __pycache__/
 static/*
 recyclebin/*
 data/*
+export/*
 tagger/model/*
 server/static/css/style.css
 server/static/css/style.min.css

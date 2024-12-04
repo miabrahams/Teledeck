@@ -73,16 +73,16 @@ class ExportConfig(PathConfig):
         base_path = export_path or (cfg.EXPORT_PATH / str(channel_name))
         return cls(
             media_path=base_path / "media",
-            db_path=base_path / "db",
+            db_path=base_path / "teledeck_export.db",
             channel_id=channel_id,
             channel_name=channel_name
         )
 
-def create_export_overrides(channel_name: str, export_path: Optional[Path], cfg: Settings):
+def create_export_location(channel_name: str, export_path: Path, cfg: Settings):
     """ Create a new Settings instance with path overrides for export commands """
     export_cfg = ExportConfig.custom(cfg, export_path, channel_name, None)
+    export_path.mkdir(parents=True, exist_ok=True)
     export_cfg.media_path.mkdir(parents=True, exist_ok=True)
-    export_cfg.db_path.mkdir(parents=True, exist_ok=True)
     return cfg.with_path_override(export_cfg)
 
 
@@ -171,6 +171,7 @@ class TelethonConfig:
 class DatabaseConfig:
     """Configuration for database operations"""
     db_path: Path
+    must_create: bool = False
 
     @classmethod
     def from_config(cls, cfg: Settings | ExportConfig):
