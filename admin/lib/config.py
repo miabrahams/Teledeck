@@ -27,7 +27,7 @@ class BaseConfig(BaseSettings):
     MAX_CONCURRENT_TASKS: int = 1
     SLOW_MODE: bool = False
     SLOW_MODE_DELAY: Tuple[float, float] = (5.0, 10.0)
-    DEFAULT_FETCH_LIMIT: int = 65
+    DEFAULT_FETCH_LIMIT: int | None = 65
     MESSAGE_STRATEGY: str = "unread"
     WRITE_MESSAGE_LINKS: bool = False
 
@@ -127,7 +127,7 @@ class StrategyConfig:
     """Configuration for message fetching strategies"""
 
     strategy: str
-    limit: int
+    limit: Optional[int]
 
     @classmethod
     def from_config(cls, cfg: Settings):

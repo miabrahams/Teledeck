@@ -16,19 +16,19 @@ async def NoMessages() -> AsyncIterable[Message]:
     return
     yield
 
-def get_all_messages(tclient: TelegramClient, entity: Entity, limit: int)-> AsyncIterable[Message]:
+def get_all_messages(tclient: TelegramClient, entity: Entity, limit: int | None)-> AsyncIterable[Message]:
     return tclient.iter_messages(entity, limit)
 
-def get_oldest_messages(tclient: TelegramClient, entity: Entity, limit: int):
+def get_oldest_messages(tclient: TelegramClient, entity: Entity, limit: int | None):
     # TODO: Test for correctness
     return tclient.iter_messages(entity, limit, reverse=True, add_offset=500)
 
 
-def get_urls(tclient: TelegramClient, entity: Entity, limit: int):
+def get_urls(tclient: TelegramClient, entity: Entity, limit: int | None):
     return tclient.iter_messages(entity, limit, filter=InputMessagesFilterUrl)
 
 
-def get_all_videos(tclient: TelegramClient, entity: Entity, limit: int):
+def get_all_videos(tclient: TelegramClient, entity: Entity, limit: int | None):
     return tclient.iter_messages(entity, limit, filter=InputMessagesFilterVideo)
 
 async def get_unread_messages(tclient: TelegramClient, channel: Channel) -> AsyncIterable[Message]:
@@ -45,13 +45,13 @@ async def get_unread_messages(tclient: TelegramClient, channel: Channel) -> Asyn
     else:
         return NoMessages()
 
-def get_messages_since_db_update(tclient: TelegramClient, channel: Channel, last_seen_post: int | None, limit: int):
+def get_messages_since_db_update(tclient: TelegramClient, channel: Channel, last_seen_post: int | None, limit: int | None):
     if last_seen_post is None:
         return default_strategy(tclient, channel, limit)
     else:
         return tclient.iter_messages(channel, limit, min_id=last_seen_post)
 
-def get_earlier_unseen_messages(tclient: TelegramClient, channel: Channel, oldest_seen_post: int | None, limit: int):
+def get_earlier_unseen_messages(tclient: TelegramClient, channel: Channel, oldest_seen_post: int | None, limit: int | None):
     if oldest_seen_post is None:
         return default_strategy(tclient, channel, limit)
     else:

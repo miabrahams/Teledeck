@@ -20,7 +20,7 @@ class MessageFetcher:
             yield message
 
 
-    async def _get_strategy(self, channel: Channel, strategy: str, limit: int) -> MessageIter:
+    async def _get_strategy(self, channel: Channel, strategy: str, limit: int | None) -> MessageIter:
         match strategy:
             case "all":
                 return strat.get_all_messages(self.client, channel, limit)

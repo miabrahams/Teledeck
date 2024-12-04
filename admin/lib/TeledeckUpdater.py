@@ -1,6 +1,4 @@
 from datetime import datetime
-from telethon.tl.custom.message import Message # type: ignore
-from telethon.tl.types import Channel
 from .config import Settings, BackoffConfig, ProcessingConfig, QueueManagerConfig, StrategyConfig, UpdaterConfig
 from .BackoffManager import BackoffManager
 from .QueueManager import QueueManager
@@ -35,7 +33,7 @@ class TeledeckUpdater:
         # Configure message fetcher with specified strategy
         mf = MessageFetcher(self.ctx.client, self.ctx.db, StrategyConfig(
             strategy=updater_config.message_strategy,
-            limit=updater_config.message_limit or 0
+            limit=updater_config.message_limit
         ))
 
         gather_messages = self.queue_manager.processChannelQueue(

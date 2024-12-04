@@ -55,9 +55,10 @@ class ChannelManager:
                 channel = dialog.entity
                 if not isinstance(channel, Channel):
                     raise ValueError(f"Unexpected channel type for channel {channel.stringify()}")
+                self.logger.write(f"Found channel: {channel.title}")
                 return channel
 
-            raise ValueError(f"Failed to get channel: {name}")
+            raise ValueError(f"Failed to get channel matching: {name}")
         except Exception as e:
             self.logger.write(f"Error looking up channel: {str(e)}")
             raise e
