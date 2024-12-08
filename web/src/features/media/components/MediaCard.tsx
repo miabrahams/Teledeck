@@ -1,7 +1,7 @@
 // src/features/media/components/MediaCard.tsx
 import React from 'react';
 import { useSetAtom } from 'jotai';
-import { Play, Pause, Download, Star, Trash } from 'lucide-react';
+import { Play, Download, Star, Trash } from 'lucide-react';
 import { useVideoPlayer } from '@media/hooks/useVideoPlayer';
 import { useMediaControls } from '@media/hooks/useMediaControls';
 import { useMediaItem } from '@media/api';
@@ -29,7 +29,7 @@ const VideoImageSwitch: React.FC<VideoImageSwitchProps> = ({ item }) => {
     return <VideoItem item={item} setFullscreen={setFullscreen} />;
   }
 
-  if (['image', 'photo'].includes(item.MediaType)) {
+  if (['image', 'photo', 'jpeg', 'png'].includes(item.MediaType)) {
     return <ImageItem item={item} setFullscreen={setFullscreen} />;
   }
 
@@ -60,7 +60,7 @@ const VideoItem: React.FC<MediaProps> = ({ item, setFullscreen }) => {
 
   return (
     <AspectRatio ratio={1}>
-      <Box position="relative" style={{ width: '100%', height: '100%' }}>
+      <Box position="relative" style={{ width: '100%', height: '100%' }} onClick={setFullscreen}>
         <video
           onClick={togglePlay}
           onPlay={handlePlay}

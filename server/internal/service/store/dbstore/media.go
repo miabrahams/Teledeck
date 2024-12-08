@@ -1,7 +1,6 @@
 package dbstore
 
 import (
-	"fmt"
 	"teledeck/internal/models"
 
 	"log/slog"
@@ -65,6 +64,7 @@ func applySortMethod(query *gorm.DB, P models.SearchPrefs) *gorm.DB {
 func (s *MediaStore) applySearchFilters(query *gorm.DB, P models.SearchPrefs) *gorm.DB {
 
 	if P.VideosOnly {
+		s.logger.Info("Videos Only")
 		query = query.Where("media_types.type = 'video' OR media_types.type = 'gif' OR media_types.type = 'webm'")
 	}
 
@@ -77,6 +77,7 @@ func (s *MediaStore) applySearchFilters(query *gorm.DB, P models.SearchPrefs) *g
 	}
 
 	if P.Search != "" {
+		s.logger.Info("Searching")
 		matching_tags := s.db.Select("id").Model(&models.Tag{}).Where("name LIKE ?", P.Search+"%")
 		matching_ids := s.db.Select("media_item_id").Model(&models.MediaItemTag{}).Where("tag_id IN (?)", matching_tags).Distinct()
 		query = query.Where("media_items.id IN (?)", matching_ids)
@@ -88,10 +89,13 @@ func (s *MediaStore) applySearchFilters(query *gorm.DB, P models.SearchPrefs) *g
 func (s *MediaStore) GetMediaItemCount(P models.SearchPrefs) int64 {
 	var count int64
 	query := s.db.Model(&models.MediaItem{}).
-		Joins("LEFT JOIN media_types ON media_items.media_type_id = media_types.id")
+		Select("media_items.id").
+		Joins("LEFT JOIN media_types ON media_items.media_type_id = media_types.id").
+		Where("media_items.user_deleted = false")
 	query = s.applySearchFilters(query, P)
-	query.Count(&count)
-	fmt.Printf("Count: %d\n", count)
+	s.logger.Info("getMediaItemCount", "count", count, "prefs", P)
+	query.Debug().Count(&count)
+	// query.Count(&count)
 	return count
 }
 

@@ -8,6 +8,7 @@ import {
   Box,
   Container,
   Flex,
+  Grid,
   Text,
   AlertDialog,
   Button,
@@ -64,19 +65,15 @@ const MediaGallery: React.FC<MediaGalleryProps> = ({ currentPage }) => {
 
   return (
     <Container maxWidth={"100%"}>
-      <Box
+      <Grid
         className="media-gallery"
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-          gap: 'var(--space-4)',
-          padding: 'var(--space-4)'
-        }}
+        columns='repeat(auto-fill, minmax(300px, 1fr))'
+        gap="4"
       >
         {data.map((mediaItem) => (
           <MediaCard itemId={mediaItem.id} key={mediaItem.id} />
         ))}
-      </Box>
+      </Grid>
     </Container>
   );
 };

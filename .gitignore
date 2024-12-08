@@ -6,6 +6,8 @@ venv
 *.pyc
 __pycache__/
 
+web/dist/*
+
 
 
 static/*
@@ -15,4 +17,5 @@ export/*
 tagger/model/*
 server/static/css/style.css
 server/static/css/style.min.css
+server/internal/service/web/dist/*
 repopack-output*.txt

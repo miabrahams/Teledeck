@@ -5,7 +5,6 @@ import {
   Route,
   Navigate,
 } from 'react-router-dom';
-import { Container } from '@radix-ui/themes';
 import Navigation from '@navigation/components/Navigation';
 import { PaginatedMediaGallery } from '@gallery/components/PaginatedGallery';
 import { Login, Register } from '@auth/components/Auth';

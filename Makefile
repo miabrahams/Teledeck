@@ -43,3 +43,7 @@ stop-classifier:
 
 vite:
 	@cd web && npm i && npm run share
+
+web-build:
+	@cd web && npm i && npm run build
+	cp -r web/dist server/internal/service/web/

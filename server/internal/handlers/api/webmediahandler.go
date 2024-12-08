@@ -2,6 +2,7 @@ package webapi
 
 import (
 	"fmt"
+	"log/slog"
 	"math"
 	"net/http"
 	"teledeck/internal/middleware"
@@ -11,10 +12,11 @@ import (
 
 type MediaJsonHandler struct {
 	mediaStore store.MediaStore
+	log        *slog.Logger
 }
 
-func NewMediaJsonHandler(mediaStore store.MediaStore) *MediaJsonHandler {
-	return &MediaJsonHandler{mediaStore: mediaStore}
+func NewMediaJsonHandler(mediaStore store.MediaStore, log *slog.Logger) *MediaJsonHandler {
+	return &MediaJsonHandler{mediaStore: mediaStore, log: log}
 }
 
 // TODO: Make configurable
@@ -95,10 +97,12 @@ func (h *MediaJsonHandler) GetMediaItem(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h *MediaJsonHandler) GetNumPages(w http.ResponseWriter, r *http.Request) {
-	searchPrefs := newSearchPrefs("", "", false, "")
-
-	totalPages := int(math.Ceil(float64(h.mediaStore.GetMediaItemCount(searchPrefs)) / float64(itemsPerPage)))
-	writeJSON(w, http.StatusOK, totalPages)
+	h.getWithPrefs(w, r, func(p models.SearchPrefs, _ int) {
+		mic := h.mediaStore.GetMediaItemCount(p)
+		totalPages := int(math.Ceil(float64(mic) / float64(itemsPerPage)))
+		h.log.Info("getNumPages", "mic", mic, "totalPages", totalPages)
+		writeJSON(w, http.StatusOK, totalPages)
+	})
 }
 
 func (h *MediaJsonHandler) ToggleFavorite(w http.ResponseWriter, r *http.Request) {

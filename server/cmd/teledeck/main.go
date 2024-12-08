@@ -19,12 +19,12 @@ import (
 	"teledeck/internal/service/hash/passwordhash"
 	database "teledeck/internal/service/store/db"
 	"teledeck/internal/service/store/dbstore"
+	"teledeck/internal/service/web"
 	"time"
 
 	m "teledeck/internal/middleware"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
@@ -119,53 +119,63 @@ func main() {
 
 	// TwitterScrapeHandler := handlers.NewTwitterScrapeHandler(twitterScrapeServce)
 
-	mediaJsonHandler := api.NewMediaJsonHandler(mediaStore)
+	mediaJsonHandler := api.NewMediaJsonHandler(mediaStore, logger)
+
+	webFileHandler := web.WebFileHandler()
 
 	r.Group(func(r chi.Router) {
 		r.Use(
-			middleware.Logger,
-			m.TextHTMLMiddleware,
+			// middleware.Logger,
 			m.CSPMiddleware,
 			authMiddleware.AddUserToContext,
 			m.WithLogger(logger),
 		)
 
-		r.NotFound(hx.NewNotFoundHandler().ServeHTTP)
-
-		r.Get("/about", hxGlobalHandler.GetAbout)
-		r.Get("/register", hxGlobalHandler.GetRegister)
-		r.Get("/login", hxGlobalHandler.GetLogin)
-
-		r.Post("/register", hxUserHandler.PostRegister)
-		r.Post("/login", hxUserHandler.PostLogin)
-		r.Post("/logout", hxUserHandler.PostLogout)
-
 		r.Group(func(r chi.Router) {
-			r.Use(m.SearchParamsMiddleware)
+			r.Use(m.TextHTMLMiddleware)
+			r.NotFound(hx.NewNotFoundHandler().ServeHTTP)
 
-			r.Get("/", hxHomeHandler.ServeHTTP)
+			r.Get("/about", hxGlobalHandler.GetAbout)
+			r.Get("/register", hxGlobalHandler.GetRegister)
+			r.Get("/login", hxGlobalHandler.GetLogin)
 
-			r.Route("/mediaItem/{mediaItemID}", func(r chi.Router) {
-				r.Use(mediaItemMiddleware)
-				r.Get("/", hxMediaHandler.GetMediaItem)
-				r.Delete("/", hxMediaHandler.RecycleAndGetNext)
-				r.Post("/favorite", hxMediaHandler.PostFavorite)
-				r.Delete("/favorite", hxMediaHandler.DeleteFavorite)
+			r.Post("/register", hxUserHandler.PostRegister)
+			r.Post("/login", hxUserHandler.PostLogin)
+			r.Post("/logout", hxUserHandler.PostLogout)
+
+			r.Group(func(r chi.Router) {
+				r.Use(m.SearchParamsMiddleware)
+
+				r.Route("/x", func(r chi.Router) {
+					r.Get("/", hxHomeHandler.ServeHTTP)
+
+					r.Route("/mediaItem/{mediaItemID}", func(r chi.Router) {
+						r.Use(mediaItemMiddleware)
+						r.Get("/", hxMediaHandler.GetMediaItem)
+						r.Delete("/", hxMediaHandler.RecycleAndGetNext)
+						r.Post("/favorite", hxMediaHandler.PostFavorite)
+						r.Delete("/favorite", hxMediaHandler.DeleteFavorite)
+					})
+				})
 			})
+
+			// r.Get("/scrape", TwitterScrapeHandler.ScrapeUser)
+			r.Route("/tags/{mediaItemID}", func(r chi.Router) {
+				r.Use(mediaItemMiddleware)
+				r.Get("/", hxTagsHandler.GetTagsImage)
+				r.Get("/generate", hxTagsHandler.GenerateTagsImage)
+			})
+
+			r.Route("/score/{mediaItemID}", func(r chi.Router) {
+				r.Use(mediaItemMiddleware)
+				r.Get("/", hxScoreHandler.GetImageScore)
+				r.Get("/generate", hxScoreHandler.GenerateImageScore)
+			})
+
+			r.Get("/", webFileHandler)
 		})
 
-		// r.Get("/scrape", TwitterScrapeHandler.ScrapeUser)
-		r.Route("/tags/{mediaItemID}", func(r chi.Router) {
-			r.Use(mediaItemMiddleware)
-			r.Get("/", hxTagsHandler.GetTagsImage)
-			r.Get("/generate", hxTagsHandler.GenerateTagsImage)
-		})
-
-		r.Route("/score/{mediaItemID}", func(r chi.Router) {
-			r.Use(mediaItemMiddleware)
-			r.Get("/", hxScoreHandler.GetImageScore)
-			r.Get("/generate", hxScoreHandler.GenerateImageScore)
-		})
+		r.Get("/assets/{x}", webFileHandler)
 
 		r.Route("/api", func(r chi.Router) {
 			r.Use(m.SearchParamsMiddleware)

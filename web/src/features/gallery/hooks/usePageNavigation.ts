@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useAtom, useAtomValue } from 'jotai';
 import { useTotalPages } from '../api';
 import { currentPageAtom } from '../state';

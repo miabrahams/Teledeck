@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Search } from 'lucide-react';
 import { useAtom } from 'jotai';
 import { searchStringAtom } from '@preferences/state';
-import { TextField, Flex, IconButton } from '@radix-ui/themes';
+import { TextField, Flex } from '@radix-ui/themes';
 
 const SearchBox: React.FC = () => {
   const [searchString, setSearchString] = useAtom(searchStringAtom);
