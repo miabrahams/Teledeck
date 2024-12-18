@@ -113,6 +113,14 @@ class AestheticScore(SQLModel, table=True):
     )
     score: float = Field(nullable=False)
 
+class Thumbnail(SQLModel, table=True):
+    __tablename__ = 'thumbnails'
+    media_item_id: str = Field(
+        foreign_key="media_items.id",
+        primary_key=True,
+    )
+    filename: str = Field(nullable=False)
+
 class MediaItemDuplicates(SQLModel, table=True):
     __tablename__ = 'media_item_duplicates'
 
