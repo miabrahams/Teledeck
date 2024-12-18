@@ -1,12 +1,13 @@
 // src/features/media/components/MediaCard.tsx
 import React from 'react';
-import { useSetAtom } from 'jotai';
+import { useAtom, useSetAtom } from 'jotai';
 import { Play, Download, Star, Trash } from 'lucide-react';
 import { useVideoPlayer } from '@media/hooks/useVideoPlayer';
 import { useMediaControls } from '@media/hooks/useMediaControls';
 import { useMediaItem } from '@media/api';
 import { contextMenuAtom, fullscreenItemAtom } from '@gallery/state';
 import { MediaItem } from '@shared/types/media';
+import { viewPrefsAtom } from '@preferences/state';
 import {
   Box,
   Card,
@@ -15,6 +16,7 @@ import {
   IconButton,
   AspectRatio
 } from '@radix-ui/themes';
+import classes from './MediaCard.module.css';
 
 type MediaViewProps = { item: MediaItem }
 
@@ -43,13 +45,8 @@ const ImageItem: React.FC<MediaProps> = ({ item, setFullscreen }) => {
       <img
         src={`/media/${item.file_name}`}
         alt={item.file_name}
+        className={classes.imageFit}
         onClick={setFullscreen}
-        style={{
-          width: '100%',
-          height: '100%',
-          objectFit: 'cover',
-          cursor: 'pointer'
-        }}
       />
     </AspectRatio>
   );
@@ -66,13 +63,8 @@ const VideoItem: React.FC<MediaProps> = ({ item, setFullscreen }) => {
           onPlay={handlePlay}
           onPause={handlePause}
           ref={videoRef}
+          className={classes.videoFit}
           src={`/media/${item.file_name}`}
-          style={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            cursor: 'pointer'
-          }}
         />
         <Flex
           position="absolute"
@@ -150,26 +142,11 @@ const MediaControls: React.FC<MediaControlsProps> = ({
       p="2"
       style={{
         opacity: isHovering ? 1 : 0,
-        transition: 'opacity 0.2s ease-in-out'
+        transition: 'opacity 0.2s ease-in-out',
+        width: '100%',
       }}
     >
-      <Flex gap="2">
-        <IconButton
-          size="1"
-          variant="soft"
-          onClick={handleDownload}
-          style={{ backgroundColor: 'rgba(0, 0, 0, 0.7)' }}
-        >
-          <Download className="w-4 h-4" />
-        </IconButton>
-        <IconButton
-          size="1"
-          variant="soft"
-          onClick={handleFavorite}
-          style={{ backgroundColor: 'rgba(0, 0, 0, 0.7)' }}
-        >
-          <Star className={`w-4 h-4 ${isFavorite ? 'fill-yellow-500' : ''}`} />
-        </IconButton>
+      <Flex gap="2" width="100%" justify="between">
         {!isFavorite && (
           <IconButton
             size="1"
@@ -180,6 +157,22 @@ const MediaControls: React.FC<MediaControlsProps> = ({
             <Trash className="w-4 h-4" />
           </IconButton>
         )}
+        <IconButton
+          size="1"
+          variant="soft"
+          onClick={handleFavorite}
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.7)' }}
+        >
+          <Star className={`w-4 h-4 ${isFavorite ? 'fill-yellow-500' : ''}`} />
+        </IconButton>
+        <IconButton
+          size="1"
+          variant="soft"
+          onClick={handleDownload}
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.7)' }}
+        >
+          <Download className="w-4 h-4" />
+        </IconButton>
       </Flex>
     </Box>
   );
@@ -198,6 +191,8 @@ const MediaCard: React.FC<MediaCardProps> = ({ itemId }) => {
   } = useMediaControls(itemId);
 
   const setContextMenuAtom = useSetAtom(contextMenuAtom);
+
+  const [viewPrefs, _] = useAtom(viewPrefsAtom);
 
   if (status === 'pending') {
     return (
@@ -225,12 +220,8 @@ const MediaCard: React.FC<MediaCardProps> = ({ itemId }) => {
   return (
     <Card
       size="1"
-      style={{
-        position: 'relative',
-        height: '100%',
-        transition: 'transform 0.2s ease-in-out',
-        transform: isHovering ? 'translateY(-2px)' : 'none'
-      }}
+      className = {classes.mediaCard}
+      style={ {transform: isHovering ? 'translateY(-2px)' : 'none'} }
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
       onClick={(e) => {
@@ -240,7 +231,8 @@ const MediaCard: React.FC<MediaCardProps> = ({ itemId }) => {
       <Box className="media-item-content">
         <VideoImageSwitch item={item} />
       </Box>
-      <MediaInfo item={item} />
+      {!viewPrefs.hideinfo &&
+        <MediaInfo item={item} /> }
       <MediaControls
         isHovering={isHovering}
         isFavorite={item.favorite}
