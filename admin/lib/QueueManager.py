@@ -46,8 +46,8 @@ class QueueManager:
     async def messageConsumer(self, callback: TaskWrapper) -> None:
         """Consume and run message processing tasks."""
         while True:
+            channel, message = await self.messageQueue.get()
             try:
-                channel, message = await self.messageQueue.get()
                 await callback(message, channel)
             except Exception as e:
                 import traceback
