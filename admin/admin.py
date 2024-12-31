@@ -65,6 +65,7 @@ def setup_argparse():
     parser.add_argument('--client-update', action='store_true', help='Pull updates from selected channels')
     parser.add_argument('--export-channel', type=str, help='Export all messages from specified channel name to separate database')
     parser.add_argument('--export-path', type=str, help='Path for exported channel data')
+    parser.add_argument('--message-limit', type=int, help='Path for exported channel data')
     return parser
 
 if __name__ == '__main__':
@@ -94,4 +95,5 @@ if __name__ == '__main__':
     elif args.export_channel:
         export_path = Path(args.export_path) if args.export_path else cfg.EXPORT_PATH / str(args.export_channel)
         overrides = create_export_location(args.export_channel, Path(args.export_path), cfg)
-        run_with_context(overrides, partial(run_export, args.export_channel))
+        message_limit = args.message_limit if args.message_limit else None
+        run_with_context(overrides, partial(run_export, args.export_channel, args.message_limit))

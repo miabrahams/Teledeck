@@ -37,3 +37,8 @@ Tagging and aesthetic score servers:
 - Update Python virtual environment with AI/requirements.txt
 - Download eva-2 tagger and aesthetic-shadow aesthetic score to AI/models dir (TODO: use HF cache or automate this?)
 - Run python ai/tagger.py to launch the server. Tagging functionality will then be available.
+
+
+## Example commands
+Export channel messages
+``` python admin/admin.py --export-channel [name] --export-path export/[name] --message-limit 50 ```

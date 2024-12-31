@@ -49,13 +49,13 @@ async def run_update(cfg: Settings, ctx: TLContext):
     )
     await updater.process_channels(provider, config)
 
-async def run_export(channel_name: str, cfg: Settings, ctx: TLContext):
+async def run_export(channel_name: str, message_limit: int | None, cfg: Settings, ctx: TLContext):
     """Export all messages from a channel"""
     updater = TeledeckUpdater(cfg, ctx)
     provider = SingleChannelNameLookup(channel_name)
     config = UpdaterConfig(
         message_strategy="all",
-        message_limit=None,  # No limit for export
+        message_limit=message_limit,
         mark_read=False,  # Don't mark as read during export
         description="Export"
     )
