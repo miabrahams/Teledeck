@@ -8,6 +8,9 @@ import (
 	external "teledeck/internal/service/external/api"
 	"teledeck/internal/service/store/db"
 	"teledeck/internal/service/store/dbstore"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 func main() {
@@ -16,7 +19,9 @@ func main() {
 	logger := slog.Default()
 	tagsStore := dbstore.NewTagsStore(db, logger)
 	mediaStore := dbstore.NewMediaStore(db, logger)
-	taggingService := external.NewTaggingService(logger, cfg.TagServicePort)
+
+	conn, err := grpc.NewClient(cfg.TaggerURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	taggingService := external.NewTaggingService(logger, conn)
 
 	tagsController := controllers.NewTagsController(tagsStore, mediaStore, taggingService)
 
