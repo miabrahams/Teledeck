@@ -102,14 +102,14 @@ func main() {
 	mediaItemMiddleware := m.NewMediaItemMiddleware(mediaController)
 
 	/* Handlers */
-	hxTagsHandler := hx.NewTagsHandler(*tagsController)
-	hxScoreHandler := hx.NewScoreHandler(*scoreController)
+	hxTagsHandler := hx.NewTagsHandler(tagsController)
+	hxScoreHandler := hx.NewScoreHandler(scoreController)
 	hxGlobalHandler := hx.NewGlobalHandler()
 	hxHomeHandler := hx.NewHomeHandler(hx.NewHomeHandlerParams{
 		MediaStore: mediaStore,
 		Logger:     logger,
 	})
-	hxMediaHandler := hx.NewMediaItemHandler(*mediaController)
+	hxMediaHandler := hx.NewMediaItemHandler(mediaController)
 	hxUserHandler := hx.NewUserHandler(hx.UserHandlerParams{
 		UserStore:         userStore,
 		SessionStore:      sessionStore,
@@ -119,7 +119,7 @@ func main() {
 
 	// TwitterScrapeHandler := handlers.NewTwitterScrapeHandler(twitterScrapeServce)
 
-	mediaJsonHandler := api.NewMediaJsonHandler(mediaStore, logger)
+	mediaJsonHandler := api.NewMediaJsonHandler(mediaController, logger)
 
 	webFileHandler := web.WebFileHandler()
 
@@ -181,7 +181,8 @@ func main() {
 			r.Use(m.SearchParamsMiddleware)
 			r.Get("/gallery", mediaJsonHandler.GetGallery)
 			r.Get("/gallery/totalPages", mediaJsonHandler.GetNumPages)
-			r.Get("/gallery/ids", mediaJsonHandler.GetGalleryIds)
+			r.Get("/thumbnail/{mediaItemID}", mediaJsonHandler.GetThumbnail)
+			r.Get("/", mediaJsonHandler.GetMediaItem)
 			r.Route("/media/{mediaItemID}", func(r chi.Router) {
 				r.Use(mediaItemMiddleware)
 				r.Get("/", mediaJsonHandler.GetMediaItem)

@@ -9,10 +9,10 @@ import (
 )
 
 type ScoreHandler struct {
-	aestheticsController controllers.AestheticsController
+	aestheticsController *controllers.AestheticsController
 }
 
-func NewScoreHandler(aestheticsController controllers.AestheticsController) *ScoreHandler {
+func NewScoreHandler(aestheticsController *controllers.AestheticsController) *ScoreHandler {
 	return &ScoreHandler{aestheticsController: aestheticsController}
 }
 

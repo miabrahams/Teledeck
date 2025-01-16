@@ -9,10 +9,10 @@ import (
 )
 
 type TagsHandler struct {
-	tagsController controllers.TagsController
+	tagsController *controllers.TagsController
 }
 
-func NewTagsHandler(tagsController controllers.TagsController) *TagsHandler {
+func NewTagsHandler(tagsController *controllers.TagsController) *TagsHandler {
 	return &TagsHandler{tagsController: tagsController}
 }
 
