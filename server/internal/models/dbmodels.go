@@ -41,6 +41,25 @@ type MediaItem struct {
 	UserDeleted bool      `gorm:"column:user_deleted;type:BOOLEAN" json:"user_deleted"`
 }
 
+// TODO: Figure out better handling; look into gorm embedding or sqlc or something lol
+type MediaItemWithMetadata struct {
+	MediaItem
+	ChannelID      int       `gorm:"column:channel_id"`
+	MessageID      int       `gorm:"column:message_id"`
+	TelegramFileID int       `gorm:"column:file_id"`
+	FromPreview    int       `gorm:"column:from_preview"`
+	TelegramDate   time.Time `gorm:"column:date"`
+	TelegramText   string    `gorm:"column:text"`
+	TelegramURL    string    `gorm:"column:url"`
+	MediaType      string    `gorm:"column:media_type"`
+	ChannelTitle   string    `gorm:"column:channel_title"`
+}
+
+type TagWeight struct {
+	Name   string  `gorm:"column:name" json:"tag"`
+	Weight float32 `gorm:"column:weight" json:"prob"`
+}
+
 type MediaItemID struct {
 	ID string `gorm:"column:id;type:VARCHAR(36)" json:"id"`
 }
@@ -104,4 +123,13 @@ type ImageScore struct {
 
 func (*ImageScore) TableName() string {
 	return "aesthetic_score"
+}
+
+type Thumbnail struct {
+	MediaItemID string `gorm:"column:media_item_id;type:VARCHAR(36)"`
+	FileName    string `gorm:"column:file_name;type:VARCHAR"`
+}
+
+func (*Thumbnail) TableName() string {
+	return "thumbnails"
 }
