@@ -5,7 +5,7 @@ from telethon.tl.custom.file import File
 from telethon.tl.types import Channel, Document
 
 from .TLContext import TLContext
-from .types import Downloadable, MediaItem, DownloadItem
+from .types import Downloadable, MediaItem, DownloadItem, MessageMediaWebPage
 from .api import find_web_preview, get_message_link
 from .exceptions import ErrorContext, MediaError, DownloadError
 from .config import ProcessingConfig
@@ -133,12 +133,16 @@ class MediaProcessor:
         try:
             print(item.target)
             final_target = item.target
-            #TODO: Check Webpage handling logic
             if isinstance(item.target, Document):
                 final_target = item.target
             elif isinstance(item.target, File):
                 final_target = item.target.media
+            elif isinstance(item.target, MessageMediaWebPage):
+                self.logger.write("Web Page")
+                self.logger.write(item.target.to_json())
+                final_target = item.target.media
             else:
+                # TODO: Test embedded videos
                 self.logger.write("Unknown target type")
                 final_target = item.target.media
 
