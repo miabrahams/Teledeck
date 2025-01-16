@@ -48,6 +48,19 @@ def find_orphans(engine: Engine, media_path: Path, orphan_path: Path):
                 item.rename(orphan_path.joinpath(name))
                 print(f"No file found: {name}")
 
+def find_failed_deletes(engine: Engine, media_path: Path, orphan_path: Path):
+    """Find files in folder which should have been deleted."""
+    bad = 0
+    for item in tqdm(media_path.glob('*')):
+        if not item.is_file():
+            continue
+        name = item.parts[-1]
+        with Session(engine) as session:
+            result = session.exec(select(MediaItem).where(MediaItem.file_name == name)).first()
+            if result and result.user_deleted:
+                bad += 1
+                print(f"({bad}) Recycling: {name}")
+                item.rename(orphan_path.joinpath(name))
 
 
 def run_with_context(cfg: Settings, func: ServiceRoutine):
@@ -60,6 +73,7 @@ def setup_argparse():
     parser = argparse.ArgumentParser(description='Custom commands')
     parser.add_argument('--add-tags', action='store_true', help='Add tags to the database')
     parser.add_argument('--find-orphans', action='store_true', help='Find files not associated with an entry.')
+    parser.add_argument('--find-failed-deletes', action='store_true', help='Find files in folder which should have been deleted')
     parser.add_argument('--save-forwards', help='Find files not associated with an entry.')
     parser.add_argument('--update-channels', action='store_true', help='Update list of channels to check.')
     parser.add_argument('--client-update', action='store_true', help='Pull updates from selected channels')
@@ -78,10 +92,16 @@ if __name__ == '__main__':
         add_tags_to_database(engine)
 
     elif args.find_orphans:
-        directory_path = 'static/media'
-        orphan_path = 'recyclebin/orphan'
+        directory_path = Path('static/media')
+        orphan_path = Path('recyclebin/orphan')
         engine = create_engine(f"sqlite:///{cfg.DB_PATH}")
-        find_orphans(engine, Path(directory_path), Path(orphan_path))
+        find_orphans(engine, directory_path, orphan_path)
+
+    if args.find_failed_deletes:
+        directory_path = Path('static/media')
+        orphan_path = Path('recyclebin/orphan')
+        engine = create_engine(f"sqlite:///{cfg.DB_PATH}")
+        find_failed_deletes(engine, directory_path, orphan_path)
 
     elif args.save_forwards:
         run_with_context(cfg, partial(save_forwards, args.save_forwards))
