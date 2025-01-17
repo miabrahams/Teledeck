@@ -1,4 +1,4 @@
-package thumbnails
+package thumbnailer
 
 import (
 	"path"
@@ -33,9 +33,9 @@ func TestThumbnailer_GenerateVideoThumbnail(t *testing.T) {
 	mediaRoot := path.Join(staticRoot, "media")
 	testVid := path.Join(mediaRoot, "1.mp4")
 
-	thumbnailer := NewThumbnailer(thumbRoot)
+	thumbnailer := NewThumbnailer(thumbRoot, 1)
 
-	out, err := thumbnailer.GenerateVideoThumbnail(testVid, "")
+	out, err := thumbnailer.generateVideoThumbnail(testVid, "")
 	require.NoError(t, err)
 
 	require.Equal(t, path.Join(thumbRoot, "1.mp4.jpg"), out)

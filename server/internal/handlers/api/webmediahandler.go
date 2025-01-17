@@ -1,22 +1,25 @@
 package webapi
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"math"
 	"net/http"
+	"teledeck/internal/controllers"
 	"teledeck/internal/middleware"
 	"teledeck/internal/models"
-	"teledeck/internal/service/store"
+
+	"github.com/go-chi/chi/v5"
 )
 
 type MediaJsonHandler struct {
-	mediaStore store.MediaStore
-	log        *slog.Logger
+	c   *controllers.MediaController
+	log *slog.Logger
 }
 
-func NewMediaJsonHandler(mediaStore store.MediaStore, log *slog.Logger) *MediaJsonHandler {
-	return &MediaJsonHandler{mediaStore: mediaStore, log: log}
+func NewMediaJsonHandler(controller *controllers.MediaController, log *slog.Logger) *MediaJsonHandler {
+	return &MediaJsonHandler{c: controller, log: log}
 }
 
 // TODO: Make configurable
@@ -24,6 +27,7 @@ const (
 	itemsPerPage = 100
 )
 
+/*
 func newSearchPrefs(sort string, favorites string, videos bool, query string) models.SearchPrefs {
 	return models.SearchPrefs{
 		Sort:       sort,
@@ -32,6 +36,7 @@ func newSearchPrefs(sort string, favorites string, videos bool, query string) mo
 		Search:     query,
 	}
 }
+*/
 
 func (h *MediaJsonHandler) getWithPrefs(w http.ResponseWriter, r *http.Request, callback func(searchPrefs models.SearchPrefs, page int)) {
 	// Parse query parameters for pagination and preferences
@@ -53,7 +58,7 @@ func (h *MediaJsonHandler) getWithPrefs(w http.ResponseWriter, r *http.Request, 
 func (h *MediaJsonHandler) GetGallery(w http.ResponseWriter, r *http.Request) {
 	// Parse query parameters for pagination and preferences
 	h.getWithPrefs(w, r, func(searchPrefs models.SearchPrefs, page int) {
-		items, err := h.mediaStore.GetPaginatedMediaItems(page, itemsPerPage, searchPrefs)
+		items, err := h.c.GetPaginatedMediaItems(page, itemsPerPage, searchPrefs)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "Error fetching media items")
 			return
@@ -62,10 +67,26 @@ func (h *MediaJsonHandler) GetGallery(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (h *MediaJsonHandler) GetThumbnail(w http.ResponseWriter, r *http.Request) {
+	mediaItemID := chi.URLParam(r, "mediaItemID")
+
+	fileName, err := h.c.GetThumbnail(mediaItemID)
+	if errors.Is(err, controllers.ErrThumbnailInProgress) {
+		writeJSON(w, http.StatusAccepted, map[string]string{"message": "Thumbnail generation in progress"})
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, fmt.Sprintf("Error generating thumbnail: %v", err))
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]string{"fileName": fileName})
+}
+
 func (h *MediaJsonHandler) GetGalleryIds(w http.ResponseWriter, r *http.Request) {
 	// Parse query parameters for pagination and preferences
 	h.getWithPrefs(w, r, func(searchPrefs models.SearchPrefs, page int) {
-		items, err := h.mediaStore.GetPaginatedMediaItemIds(page, itemsPerPage, searchPrefs)
+		items, err := h.c.GetPaginatedMediaItemIds(page, itemsPerPage, searchPrefs)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "Error fetching media items")
 			return
@@ -98,7 +119,7 @@ func (h *MediaJsonHandler) GetMediaItem(w http.ResponseWriter, r *http.Request) 
 
 func (h *MediaJsonHandler) GetNumPages(w http.ResponseWriter, r *http.Request) {
 	h.getWithPrefs(w, r, func(p models.SearchPrefs, _ int) {
-		mic := h.mediaStore.GetMediaItemCount(p)
+		mic := h.c.GetMediaItemCount(p)
 		totalPages := int(math.Ceil(float64(mic) / float64(itemsPerPage)))
 		h.log.Info("getNumPages", "mic", mic, "totalPages", totalPages)
 		writeJSON(w, http.StatusOK, totalPages)
@@ -107,7 +128,7 @@ func (h *MediaJsonHandler) GetNumPages(w http.ResponseWriter, r *http.Request) {
 
 func (h *MediaJsonHandler) ToggleFavorite(w http.ResponseWriter, r *http.Request) {
 	h.mediaCallback(w, r, func(m *models.MediaItemWithMetadata) {
-		item, err := h.mediaStore.ToggleFavorite(m.ID)
+		item, err := h.c.ToggleFavorite(m.ID)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "Error toggling favorite")
 			return
@@ -123,7 +144,7 @@ func (h *MediaJsonHandler) DeleteMedia(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if err := h.mediaStore.MarkDeleted(&m.MediaItem); err != nil {
+		if err := h.c.RecycleMediaItem(m.MediaItem); err != nil {
 			writeError(w, http.StatusInternalServerError, "Error deleting item")
 			return
 		}

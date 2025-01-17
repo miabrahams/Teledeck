@@ -230,3 +230,21 @@ func (s *MediaStore) MarkDeletedAndGetNext(item *models.MediaItem, page int, ite
 
 	return &nextItem, err
 }
+
+func (s *MediaStore) GetThumbnail(mediaItemID string) (string, error) {
+	thumbnail := models.Thumbnail{}
+	res := s.db.Model(&thumbnail).Where("media_item_id = ?", mediaItemID).First(&thumbnail)
+	if res.Error == gorm.ErrRecordNotFound {
+		return "", nil
+	}
+	return thumbnail.FileName, res.Error
+}
+
+func (s *MediaStore) SetThumbnail(mediaItemID, fileName string) error {
+	thumbnail := models.Thumbnail{
+		MediaItemID: mediaItemID,
+		FileName:    fileName,
+	}
+	res := s.db.Create(&thumbnail)
+	return res.Error
+}

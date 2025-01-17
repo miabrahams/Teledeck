@@ -19,6 +19,7 @@ import (
 	"teledeck/internal/service/hash/passwordhash"
 	database "teledeck/internal/service/store/db"
 	"teledeck/internal/service/store/dbstore"
+	"teledeck/internal/service/thumbnailer"
 	"teledeck/internal/service/web"
 	"time"
 
@@ -43,6 +44,7 @@ func init() {
 
 func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	slog.SetDefault(logger)
 	err := godotenv.Load("../.env")
 	if err != nil {
 		logger.Error("Error loading .env file")
@@ -51,9 +53,19 @@ func main() {
 
 	cfg := config.MustLoadConfig()
 
+	// Get static paths
+	pwd, err := os.Getwd()
+	if err != nil {
+		logger.Error("could not read working directory", slog.Any("err", err))
+		os.Exit(1)
+	}
+	mediaDir := cfg.MediaDir(pwd)
+	thumbnailDir := cfg.ThumbnailDir(pwd)
+	logger.Info("media folders", "media", mediaDir, "thumbnails", thumbnailDir)
+
 	/* Register Database Stores */
 	db := database.MustOpen(cfg.DatabaseName)
-	mediaStore := dbstore.NewMediaStore(db, logger)
+	mediaStore := dbstore.NewMediaStore(db, logger) // TODO: Just use global logger
 	tagsStore := dbstore.NewTagsStore(db, logger)
 	aestheticsStore := dbstore.NewAestheticsStore(db, logger)
 
@@ -65,17 +77,7 @@ func main() {
 		dbstore.NewSessionStoreParams{DB: db},
 	)
 
-	/* Static file paths */
-	pwd, err := os.Getwd()
-	if err != nil {
-		logger.Error("could not read working directory", slog.Any("err", err))
-		os.Exit(1)
-	}
-	mediaDir := cfg.MediaDir(pwd)
-	logger.Info("Media folder", "dir", mediaDir)
-
 	r := chi.NewMux()
-	StaticFileServer(r, "/media", mediaDir, cfg.StaticDir)
 
 	/* External services */
 	// twitterScrapeServce := services.NewTwitterScraper()
@@ -92,8 +94,10 @@ func main() {
 		aestheticsService = external.NewAestheticsService(logger, conn)
 	}
 
+	thumbnailService := thumbnailer.NewThumbnailer(thumbnailDir, 8)
+
 	mediaFileOperator := localfile.NewLocalMediaFileOperator(cfg.StaticMediaDir, cfg.RecycleDir, logger)
-	mediaController := controllers.NewMediaController(mediaStore, mediaFileOperator, mediaDir)
+	mediaController := controllers.NewMediaController(mediaStore, mediaFileOperator, mediaDir, thumbnailService)
 	tagsController := controllers.NewTagsController(tagsStore, mediaStore, taggingService)
 	scoreController := controllers.NewAestheticsController(aestheticsStore, mediaController, aestheticsService)
 
@@ -123,12 +127,20 @@ func main() {
 
 	webFileHandler := web.WebFileHandler()
 
+	/* Static file paths */
+	fileServer := http.FileServer(http.Dir(cfg.StaticDir))
+	r.Handle("/static/*", http.StripPrefix("/static/", fileServer))
+	StaticFileServer(r, "/media", mediaDir)
+	StaticFileServer(r, "/thumbnails", thumbnailDir)
+
+	hxVideoHandler := hx.VideoTestHandler{}
+
 	r.Group(func(r chi.Router) {
 		r.Use(
 			// middleware.Logger,
 			m.CSPMiddleware,
 			authMiddleware.AddUserToContext,
-			m.WithLogger(logger),
+			// m.WithLogger(logger),
 		)
 
 		r.Group(func(r chi.Router) {
@@ -142,6 +154,7 @@ func main() {
 			r.Post("/register", hxUserHandler.PostRegister)
 			r.Post("/login", hxUserHandler.PostLogin)
 			r.Post("/logout", hxUserHandler.PostLogout)
+			r.Get("/video", hxVideoHandler.ServeHTTP)
 
 			r.Group(func(r chi.Router) {
 				r.Use(m.SearchParamsMiddleware)
@@ -192,6 +205,10 @@ func main() {
 		})
 	})
 
+	for _, route := range r.Routes() {
+		slog.Info("route", "pattern", route.Pattern)
+	}
+
 	srv := &http.Server{
 		Addr:    "0.0.0.0" + cfg.Port,
 		Handler: r,
@@ -238,29 +255,21 @@ func main() {
 }
 
 // FileServer conveniently sets up a http.FileServer handler to serve static files from a http.FileSystem.
-// Installs static files on /static (js, css etc) and media files on [path]
-func StaticFileServer(r chi.Router, path string, mediaDir string, staticDir string) {
-
-	fileServer := http.FileServer(http.Dir(staticDir))
-	r.Handle("/static/*", http.StripPrefix("/static/", fileServer))
-
-	if strings.ContainsAny(path, "{}*") {
-		panic("FileServer does not permit any URL parameters.")
-	}
+// Installs static assets on /static (js, css etc) and media files on [path]
+func StaticFileServer(r chi.Router, path string, dir string) {
 
 	// Ensure path is formatted correctly and ends with '/'
 	if path != "/" && path[len(path)-1] != '/' {
-		r.Get(path, http.RedirectHandler(path+"/", http.StatusMovedPermanently).ServeHTTP)
 		path += "/"
 	}
 
-	mediaRoot := http.Dir(mediaDir)
-	// Ensure exists??
+	mediaRoot := http.FileServer(http.Dir(dir))
 
 	r.Get(path+"*", func(w http.ResponseWriter, r *http.Request) {
+		// slog.Info("serving media", "path", r.URL.Path)
 		rctx := chi.RouteContext(r.Context())
 		pathPrefix := strings.TrimSuffix(rctx.RoutePattern(), "/*")
-		fs := http.StripPrefix(pathPrefix, http.FileServer(mediaRoot))
+		fs := http.StripPrefix(pathPrefix, mediaRoot)
 		fs.ServeHTTP(w, r)
 	})
 }

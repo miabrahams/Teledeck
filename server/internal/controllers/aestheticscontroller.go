@@ -8,14 +8,14 @@ import (
 
 type AestheticsController struct {
 	aestheticsStore   store.AestheticsStore
-	mediaController   MediaController
+	mediaController   *MediaController
 	aestheticsService external.AestheticsService
 }
 
 func NewAestheticsController(aethsticsStore store.AestheticsStore, mediaController *MediaController, aestheticsService external.AestheticsService) *AestheticsController {
 	return &AestheticsController{
 		aestheticsStore:   aethsticsStore,
-		mediaController:   *mediaController,
+		mediaController:   mediaController,
 		aestheticsService: aestheticsService,
 	}
 }

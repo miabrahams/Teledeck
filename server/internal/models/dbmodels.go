@@ -127,7 +127,7 @@ func (*ImageScore) TableName() string {
 
 type Thumbnail struct {
 	MediaItemID string `gorm:"column:media_item_id;type:VARCHAR(36)"`
-	FileName    string `gorm:"column:file_name;type:VARCHAR"`
+	FileName    string `gorm:"column:filename;type:VARCHAR"`
 }
 
 func (*Thumbnail) TableName() string {

@@ -24,6 +24,8 @@ type MediaStore interface {
 	GetMediaItem(id string) (*models.MediaItemWithMetadata, error)
 	MarkDeleted(item *models.MediaItem) error
 	MarkDeletedAndGetNext(item *models.MediaItem, page int, itemsPerPage int, P models.SearchPrefs) (*models.MediaItemWithMetadata, error)
+	GetThumbnail(mediaItemID string) (string, error)
+	SetThumbnail(mediaItemID, fileName string) error
 }
 
 type TagsStore interface {

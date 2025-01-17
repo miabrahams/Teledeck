@@ -6,6 +6,8 @@ import (
 	"github.com/kelseyhightower/envconfig"
 )
 
+// TODO: Try Koanf
+
 type Config struct {
 	Port              string `envconfig:"PORT" default:":4000"`
 	DatabaseName      string `envconfig:"DATABASE_NAME" default:"../teledeck.db"`
@@ -21,6 +23,10 @@ type Config struct {
 
 func (cfg *Config) MediaDir(workDir string) string {
 	return filepath.Join(workDir, cfg.StaticMediaDir, "media") // Adjust this path as needed
+}
+
+func (cfg *Config) ThumbnailDir(workDir string) string {
+	return filepath.Join(workDir, cfg.StaticMediaDir, "thumbnails")
 }
 
 func loadConfig() (*Config, error) {
