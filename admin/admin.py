@@ -7,8 +7,8 @@ from tqdm import tqdm
 from dotenv import load_dotenv
 from sqlmodel import create_engine, Session, select
 from sqlalchemy import Engine
-from models.telegram import Tag, MediaItem
-from lib.TLContext import with_context, ServiceRoutine
+from models.telegram import Tag, MediaItem, Thumbnail
+from lib.TLContext import with_context, ServiceRoutine, TLContext
 from lib.commands import save_forwards, channel_check_list_sync, run_update, run_export
 from lib.config import Settings, create_export_location
 
@@ -62,6 +62,15 @@ def find_failed_deletes(engine: Engine, media_path: Path, orphan_path: Path):
                 print(f"({bad}) Recycling: {name}")
                 item.rename(orphan_path.joinpath(name))
 
+def wipe_thumbnails(engine: Engine):
+    """Wipe thumbnails from database. TODO: from disk too"""
+    with Session(engine) as session:
+        tns = session.exec(select(Thumbnail)).all()
+        for tn in tns:
+            print(tn)
+            session.delete(tn)
+        session.commit()
+
 
 def run_with_context(cfg: Settings, func: ServiceRoutine):
     async def task():
@@ -75,6 +84,7 @@ def setup_argparse():
     parser.add_argument('--find-orphans', action='store_true', help='Find files not associated with an entry.')
     parser.add_argument('--find-failed-deletes', action='store_true', help='Find files in folder which should have been deleted')
     parser.add_argument('--save-forwards', help='Find files not associated with an entry.')
+    parser.add_argument('--wipe-thumbnails',action='store_true', help='Wipe thumbnails from database and disk')
     parser.add_argument('--update-channels', action='store_true', help='Update list of channels to check.')
     parser.add_argument('--client-update', action='store_true', help='Pull updates from selected channels')
     parser.add_argument('--export-channel', type=str, help='Export all messages from specified channel name to separate database')
@@ -100,8 +110,12 @@ if __name__ == '__main__':
     if args.find_failed_deletes:
         directory_path = Path('static/media')
         orphan_path = Path('recyclebin/orphan')
-        engine = create_engine(f"sqlite:///{cfg.DB_PATH}")
         find_failed_deletes(engine, directory_path, orphan_path)
+
+    elif args.wipe_thumbnails:
+        engine = create_engine(f"sqlite:///{cfg.DB_PATH}")
+        wipe_thumbnails(engine)
+
 
     elif args.save_forwards:
         run_with_context(cfg, partial(save_forwards, args.save_forwards))

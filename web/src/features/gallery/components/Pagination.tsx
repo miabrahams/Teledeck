@@ -42,6 +42,13 @@ const Pagination: React.FC = () => {
     return numbers;
   }, [currentPage, totalPages]);
 
+  if (currentPage > totalPages) {
+    changePage(totalPages);
+  }
+  if (currentPage < 1) {
+    changePage(1);
+  }
+
   return (
     <Flex
       direction="column"

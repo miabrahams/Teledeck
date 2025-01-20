@@ -53,6 +53,7 @@ const ImageItem: React.FC<MediaProps> = ({ item, setFullscreen }) => {
 }
 
 const VideoItem: React.FC<MediaProps> = ({ item, setFullscreen }) => {
+  // # TODO: Merge with top level isHovering
   const { videoRef, isPlaying, togglePlay, handlePlay, handlePause, onHover, onLeave } = useVideoPlayer();
 
   const { data, isSuccess } = useVideoThumbnail(item.id);
@@ -128,7 +129,7 @@ const MediaInfo: React.FC<MediaViewProps> = ({ item }) => {
   );
 };
 
-type MediaControlsProps = {
+type MediaIconsProps = {
   isHovering: boolean;
   isFavorite: boolean;
   handleFavorite: () => void;
@@ -136,7 +137,7 @@ type MediaControlsProps = {
   handleDownload: () => void;
 };
 
-const MediaControls: React.FC<MediaControlsProps> = ({
+const MediaIconBox: React.FC<MediaIconsProps> = ({
   isHovering,
   isFavorite,
   handleDelete,
@@ -242,7 +243,7 @@ const MediaCard: React.FC<MediaCardProps> = ({ itemId }) => {
       </Box>
       {!viewPrefs.hideinfo &&
         <MediaInfo item={item} /> }
-      <MediaControls
+      <MediaIconBox
         isHovering={isHovering}
         isFavorite={item.favorite}
         handleFavorite={handleFavorite}
