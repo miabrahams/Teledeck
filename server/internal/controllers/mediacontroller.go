@@ -123,7 +123,7 @@ func (s *MediaController) GetThumbnail(mediaItemID string) (string, error) {
 // Save results
 func (s *MediaController) onThumbnailGen(result thumbnailer.Result) {
 	if result.Err != nil {
-		slog.Error("CALLBACK - Error generating thumbnail", "err", result.Err)
+		slog.Error("Error generating thumbnail", "err", result.Err)
 		return
 	}
 

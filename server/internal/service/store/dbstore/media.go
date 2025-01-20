@@ -93,9 +93,9 @@ func (s *MediaStore) GetMediaItemCount(P models.SearchPrefs) int64 {
 		Joins("LEFT JOIN media_types ON media_items.media_type_id = media_types.id").
 		Where("media_items.user_deleted = false")
 	query = s.applySearchFilters(query, P)
+	query.Count(&count)
+	// query.Debug().Count(&count)
 	s.logger.Info("getMediaItemCount", "count", count, "prefs", P)
-	query.Debug().Count(&count)
-	// query.Count(&count)
 	return count
 }
 
