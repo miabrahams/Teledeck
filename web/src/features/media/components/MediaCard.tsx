@@ -53,13 +53,19 @@ const ImageItem: React.FC<MediaProps> = ({ item, setFullscreen }) => {
 }
 
 const VideoItem: React.FC<MediaProps> = ({ item, setFullscreen }) => {
-  const { videoRef, isPlaying, togglePlay, handlePlay, handlePause } = useVideoPlayer();
+  const { videoRef, isPlaying, togglePlay, handlePlay, handlePause, onHover, onLeave } = useVideoPlayer();
 
   const { data, isSuccess } = useVideoThumbnail(item.id);
 
   return (
     <AspectRatio ratio={1}>
-      <Box position="relative" style={{ width: '100%', height: '100%' }} onClick={setFullscreen}>
+      <Box position="relative"
+           style={{ width: '100%', height: '100%' }}
+           onClick={setFullscreen}
+           onMouseEnter = {onHover}
+           onMouseLeave = {onLeave}
+          >
+
         <video
           onClick={togglePlay}
           onPlay={handlePlay}
