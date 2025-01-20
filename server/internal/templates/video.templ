@@ -1,0 +1,36 @@
+package templates
+
+import (
+    "teledeck/internal/models"
+)
+
+templ VideoLayout(contents templ.Component, title string) {
+    <!DOCTYPE html>
+    <html lang="en" class="dark">
+
+	<head>
+		<title>{ title }</title>
+		<meta charset="UTF-8"/>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+        <link rel="stylesheet" href="static/css/style.min.css"/>
+	</head>
+		<body class="flex flex-col h-full">
+			<main class="flex-1 container main-container ">
+				@contents
+			</main>
+		</body>
+	</html>
+}
+
+
+
+templ VideoTest(item *models.MediaItemWithMetadata, thumbnail string) {
+    <video controls loop poster="/thumbnails/bafkreifnprnf4vsdtktvn4hayslt7dbsyvdll2b4zb4u5zkkexwg3yyikq.jpg">
+
+        <source src={ "/media/_0AWDWztPRoyfpMW.mp4" }
+                type="video/mp4"
+                />
+
+        Your browser does not support the video tag.
+    </video>
+}

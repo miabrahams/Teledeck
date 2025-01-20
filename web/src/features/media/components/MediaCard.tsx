@@ -4,7 +4,7 @@ import { useAtom, useSetAtom } from 'jotai';
 import { Play, Download, Star, Trash } from 'lucide-react';
 import { useVideoPlayer } from '@media/hooks/useVideoPlayer';
 import { useMediaControls } from '@media/hooks/useMediaControls';
-import { useMediaItem } from '@media/api';
+import { useMediaItem, useVideoThumbnail } from '@media/api';
 import { contextMenuAtom, fullscreenItemAtom } from '@gallery/state';
 import { MediaItem } from '@shared/types/media';
 import { viewPrefsAtom } from '@preferences/state';
@@ -55,6 +55,8 @@ const ImageItem: React.FC<MediaProps> = ({ item, setFullscreen }) => {
 const VideoItem: React.FC<MediaProps> = ({ item, setFullscreen }) => {
   const { videoRef, isPlaying, togglePlay, handlePlay, handlePause } = useVideoPlayer();
 
+  const { data, isSuccess } = useVideoThumbnail(item.id);
+
   return (
     <AspectRatio ratio={1}>
       <Box position="relative" style={{ width: '100%', height: '100%' }} onClick={setFullscreen}>
@@ -63,6 +65,7 @@ const VideoItem: React.FC<MediaProps> = ({ item, setFullscreen }) => {
           onPlay={handlePlay}
           onPause={handlePause}
           ref={videoRef}
+          poster={isSuccess ? `/thumbnails/${data.fileName}` : undefined}
           className={classes.videoFit}
           src={`/media/${item.file_name}`}
         />

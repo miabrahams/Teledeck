@@ -1,4 +1,4 @@
-.PHONY: build server tagger grpc-update deploy-classifier stop-classifier vite
+.PHONY: build server tagger grpc-update deploy-classifier stop-classifier vite web
 
 BACKUP_DIR = ./data/db_backup
 DATE := $(shell date +%Y%m%d)
@@ -44,6 +44,10 @@ stop-classifier:
 vite:
 	@cd web && npm i && npm run share
 
-web-build:
+web:
 	@cd web && npm i && npm run build
 	cp -r web/dist server/internal/service/web/
+
+dlsize:
+	du -sh static/media
+	du -sh static/thumbnails

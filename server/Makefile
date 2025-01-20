@@ -1,4 +1,3 @@
-APP_NAME = teledeck
 
 
 .PHONY: tailwind-dl
@@ -16,14 +15,15 @@ tailwind-build:
 	./tailwindcss -i ./static/css/input.css -o ./static/css/style.css
 	./tailwindcss -i ./static/css/input.css -o ./static/css/style.min.css --minify
 
-.PHONY: templ-generate
-templ-generate:
+.PHONY: templ
+templ:
 	templ generate
 
 .PHONY: templ-watch
 templ-watch:
 	templ generate --watch
 
+APP_NAME = teledeck
 .PHONY: dev
 dev:
 	air --build.cmd "go build -o ./tmp/$(APP_NAME) cmd/$(APP_NAME)/main.go" --build.bin "./tmp/$(APP_NAME)"

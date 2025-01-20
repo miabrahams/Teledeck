@@ -33,6 +33,10 @@ export default defineConfig({
       '/media': {
         target: 'http://localhost:4000',
         changeOrigin: true,
+      },
+      '/thumbnail': {
+        target: 'http://localhost:4000',
+        changeOrigin: true,
       }
     }
   },

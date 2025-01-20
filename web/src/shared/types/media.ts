@@ -36,3 +36,7 @@ export type MediaItem = {
   TelegramDate: string;
   TelegramText: string;
 };
+
+export type Thumbnail = {
+  fileName: string;
+}

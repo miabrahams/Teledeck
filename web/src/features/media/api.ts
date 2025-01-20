@@ -5,7 +5,7 @@ import {
   QueryClient,
 } from '@tanstack/react-query';
 import { SearchPreferences } from '@shared/types/preferences';
-import { deleteItem, getMediaItem, postFavorite } from '@shared/api/requests';
+import { deleteItem, getMediaItem, getThumbnail, postFavorite } from '@shared/api/requests';
 import { MediaItem, MediaID } from '@shared/types/media';
 import queryKeys from '@shared/api/queryKeys'
 
@@ -19,6 +19,16 @@ export const useMediaItem = (itemId: string) => {
     enabled: !!itemId,
   });
 };
+
+// Fetch video thumbnail
+export const useVideoThumbnail = (itemId: string) => {
+  return useQuery({
+    queryKey: queryKeys.media.thumbnail(itemId),
+    queryFn: () => getThumbnail(itemId),
+    staleTime: Infinity,
+  });
+};
+
 
 export const optimisticRemove = (queryClient: QueryClient, {itemId, searchPrefs: preferences, page}: mutationParams) => {
   const pageIdKey = queryKeys.gallery.ids(preferences, page);

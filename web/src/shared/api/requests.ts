@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { withPreferences, apiHandler, apiHandlerOK } from '@shared/api/utils';
-import { MediaID, MediaItem } from '@shared/types/media';
+import { MediaID, MediaItem, Thumbnail } from '@shared/types/media';
 import { User } from '@shared/types/user';
 import { SearchPreferences } from '@shared/types/preferences';
 import { API_ENDPOINTS } from './constants';
@@ -26,9 +26,22 @@ export const getGalleryIds = async (preferences: SearchPreferences): Promise<Med
 }
 
 export const getMediaItem = async (itemId: string): Promise<MediaItem> => {
-  const res = instance.get(`/api/media/${itemId}`)
+  const res = instance.get(`/api/media/${itemId}`);
   return apiHandler(res);
 }
+
+export const getThumbnail = async (itemId: string): Promise<Thumbnail> => {
+    const res = await instance.get(`/api/thumbnail/${itemId}`);
+    if (res.status === 200) {
+      return res.data as Thumbnail;
+    }
+    else if (res.status === 202) {
+      console.log(`Thumbnail not ready for item ${itemId}: ${JSON.stringify(res.data)}`);
+      throw new Error("Not ready");
+    }
+    throw new Error(`Thumbnail could not be generated for ${itemId}: ${res.status} ${JSON.stringify(res.data)}`);
+}
+
 
 export const getUser = async (): Promise<User> => {
   const res = instance.get(`/api/me`)
