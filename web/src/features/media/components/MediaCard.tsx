@@ -4,7 +4,7 @@ import { useAtom, useSetAtom } from 'jotai';
 import { Play, Download, Star, Trash } from 'lucide-react';
 import { useVideoPlayer } from '@media/hooks/useVideoPlayer';
 import { useMediaControls } from '@media/hooks/useMediaControls';
-import { useMediaItem, useVideoThumbnail } from '@media/api';
+import { useMediaItem /*, useVideoThumbnail */ } from '@media/api';
 import { contextMenuAtom, fullscreenItemAtom } from '@gallery/state';
 import { MediaItem } from '@shared/types/media';
 import { viewPrefsAtom } from '@preferences/state';
@@ -31,7 +31,7 @@ const VideoImageSwitch: React.FC<VideoImageSwitchProps> = ({ item }) => {
     return <VideoItem item={item} setFullscreen={setFullscreen} />;
   }
 
-  if (['image', 'photo', 'jpeg', 'png'].includes(item.MediaType)) {
+  if (['image', 'photo', 'jpeg', 'png', 'gif'].includes(item.MediaType)) {
     return <ImageItem item={item} setFullscreen={setFullscreen} />;
   }
 
@@ -56,7 +56,7 @@ const VideoItem: React.FC<MediaProps> = ({ item, setFullscreen }) => {
   // # TODO: Merge with top level isHovering
   const { videoRef, isPlaying, togglePlay, handlePlay, handlePause, onHover, onLeave } = useVideoPlayer();
 
-  const { data, isSuccess } = useVideoThumbnail(item.id);
+  // const { data, isSuccess } = useVideoThumbnail(item.id);
 
   return (
     <AspectRatio ratio={1}>
@@ -72,7 +72,7 @@ const VideoItem: React.FC<MediaProps> = ({ item, setFullscreen }) => {
           onPlay={handlePlay}
           onPause={handlePause}
           ref={videoRef}
-          poster={isSuccess ? `/thumbnails/${data.fileName}` : undefined}
+          // poster={isSuccess ? `/thumbnails/${data.fileName}` : undefined}
           className={classes.videoFit}
           src={`/media/${item.file_name}`}
         />

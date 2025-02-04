@@ -3,8 +3,9 @@ import { createPreferenceString } from '@shared/api/serialization';
 import { API_ENDPOINTS } from './constants';
 
 
+// TODO: Is there a better way to do this allowing URL route variables?
 type ROUTE = typeof API_ENDPOINTS[keyof typeof API_ENDPOINTS];
-export const withPreferences = (route: ROUTE, preferences: Parameters<typeof createPreferenceString>[0]) => {
+export const withPreferences = (route: ROUTE | string, preferences: Parameters<typeof createPreferenceString>[0]) => {
   return `${route}?${createPreferenceString(preferences)}`
 }
 

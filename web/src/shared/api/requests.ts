@@ -58,8 +58,18 @@ export const postFavorite = async (itemId: string): Promise<MediaItem> => {
   return apiHandler(res);
 }
 
-export const deleteItem = async (itemId: string): Promise<boolean> => {
-  const res = instance.delete(`/api/media/${itemId}`)
-  return apiHandlerOK(res);
+export const deleteItem = async (itemId: string, preferences: SearchPreferences, page: number): Promise<MediaItem | null> => {
+  try {
+    const res = await instance.delete(
+        withPreferences(`/api/media/${itemId}`, {...preferences, page})
+      )
+    return res.data as MediaItem;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 204) {
+      // On the last page no content will be returned
+      return null;
+    }
+    throw error;
+  }
 }
 

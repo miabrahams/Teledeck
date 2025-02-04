@@ -211,22 +211,20 @@ func (s *MediaStore) MarkDeleted(item *models.MediaItem) error {
 	return result.Error
 }
 
-// TODO: DOUBLE CHECK
 func (s *MediaStore) MarkDeletedAndGetNext(item *models.MediaItem, page int, itemsPerPage int, P models.SearchPrefs) (*models.MediaItemWithMetadata, error) {
-
-	var nextItem models.MediaItemWithMetadata
-
-	// Not sure a transaction is really necessary but interesting to implement
-	if res := s.db.Model(item).Update("user_deleted", true); res.Error != nil {
-		return nil, res.Error
+	err := s.MarkDeleted(item)
+	if err != nil {
+		return nil, err
 	}
 
+	var nextItem models.MediaItemWithMetadata
 	query := s.getMediaItemsQuery(P)
+	query = query.Offset(page*itemsPerPage - 1).Limit(1)
+	err = query.Scan(&nextItem).Error
 
-	offset := (page)*itemsPerPage - 1
-	query = query.Offset(offset).Limit(1)
-
-	err := query.Scan(&nextItem).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
 
 	return &nextItem, err
 }

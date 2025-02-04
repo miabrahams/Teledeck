@@ -27,19 +27,8 @@ const (
 	itemsPerPage = 100
 )
 
-/*
-func newSearchPrefs(sort string, favorites string, videos bool, query string) models.SearchPrefs {
-	return models.SearchPrefs{
-		Sort:       sort,
-		Favorites:  favorites,
-		VideosOnly: videos,
-		Search:     query,
-	}
-}
-*/
-
+// Wrapper function to parse query parameters for pagination and preferences
 func (h *MediaJsonHandler) getWithPrefs(w http.ResponseWriter, r *http.Request, callback func(searchPrefs models.SearchPrefs, page int)) {
-	// Parse query parameters for pagination and preferences
 	ctx := r.Context()
 	searchPrefs, ok := ctx.Value(middleware.SearchPrefKey).(models.SearchPrefs)
 	if !ok {
@@ -56,7 +45,6 @@ func (h *MediaJsonHandler) getWithPrefs(w http.ResponseWriter, r *http.Request, 
 }
 
 func (h *MediaJsonHandler) GetGallery(w http.ResponseWriter, r *http.Request) {
-	// Parse query parameters for pagination and preferences
 	h.getWithPrefs(w, r, func(searchPrefs models.SearchPrefs, page int) {
 		items, err := h.c.GetPaginatedMediaItems(page, itemsPerPage, searchPrefs)
 		if err != nil {
@@ -84,7 +72,6 @@ func (h *MediaJsonHandler) GetThumbnail(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h *MediaJsonHandler) GetGalleryIds(w http.ResponseWriter, r *http.Request) {
-	// Parse query parameters for pagination and preferences
 	h.getWithPrefs(w, r, func(searchPrefs models.SearchPrefs, page int) {
 		items, err := h.c.GetPaginatedMediaItemIds(page, itemsPerPage, searchPrefs)
 		if err != nil {
@@ -96,10 +83,9 @@ func (h *MediaJsonHandler) GetGalleryIds(w http.ResponseWriter, r *http.Request)
 	})
 }
 
+// Wrapper function to retrieve media item from context and pass it to a callback
 func (h *MediaJsonHandler) mediaCallback(
-	w http.ResponseWriter,
-	r *http.Request,
-	callback func(m *models.MediaItemWithMetadata),
+	w http.ResponseWriter, r *http.Request, callback func(m *models.MediaItemWithMetadata),
 ) {
 	ctx := r.Context()
 	mediaItem, ok := ctx.Value(middleware.MediaItemKey).(*models.MediaItemWithMetadata)
@@ -139,16 +125,25 @@ func (h *MediaJsonHandler) ToggleFavorite(w http.ResponseWriter, r *http.Request
 
 func (h *MediaJsonHandler) DeleteMedia(w http.ResponseWriter, r *http.Request) {
 	h.mediaCallback(w, r, func(m *models.MediaItemWithMetadata) {
-		if m.Favorite {
-			writeError(w, http.StatusBadRequest, "Cannot delete a favorite item")
-			return
-		}
+		h.getWithPrefs(w, r, func(p models.SearchPrefs, page int) {
+			if m.Favorite {
+				writeError(w, http.StatusBadRequest, "Cannot delete a favorite item")
+				return
+			}
+			slog.Info("Deleting item", "item", m, "prefs", p, "page", page)
 
-		if err := h.c.RecycleMediaItem(m.MediaItem); err != nil {
-			writeError(w, http.StatusInternalServerError, "Error deleting item")
-			return
-		}
+			nextItem, err := h.c.RecycleAndGetNext(&m.MediaItem, page, p)
+			if err != nil {
+				writeError(w, http.StatusInternalServerError, "Error deleting item")
+				return
+			}
 
-		w.WriteHeader(http.StatusNoContent)
+			if nextItem == nil {
+				writeJSON(w, http.StatusNoContent, nil)
+			} else {
+				slog.Info("retrieved next item", "item", nextItem)
+				writeJSON(w, http.StatusOK, nextItem)
+			}
+		})
 	})
 }

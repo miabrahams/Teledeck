@@ -30,13 +30,33 @@ export const useVideoThumbnail = (itemId: string) => {
 };
 
 
-export const optimisticRemove = (queryClient: QueryClient, {itemId, searchPrefs: preferences, page}: mutationParams) => {
-  const pageIdKey = queryKeys.gallery.ids(preferences, page);
+export const optimisticRemove = (queryClient: QueryClient, {itemId, searchPrefs, page}: mutationParams) => {
+  const pageIdKey = queryKeys.gallery.ids(searchPrefs, page);
   const currentPage = queryClient.getQueryData<MediaID[]>(pageIdKey);
   if (currentPage) {
     queryClient.setQueryData(
       pageIdKey,
       currentPage.filter((id) => id.id !== itemId)
+    );
+    console.log("removed item", itemId)
+  }
+}
+
+export const optimisticAdd = (queryClient: QueryClient, mediaItem: MediaItem, {searchPrefs, page}: mutationParams) => {
+  const pageIdKey = queryKeys.gallery.ids(searchPrefs, page);
+  const currentPage = queryClient.getQueryData<MediaID[]>(pageIdKey);
+  if (currentPage) {
+
+
+    console.log("Setting query data", mediaItem)
+    queryClient.setQueryData(
+      queryKeys.media.item(mediaItem.id),
+      mediaItem
+    );
+
+    queryClient.setQueryData(
+      pageIdKey,
+      [...currentPage, {id: mediaItem.id}]
     );
   }
 }
@@ -83,16 +103,18 @@ export const useGalleryMutations = () => {
   }),
   deleteItem: useMutation({
     mutationFn: async (params: mutationParams) => {
-      // Optimistically remove this item from page
+      console.log("deleting", params)
       optimisticRemove(queryClient, params);
-      return deleteItem(params.itemId);
+      return deleteItem(params.itemId, params.searchPrefs, params.page);
     },
-    onSuccess: () => {invalidatePageIds(queryClient)},
+    onSuccess: (mediaItem, params) => {
+      if (mediaItem) {
+        optimisticAdd(queryClient, mediaItem, params);
+      }
+      invalidatePageIds(queryClient);
+    },
     onError: (error, variables, context) => {
-      // An error happened!
-      console.log('Deletion error:', context);
-      console.log('Deletion error:', variables);
-      console.log('Deletion error:', error);
+      console.log('Deletion error:', context, variables, error);
     }})
   }
 }

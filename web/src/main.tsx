@@ -15,7 +15,8 @@ const queryClient = new QueryClient({
 });
 
 
-const useDevtools = import.meta.env.MODE === 'development';
+const useDevtools = import.meta.env.MODE === 'development' && false;
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>

@@ -11,6 +11,7 @@ export const useVideoPlayer = () => {
     if (videoState.playing) {
       videoRef.current.pause();
     } else {
+      window.clearTimeout(timer.current);
       videoRef.current.play();
     }
   }, [videoState]);
@@ -37,16 +38,18 @@ export const useVideoPlayer = () => {
   }, []);
 
   const handlePlay = useCallback(() => {
+    window.clearTimeout(timer.current);
     setVideoState({playing: true, userClick: true});
   }, []);
 
   const handlePause = useCallback(() => {
+    window.clearTimeout(timer.current);
     setVideoState({playing: false, userClick: true});
   }, []);
 
   return {
     videoRef,
-    isPlaying: videoState,
+    isPlaying: videoState.playing,
     togglePlay,
     handlePlay,
     handlePause,

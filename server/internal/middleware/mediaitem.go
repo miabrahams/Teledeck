@@ -66,7 +66,7 @@ func SearchParamsMiddleware(next http.Handler) http.Handler {
 		}
 		ctx = context.WithValue(ctx, PageKey, page)
 
-		slog.Info("Search preferences", slog.Any("prefs", searchPrefs))
+		slog.Info("search params middleware", "prefs", searchPrefs, "page", page)
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
