@@ -1,15 +1,17 @@
 // src/features/navigation/components/Navigation.tsx
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import ViewOptions from './ViewOptions';
 import SearchOptions from './SearchOptions';
 import SearchBox from './SearchBox';
+import { Menu } from 'lucide-react';
 import {
   Box,
   Container,
   Flex,
   Button,
   Text,
+  IconButton,
 } from '@radix-ui/themes';
 import { User } from '@/shared/types/user';
 
@@ -19,6 +21,7 @@ type NavigationProps = {
 };
 
 const Navigation: React.FC<NavigationProps> = ({ user, onLogout }) => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
     <Box
@@ -27,17 +30,36 @@ const Navigation: React.FC<NavigationProps> = ({ user, onLogout }) => {
       top="0"
       style={{
         backgroundColor: 'var(--background-nav)',
-        zIndex: 40
+        zIndex: 40,
       }}
     >
       <nav>
         <Container size="4">
-          <Flex justify="between" align="center" py="4" gap="4">
+          {/* Desktop Layout */}
+          <Flex
+            display={{ initial: 'none', md: 'flex' }}
+            justify="between"
+            align="center"
+            py="4"
+            gap="4"
+          >
             {/* Left side - Navigation and filters */}
             <Flex align="center" gap="4">
-              {/* View Options */}
+              <Link to="/">
+                <Text color="gray" weight="medium" size="2" highContrast>
+                  Home
+                </Text>
+              </Link>
+              <Link to="/about">
+                <Text color="gray" weight="medium" size="2" highContrast>
+                  About
+                </Text>
+              </Link>
+
               <ViewOptions />
-              <SearchOptions />
+              <Flex align="center" gap="4">
+                <SearchOptions />
+              </Flex>
               <SearchBox />
             </Flex>
 
@@ -69,6 +91,51 @@ const Navigation: React.FC<NavigationProps> = ({ user, onLogout }) => {
                 </>
               )}
             </Flex>
+          </Flex>
+
+          {/* Mobile Layout */}
+          <Flex
+            direction="row"
+            wrap="wrap"
+            display={{ initial: 'flex', md: 'none' }}
+          >
+            <Flex justify="between" align="center" py="2">
+              <SearchBox />
+              <IconButton
+                variant="ghost"
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+              >
+                <Menu />
+              </IconButton>
+            </Flex>
+
+            {isMenuOpen && (
+              <Flex direction="row" wrap="wrap" gap="2" py="2">
+                <ViewOptions />
+                <SearchOptions />
+                {/* user ? (
+                  <>
+                    <Text size="2">Welcome, {user.email}</Text>
+                    <Button onClick={onLogout} variant="soft" size="2">
+                      Logout
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Link to="/register">
+                      <Button variant="soft" size="2" width="100%">
+                        Register
+                      </Button>
+                    </Link>
+                    <Link to="/login">
+                      <Button variant="soft" size="2" width="100%">
+                        Login
+                      </Button>
+                    </Link>
+                  </>
+                )*/}
+              </Flex>
+            )}
           </Flex>
         </Container>
       </nav>

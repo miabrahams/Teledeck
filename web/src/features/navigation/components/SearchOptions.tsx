@@ -10,7 +10,7 @@ const SearchOptions: React.FC = () => {
   const [searchPrefs, setSearchPrefs] = useAtom(searchPrefsAtom);
 
   return (
-    <Flex align="center" gap="4">
+    <>
       <Select.Root
         value={searchPrefs.sort}
         onValueChange={(value) => setSearchPrefs('sort', value)}
@@ -53,7 +53,7 @@ const SearchOptions: React.FC = () => {
           </label>
         </Text>
       </Flex>
-    </Flex>
+    </>
   );
 };
 

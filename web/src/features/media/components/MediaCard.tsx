@@ -3,8 +3,9 @@ import React from 'react';
 import { useAtom, useSetAtom } from 'jotai';
 import { Play, Download, Star, Trash } from 'lucide-react';
 import { useVideoPlayer } from '@media/hooks/useVideoPlayer';
+import { useIsMobile } from '@media/hooks/useIsMobile';
 import { useMediaControls } from '@media/hooks/useMediaControls';
-import { useMediaItem /*, useVideoThumbnail */ } from '@media/api';
+import { useMediaItem, useVideoThumbnail } from '@media/api';
 import { contextMenuAtom, fullscreenItemAtom } from '@gallery/state';
 import { MediaItem } from '@shared/types/media';
 import { viewPrefsAtom } from '@preferences/state';
@@ -23,9 +24,11 @@ type MediaViewProps = { item: MediaItem }
 type VideoImageSwitchProps = MediaViewProps
 const VideoImageSwitch: React.FC<VideoImageSwitchProps> = ({ item }) => {
   const setFullscreenItem = useSetAtom(fullscreenItemAtom);
+  const isMobile = useIsMobile();
   const setFullscreen = React.useCallback(() => {
+    if (isMobile) return;
     setFullscreenItem(item)
-  }, [item, setFullscreenItem])
+  }, [item, isMobile, setFullscreenItem])
 
   if (['video'].includes(item.MediaType)) {
     return <VideoItem item={item} setFullscreen={setFullscreen} />;
@@ -55,8 +58,9 @@ const ImageItem: React.FC<MediaProps> = ({ item, setFullscreen }) => {
 const VideoItem: React.FC<MediaProps> = ({ item, setFullscreen }) => {
   // # TODO: Merge with top level isHovering
   const { videoRef, isPlaying, togglePlay, handlePlay, handlePause, onHover, onLeave } = useVideoPlayer();
+  // const isMobile = useIsMobile();
 
-  // const { data, isSuccess } = useVideoThumbnail(item.id);
+  const { data, isSuccess } = useVideoThumbnail(item.id);
 
   return (
     <AspectRatio ratio={1}>
@@ -72,7 +76,7 @@ const VideoItem: React.FC<MediaProps> = ({ item, setFullscreen }) => {
           onPlay={handlePlay}
           onPause={handlePause}
           ref={videoRef}
-          // poster={isSuccess ? `/thumbnails/${data.fileName}` : undefined}
+          poster={isSuccess ? `/thumbnails/${data.fileName}` : undefined}
           className={classes.videoFit}
           src={`/media/${item.file_name}`}
         />
