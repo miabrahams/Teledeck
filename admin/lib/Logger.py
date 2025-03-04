@@ -16,19 +16,24 @@ class RichLogger:
     console: Optional[Console]
     progress_table: Table
     progress: Progress
+    panel: Panel
     _channels_task: Optional[TaskID]
     _messages_task: Optional[TaskID]
     data: List
     update_path: Path
+    num_messages: int
 
     def __init__(self, update_path: Path):
         self.progress_table = Table.grid()
         self.progress = Progress()
+        self.panel = Panel(self.progress, title="Update Progress", border_style="green", padding=(1, 1))
+        self.progress_table.add_row(self.panel)
         self.console = None
         self._channels_task = None
         self._messages_task = None
         self.data = []
         self.update_path = update_path
+        self.num_messages = 0
 
     @property
     def channels_task(self):
@@ -44,7 +49,6 @@ class RichLogger:
 
 
     async def run(self, channels_estimate, iter: Coroutine[Any, Any, None]):
-        self.progress_table.add_row(Panel(self.progress, title="Update Progress", border_style="green", padding=(1, 1)))
         with Live(self.progress_table, refresh_per_second=10) as live:
             self.console = live.console
             self._channels_task = self.progress.add_task("[green]Channel Scan Progress", total=channels_estimate)
@@ -55,12 +59,14 @@ class RichLogger:
         self.progress.update(self.channels_task, total=c)
 
     def setNumMessages(self, m: int):
-        self.progress.update(self.messages_task, total=m)
+        self.num_messages = m
+        self.progress.update(self.messages_task, total=self.num_messages)
 
     def finish_channel(self):
         self.progress.update(self.channels_task, advance=1)
 
     def finish_message(self):
+        self.panel.title = f"Update Progress: {self.progress.tasks[0].completed} / {self.progress.tasks[0].total} messages processed"
         self.progress.update(self.messages_task, advance=1)
 
 
