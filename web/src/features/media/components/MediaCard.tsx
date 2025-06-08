@@ -21,6 +21,17 @@ import classes from './MediaCard.module.css';
 
 type MediaViewProps = { item: MediaItem }
 
+// Helper function for actual file download
+const downloadFile = (fileName: string) => {
+  const link = document.createElement('a');
+  link.href = `/media/${fileName}`;
+  link.download = fileName;
+  link.style.display = 'none';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
 type VideoImageSwitchProps = MediaViewProps
 const VideoImageSwitch: React.FC<VideoImageSwitchProps> = ({ item }) => {
   const setFullscreenItem = useSetAtom(fullscreenItemAtom);
@@ -56,23 +67,25 @@ const ImageItem: React.FC<MediaProps> = ({ item, setFullscreen }) => {
 }
 
 const VideoItem: React.FC<MediaProps> = ({ item, setFullscreen }) => {
-  // # TODO: Merge with top level isHovering
   const { videoRef, isPlaying, togglePlay, handlePlay, handlePause, onHover, onLeave } = useVideoPlayer();
-  // const isMobile = useIsMobile();
-
   const { data, isSuccess } = useVideoThumbnail(item.id);
+
+  const handleVideoClick = React.useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    togglePlay();
+  }, [togglePlay]);
 
   return (
     <AspectRatio ratio={1}>
-      <Box position="relative"
-           style={{ width: '100%', height: '100%' }}
-           onClick={setFullscreen}
-           onMouseEnter = {onHover}
-           onMouseLeave = {onLeave}
-          >
-
+      <Box
+        position="relative"
+        style={{ width: '100%', height: '100%' }}
+        onClick={setFullscreen}
+        onMouseEnter={onHover}
+        onMouseLeave={onLeave}
+      >
         <video
-          onClick={togglePlay}
+          onClick={handleVideoClick}
           onPlay={handlePlay}
           onPause={handlePause}
           ref={videoRef}
@@ -90,7 +103,8 @@ const VideoItem: React.FC<MediaProps> = ({ item, setFullscreen }) => {
             background: isPlaying ? 'transparent' : 'rgba(0, 0, 0, 0.3)',
             transition: 'background-color 0.2s',
             top: 0,
-            left: 0
+            left: 0,
+            pointerEvents: 'none'
           }}
         >
           {!isPlaying && (
@@ -148,6 +162,11 @@ const MediaIconBox: React.FC<MediaIconsProps> = ({
   handleDownload,
   handleFavorite
 }) => {
+  const handleIconClick = React.useCallback((e: React.MouseEvent, action: () => void) => {
+    e.stopPropagation();
+    action();
+  }, []);
+
   return (
     <Box
       position="absolute"
@@ -165,7 +184,7 @@ const MediaIconBox: React.FC<MediaIconsProps> = ({
           <IconButton
             size="1"
             variant="soft"
-            onClick={handleDelete}
+            onClick={(e) => handleIconClick(e, handleDelete)}
             style={{ backgroundColor: 'rgba(0, 0, 0, 0.7)' }}
           >
             <Trash className="w-4 h-4" />
@@ -174,7 +193,7 @@ const MediaIconBox: React.FC<MediaIconsProps> = ({
         <IconButton
           size="1"
           variant="soft"
-          onClick={handleFavorite}
+          onClick={(e) => handleIconClick(e, handleFavorite)}
           style={{ backgroundColor: 'rgba(0, 0, 0, 0.7)' }}
         >
           <Star className={`w-4 h-4 ${isFavorite ? 'fill-yellow-500' : ''}`} />
@@ -182,7 +201,7 @@ const MediaIconBox: React.FC<MediaIconsProps> = ({
         <IconButton
           size="1"
           variant="soft"
-          onClick={handleDownload}
+          onClick={(e) => handleIconClick(e, handleDownload)}
           style={{ backgroundColor: 'rgba(0, 0, 0, 0.7)' }}
         >
           <Download className="w-4 h-4" />
@@ -201,12 +220,22 @@ const MediaCard: React.FC<MediaCardProps> = ({ itemId }) => {
     setIsHovering,
     handleFavorite,
     handleDelete,
-    handleDownload,
   } = useMediaControls(itemId);
 
   const setContextMenuAtom = useSetAtom(contextMenuAtom);
+  const [viewPrefs] = useAtom(viewPrefsAtom);
 
-  const [viewPrefs, _] = useAtom(viewPrefsAtom);
+  const handleDownload = React.useCallback(() => {
+    if (item) {
+      downloadFile(item.file_name);
+    }
+  }, [item]);
+
+  const handleContextMenu = React.useCallback((e: React.MouseEvent) => {
+    if (item) {
+      setContextMenuAtom({ x: e.pageX, y: e.pageY, item });
+    }
+  }, [item, setContextMenuAtom]);
 
   if (status === 'pending') {
     return (
@@ -234,25 +263,22 @@ const MediaCard: React.FC<MediaCardProps> = ({ itemId }) => {
   return (
     <Card
       size="1"
-      className = {classes.mediaCard}
-      style={ {transform: isHovering ? 'translateY(-2px)' : 'none'} }
+      className={classes.mediaCard}
+      style={{ transform: isHovering ? 'translateY(-2px)' : 'none' }}
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
-      onClick={(e) => {
-        setContextMenuAtom({x: e.pageX, y: e.pageY, item: item})
-      }}
+      onClick={handleContextMenu}
     >
       <Box className="media-item-content">
         <VideoImageSwitch item={item} />
       </Box>
-      {!viewPrefs.hideinfo &&
-        <MediaInfo item={item} /> }
+      {!viewPrefs.hideinfo && <MediaInfo item={item} />}
       <MediaIconBox
         isHovering={isHovering}
         isFavorite={item.favorite}
         handleFavorite={handleFavorite}
         handleDelete={handleDelete}
-        handleDownload={() => handleDownload(item.file_name)}
+        handleDownload={handleDownload}
       />
     </Card>
   );
