@@ -42,7 +42,7 @@ const App: React.FC = () => {
         </main>
 
         <footer className="bg-neutral-200 dark:bg-dark-surface text-neutral-600 dark:text-neutral-400 p-4 mt-8">
-          <div className="container mx-auto text-center">© 2024 Teledeck</div>
+          <div className="container mx-auto text-center">© 2025 Teledeck</div>
         </footer>
       </div>
     </Router>
