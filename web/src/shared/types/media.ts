@@ -39,4 +39,11 @@ export type MediaItem = {
 
 export type Thumbnail = {
   fileName: string;
-}
+};
+
+export type DeletePageResponse = {
+  deletedCount: number;
+  skippedCount: number;
+  errors?: string[];
+  nextPage?: MediaItem[];
+};

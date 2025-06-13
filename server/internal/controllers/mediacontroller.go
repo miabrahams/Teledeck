@@ -93,6 +93,54 @@ func (s *MediaController) GetMediaItem(id string) (*models.MediaItemWithMetadata
 	return s.store.GetMediaItem(id)
 }
 
+type DeletePageResult struct {
+	DeletedCount int                            `json:"deletedCount"`
+	SkippedCount int                            `json:"skippedCount"`
+	Errors       []string                       `json:"errors,omitempty"`
+	NextPage     []models.MediaItemWithMetadata `json:"nextPage,omitempty"`
+}
+
+func (s *MediaController) DeletePageItems(itemIDs []string, page int, searchPrefs models.SearchPrefs) (*DeletePageResult, error) {
+	const itemsPerPage = 100 // Match the constant from the handler
+
+	result := &DeletePageResult{
+		Errors: make([]string, 0),
+	}
+
+	// Delete each item
+	for _, itemID := range itemIDs {
+		mediaItem, err := s.store.GetMediaItem(itemID)
+		if err != nil {
+			result.Errors = append(result.Errors, fmt.Sprintf("Failed to get item %s: %v", itemID, err))
+			continue
+		}
+
+		if mediaItem.Favorite {
+			result.SkippedCount++
+			result.Errors = append(result.Errors, fmt.Sprintf("Skipped favorite item %s", itemID))
+			continue
+		}
+
+		err = s.RecycleMediaItem(mediaItem.MediaItem)
+		if err != nil {
+			result.Errors = append(result.Errors, fmt.Sprintf("Failed to delete item %s: %v", itemID, err))
+			continue
+		}
+
+		result.DeletedCount++
+	}
+
+	// Get the next page of items to fill the gap
+	remainingItems, err := s.store.GetPaginatedMediaItems(page, itemsPerPage, searchPrefs)
+	if err != nil {
+		result.Errors = append(result.Errors, fmt.Sprintf("Failed to get replacement items: %v", err))
+	} else {
+		result.NextPage = remainingItems
+	}
+
+	return result, nil
+}
+
 // Note: May not have a way to handle failed thumbnail generations
 func (s *MediaController) GetThumbnail(mediaItemID string) (string, error) {
 	mediaItem, err := s.store.GetMediaItem(mediaItemID)

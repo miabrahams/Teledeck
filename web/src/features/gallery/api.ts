@@ -1,9 +1,10 @@
 import {
   useQuery,
   useQueryClient,
+  useMutation,
   QueryClient,
 } from '@tanstack/react-query';
-import { getGalleryIds, getGalleryPage, getTotalPages } from '@shared/api/requests';
+import { getGalleryIds, getGalleryPage, getTotalPages, deletePage } from '@shared/api/requests';
 import { MediaID } from '@shared/types/media';
 import { ApiError } from '@shared/types/api';
 import { SearchPreferences } from '@shared/types/preferences';
@@ -65,5 +66,35 @@ export const useGallery = (preferences: SearchPreferences, page: number) => {
       return fetchGalleryPage(queryClient, preferences, page);
     },
     staleTime: Infinity,
+  });
+};
+
+export const useDeletePage = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ itemIds, preferences, page }: {
+      itemIds: string[];
+      preferences: SearchPreferences;
+      page: number;
+    }) => {
+      return deletePage(itemIds, preferences, page);
+    },
+    onSuccess: (result, _) => {
+      // Invalidate all gallery-related queries to refresh the data
+      queryClient.invalidateQueries({ queryKey: ['gallery'] });
+      queryClient.invalidateQueries({ queryKey: ['mediaIds'] });
+      queryClient.invalidateQueries({ queryKey: ['numPages'] });
+
+      // Optionally show success message
+      console.log(`Successfully deleted ${result.deletedCount} items, skipped ${result.skippedCount} favorites`);
+
+      if (result.errors && result.errors.length > 0) {
+        console.warn('Some items had errors:', result.errors);
+      }
+    },
+    onError: (error) => {
+      console.error('Error deleting page:', error);
+    }
   });
 };

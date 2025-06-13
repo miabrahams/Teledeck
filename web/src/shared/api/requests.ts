@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { withPreferences, apiHandler, apiHandlerOK } from '@shared/api/utils';
-import { MediaID, MediaItem, Thumbnail } from '@shared/types/media';
+import { MediaID, MediaItem, Thumbnail, DeletePageResponse } from '@shared/types/media';
 import { User } from '@shared/types/user';
 import { SearchPreferences } from '@shared/types/preferences';
 import { API_ENDPOINTS } from './constants';
@@ -71,5 +71,13 @@ export const deleteItem = async (itemId: string, preferences: SearchPreferences,
     }
     throw error;
   }
+}
+
+export const deletePage = async (itemIds: string[], preferences: SearchPreferences, page: number): Promise<DeletePageResponse> => {
+  const res = await instance.delete(
+    withPreferences('/api/page', {...preferences, page}),
+    { data: { itemIds } }
+  );
+  return res.data as DeletePageResponse;
 }
 

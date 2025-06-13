@@ -1,6 +1,7 @@
 package webapi
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -145,5 +146,55 @@ func (h *MediaJsonHandler) DeleteMedia(w http.ResponseWriter, r *http.Request) {
 				writeJSON(w, http.StatusOK, nextItem)
 			}
 		})
+	})
+}
+
+type DeletePageRequest struct {
+	ItemIDs []string `json:"itemIds"`
+}
+
+func (h *MediaJsonHandler) DeletePage(w http.ResponseWriter, r *http.Request) {
+	var req DeletePageRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	if len(req.ItemIDs) == 0 {
+		writeError(w, http.StatusBadRequest, "No item IDs provided")
+		return
+	}
+
+	h.getWithPrefs(w, r, func(searchPrefs models.SearchPrefs, page int) {
+		// Get the current page items to verify the request
+		currentPageItems, err := h.c.GetPaginatedMediaItems(page, itemsPerPage, searchPrefs)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "Error fetching current page items")
+			return
+		}
+
+		// Create a map of current page item IDs for verification
+		currentPageIDMap := make(map[string]bool)
+		for _, item := range currentPageItems {
+			currentPageIDMap[item.ID] = true
+		}
+
+		// Verify all requested IDs are actually on the current page (security measure)
+		for _, id := range req.ItemIDs {
+			if !currentPageIDMap[id] {
+				writeError(w, http.StatusBadRequest, fmt.Sprintf("Item ID %s is not on the current page", id))
+				return
+			}
+		}
+
+		result, err := h.c.DeletePageItems(req.ItemIDs, page, searchPrefs)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "Error deleting page items")
+			return
+		}
+
+		slog.Info("Deleted page items", "deletedCount", result.DeletedCount, "skippedCount", result.SkippedCount, "page", page)
+
+		writeJSON(w, http.StatusOK, result)
 	})
 }

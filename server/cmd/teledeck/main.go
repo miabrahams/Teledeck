@@ -204,6 +204,7 @@ func main() {
 				r.Delete("/", mediaJsonHandler.DeleteMedia)
 				r.Post("/favorite", mediaJsonHandler.ToggleFavorite)
 			})
+			r.Delete("/page", mediaJsonHandler.DeletePage)
 		})
 	})
 
