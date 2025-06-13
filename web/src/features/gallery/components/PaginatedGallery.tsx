@@ -15,6 +15,7 @@ export const PaginatedMediaGallery: React.FC = () => {
   useKeyboardNavigation(nextPage, previousPage);
 
   const P = React.useMemo(() => <Pagination />, [ currentPage ])
+  const closeFullScreen = React.useCallback(() => { setFullscreenItem(null); } , [ setFullscreenItem ]);
 
   return (
     <div id="media-index">
@@ -30,7 +31,8 @@ export const PaginatedMediaGallery: React.FC = () => {
       {fullscreenItem && (
         <FullscreenView
           item={fullscreenItem}
-          onClose={() => {setFullscreenItem(null)}}
+          closeFullScreen={closeFullScreen}
+          onClose={closeFullScreen}
         />
       )}
     </div>

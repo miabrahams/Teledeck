@@ -6,9 +6,10 @@ import { Dialog, Flex, IconButton } from '@radix-ui/themes';
 type FullscreenViewProps = {
   item: MediaItem;
   onClose: () => void;
+  closeFullScreen: () => void;
 };
 
-const FullscreenView: React.FC<FullscreenViewProps> = ({ item, onClose }) => {
+const FullscreenView: React.FC<FullscreenViewProps> = ({ item, onClose, closeFullScreen }) => {
   // Install keyboard listener; remove on cleanup
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -22,9 +23,19 @@ const FullscreenView: React.FC<FullscreenViewProps> = ({ item, onClose }) => {
   }, [onClose]);
 
   const isVideo = item.MediaType === 'video';
+  const closeOnMe = React.useCallback((e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      closeFullScreen();
+    }}, [closeFullScreen]);
 
   return (
-    <Dialog.Root open={true} onOpenChange={() => onClose()}>
+    <Dialog.Root
+      open={true}
+      onOpenChange={() => onClose()}
+    >
+      <Dialog.Title style={{ display: 'none' }}>
+        Fullscreen View
+      </Dialog.Title>
       <Dialog.Content
         size="4"
         style={{
@@ -36,11 +47,13 @@ const FullscreenView: React.FC<FullscreenViewProps> = ({ item, onClose }) => {
           border: 'none',
           boxShadow: 'none',
         }}
+        onClick={closeOnMe}
       >
         <Flex
           direction="column"
           align="center"
           style={{ position: 'relative' }}
+          onClick={closeOnMe}
         >
           <IconButton
             size="2"
