@@ -15,6 +15,32 @@ import {
   Spinner
 } from '@radix-ui/themes';
 
+type MediaGalleryProps = { currentPage: number };
+
+const MediaGallery: React.FC<MediaGalleryProps> = ({ currentPage }) => {
+  const searchPrefs = useAtomValue(searchPrefsAtom);
+  const { data, isLoading, error } = useGallery(searchPrefs, currentPage);
+/*   console.log("searchPrefs: ", searchPrefs); */
+
+  if (isLoading) return <LoadSpinner />;
+  if (error) return <ErrorStatus message={error.message} />;
+  if (!data || data.length === 0) return <EmptyMessage />;
+
+  return (
+    <Container maxWidth={"100%"}>
+      <Grid
+        className="media-gallery"
+        columns='repeat(auto-fill, minmax(300px, 1fr))'
+        gap="4"
+      >
+        {data.map((mediaItem) => (
+          <MediaCard itemId={mediaItem.id} key={mediaItem.id} />
+        ))}
+      </Grid>
+    </Container>
+  );
+};
+
 const LoadSpinner: React.FC = () => {
   return (
     <Flex align="center" justify="center" height="9">
@@ -52,30 +78,5 @@ const ErrorStatus: React.FC<{message: string}> = ({message}) => {
     </AlertDialog.Root>
   );
 }
-
-type MediaGalleryProps = { currentPage: number };
-
-const MediaGallery: React.FC<MediaGalleryProps> = ({ currentPage }) => {
-  const searchPrefs = useAtomValue(searchPrefsAtom);
-  const { data, isLoading, error } = useGallery(searchPrefs, currentPage);
-
-  if (isLoading) return <LoadSpinner />;
-  if (error) return <ErrorStatus message={error.message} />;
-  if (!data || data.length === 0) return <EmptyMessage />;
-
-  return (
-    <Container maxWidth={"100%"}>
-      <Grid
-        className="media-gallery"
-        columns='repeat(auto-fill, minmax(300px, 1fr))'
-        gap="4"
-      >
-        {data.map((mediaItem) => (
-          <MediaCard itemId={mediaItem.id} key={mediaItem.id} />
-        ))}
-      </Grid>
-    </Container>
-  );
-};
 
 export default MediaGallery;
