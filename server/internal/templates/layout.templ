@@ -10,10 +10,10 @@ templ header(title string) {
 		<title>{ title }</title>
 		<meta charset="UTF-8"/>
 		<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-		<script src="static/script/htmx.min.js" nonce={ middleware.GetHtmxNonce(ctx) }></script>
-		<script src="static/script/response-targets.js" nonce={ middleware.GetResponseTargetsNonce(ctx) } defer></script>
-        <script src="static/script/gallery.js" nonce={ middleware.GetGalleryScriptsNonce(ctx) } defer></script>
-        <script src="static/script/preferences.js" defer></script>
+		<script src="assets/script/htmx.min.js" nonce={ middleware.GetHtmxNonce(ctx) }></script>
+		<script src="assets/script/response-targets.js" nonce={ middleware.GetResponseTargetsNonce(ctx) } defer></script>
+        <script src="assets/script/gallery.js" nonce={ middleware.GetGalleryScriptsNonce(ctx) } defer></script>
+        <script src="assets/script/preferences.js" defer></script>
 		<script>
 			// Dark mode toggle function
 			function toggleDarkMode() {
@@ -21,9 +21,9 @@ templ header(title string) {
 			}
 		</script>
 		if os.Getenv("env") == "production" {
-			<link rel="stylesheet" href="static/css/style.min.css" nonce={ middleware.GetTwNonce(ctx) }/>
+			<link rel="stylesheet" href="assets/css/style.min.css" nonce={ middleware.GetTwNonce(ctx) }/>
 		} else {
-			<link rel="stylesheet" href="static/css/style.css" nonce={ middleware.GetTwNonce(ctx) }/>
+			<link rel="stylesheet" href="assets/css/style.css" nonce={ middleware.GetTwNonce(ctx) }/>
 		}
 	</head>
 }
