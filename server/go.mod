@@ -6,7 +6,7 @@ toolchain go1.23.4
 
 require (
 	github.com/a-h/templ v0.3.819
-	github.com/go-chi/chi/v5 v5.0.11
+	github.com/go-chi/chi/v5 v5.1.0
 	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
 	github.com/kelseyhightower/envconfig v1.4.0
@@ -18,6 +18,7 @@ require (
 	gorm.io/driver/sqlite v1.5.5
 	gorm.io/gen v0.3.26
 	gorm.io/gorm v1.25.9
+	github.com/go-chi/httplog/v3 v3.1.0
 )
 
 require (

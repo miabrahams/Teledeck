@@ -127,9 +127,9 @@ func main() {
 
 	webFileHandler := web.WebFileHandler()
 
-	/* Static file paths */
-	fileServer := http.FileServer(http.Dir(cfg.StaticDir))
-	r.Handle("/static/*", http.StripPrefix("/static/", fileServer))
+	/* HTMX assets */
+
+	/* Static media files - no middleware used for these */
 	StaticFileServer(r, "/media", mediaDir)
 	StaticFileServer(r, "/thumbnails", thumbnailDir)
 
@@ -141,6 +141,7 @@ func main() {
 			m.CSPMiddleware,
 			authMiddleware.AddUserToContext,
 			// m.WithLogger(logger),
+			//middleware.NewGoChiLogger(true, slog.LevelInfo, middleware.IsDebugHeaderSet),
 		)
 
 		r.Group(func(r chi.Router) {
@@ -160,8 +161,9 @@ func main() {
 				r.Use(m.SearchParamsMiddleware)
 
 				r.Route("/x", func(r chi.Router) {
-					r.Get("/", hxHomeHandler.ServeHTTP)
 
+					StaticFileServer(r, "/assets", cfg.HtmxAssetDir)
+					r.Get("/", hxHomeHandler.ServeHTTP)
 					r.Route("/mediaItem/{mediaItemID}", func(r chi.Router) {
 						r.Use(mediaItemMiddleware)
 						r.Get("/", hxMediaHandler.GetMediaItem)
@@ -257,7 +259,6 @@ func main() {
 // FileServer conveniently sets up a http.FileServer handler to serve static files from a http.FileSystem.
 // Installs static assets on /static (js, css etc) and media files on [path]
 func StaticFileServer(r chi.Router, path string, dir string) {
-
 	// Ensure path is formatted correctly and ends with '/'
 	if path != "/" && path[len(path)-1] != '/' {
 		path += "/"
