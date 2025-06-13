@@ -26,7 +26,7 @@ const downloadFile = (fileName: string) => {
   const link = document.createElement('a');
   link.href = `/media/${fileName}`;
   link.download = fileName;
-  link.style.display = 'none';
+  link.className = classes.downloadLink;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -79,7 +79,7 @@ const VideoItem: React.FC<MediaProps> = ({ item, setFullscreen }) => {
     <AspectRatio ratio={1}>
       <Box
         position="relative"
-        style={{ width: '100%', height: '100%' }}
+        className={classes.videoContainer}
         onClick={setFullscreen}
         onMouseEnter={onHover}
         onMouseLeave={onLeave}
@@ -99,13 +99,7 @@ const VideoItem: React.FC<MediaProps> = ({ item, setFullscreen }) => {
           height="100%"
           align="center"
           justify="center"
-          style={{
-            background: isPlaying ? 'transparent' : 'rgba(0, 0, 0, 0.3)',
-            transition: 'background-color 0.2s',
-            top: 0,
-            left: 0,
-            pointerEvents: 'none'
-          }}
+          className={isPlaying ? classes.videoOverlayTransparent : classes.videoOverlay}
         >
           {!isPlaying && (
             <Play className="w-12 h-12 text-white" />
@@ -120,7 +114,7 @@ const MediaInfo: React.FC<MediaViewProps> = ({ item }) => {
   return (
     <Box p="3">
       <Flex justify="between" align="start" mb="2">
-        <Text size="2" weight="medium" style={{ wordBreak: 'break-word' }}>
+        <Text size="2" weight="medium" className={classes.fileNameText}>
           {item.file_name}
         </Text>
         {item.favorite && (
@@ -135,11 +129,7 @@ const MediaInfo: React.FC<MediaViewProps> = ({ item }) => {
         Date: {new Date(item.created_at).toLocaleDateString()}
       </Text>
       {item.TelegramText && (
-        <Text size="1" color="gray" style={{
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap'
-        }}>
+        <Text size="1" color="gray" className={classes.telegramText}>
           {item.TelegramText}
         </Text>
       )}
@@ -173,11 +163,7 @@ const MediaIconBox: React.FC<MediaIconsProps> = ({
       top="0"
       right="0"
       p="2"
-      style={{
-        opacity: isHovering ? 1 : 0,
-        transition: 'opacity 0.2s ease-in-out',
-        width: '100%',
-      }}
+      className={isHovering ? classes.iconBoxVisible : classes.iconBox}
     >
       <Flex gap="2" width="100%" justify="between">
         {!isFavorite && (
@@ -185,7 +171,7 @@ const MediaIconBox: React.FC<MediaIconsProps> = ({
             size="1"
             variant="soft"
             onClick={(e) => handleIconClick(e, handleDelete)}
-            style={{ backgroundColor: 'rgba(0, 0, 0, 0.7)' }}
+            className={classes.iconButton}
           >
             <Trash className="w-4 h-4" />
           </IconButton>
@@ -194,7 +180,7 @@ const MediaIconBox: React.FC<MediaIconsProps> = ({
           size="1"
           variant="soft"
           onClick={(e) => handleIconClick(e, handleFavorite)}
-          style={{ backgroundColor: 'rgba(0, 0, 0, 0.7)' }}
+          className={classes.iconButton}
         >
           <Star className={`w-4 h-4 ${isFavorite ? 'fill-yellow-500' : ''}`} />
         </IconButton>
@@ -202,7 +188,7 @@ const MediaIconBox: React.FC<MediaIconsProps> = ({
           size="1"
           variant="soft"
           onClick={(e) => handleIconClick(e, handleDownload)}
-          style={{ backgroundColor: 'rgba(0, 0, 0, 0.7)' }}
+          className={classes.iconButton}
         >
           <Download className="w-4 h-4" />
         </IconButton>
@@ -239,7 +225,7 @@ const MediaCard: React.FC<MediaCardProps> = ({ itemId }) => {
 
   if (status === 'pending') {
     return (
-      <Card size="1" style={{ height: '100%' }}>
+      <Card size="1" className={classes.loadingCard}>
         <Flex align="center" justify="center" height="9">
           <Text>Loading...</Text>
         </Flex>
@@ -263,8 +249,7 @@ const MediaCard: React.FC<MediaCardProps> = ({ itemId }) => {
   return (
     <Card
       size="1"
-      className={classes.mediaCard}
-      style={{ transform: isHovering ? 'translateY(-2px)' : 'none' }}
+      className={isHovering ? classes.mediaCardHovered : classes.mediaCard}
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
       onClick={handleContextMenu}
