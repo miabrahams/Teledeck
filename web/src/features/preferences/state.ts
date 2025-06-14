@@ -3,7 +3,7 @@ import { atomWithStorage, createJSONStorage  } from 'jotai/utils';
 import { SortOption, FavoriteOption } from '@shared/types/preferences';
 import { defaultPreferences } from './constants';
 
-const storage = createJSONStorage<any>(() => sessionStorage)
+const storage = createJSONStorage<any>(() => localStorage)
 const opts = { getOnInit: true }
 export const sortModeAtom = atomWithStorage<SortOption>('sortMode', 'date_desc', storage, opts)
 export const videosOnlyAtom = atomWithStorage<boolean>('videosOnly', false, storage, opts)

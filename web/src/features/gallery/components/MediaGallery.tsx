@@ -20,7 +20,6 @@ type MediaGalleryProps = { currentPage: number };
 const MediaGallery: React.FC<MediaGalleryProps> = ({ currentPage }) => {
   const searchPrefs = useAtomValue(searchPrefsAtom);
   const { data, isLoading, error } = useGallery(searchPrefs, currentPage);
-/*   console.log("searchPrefs: ", searchPrefs); */
 
   if (isLoading) return <LoadSpinner />;
   if (error) return <ErrorStatus message={error.message} />;
