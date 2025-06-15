@@ -1,6 +1,6 @@
 // src/features/navigation/components/Navigation.tsx
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from '@tanstack/react-router';
 import ViewOptions from './ViewOptions';
 import SearchOptions from './SearchOptions';
 import SearchBox from './SearchBox';

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from '@tanstack/react-router';
 // import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const Alert: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -44,7 +44,7 @@ export const Login = () => {
         throw new Error('Invalid email or password');
       }
 
-      navigate('/');
+      navigate({ to: '/' });
     } catch (err) {
       setError({ message: err instanceof Error ? err.message : 'Login failed' });
     }
@@ -99,9 +99,9 @@ export const Login = () => {
         </button>
         <p className="text-sm text-center dark:text-gray-300">
           Don't have an account yet?{' '}
-          <a href="/register" className="text-primary-600 hover:text-primary-500">
+          <Link to="/register" className="text-primary-600 hover:text-primary-500">
             Register
-          </a>
+          </Link>
         </p>
       </form>
     </div>
@@ -134,7 +134,7 @@ export const Register = () => {
       }
 
       setSuccess(true);
-      setTimeout(() => navigate('/login'), 2000);
+      setTimeout(() => navigate({ to: '/login' }), 2000);
     } catch (err) {
       setError({ message: err instanceof Error ? err.message : 'Registration failed' });
     }
@@ -145,7 +145,7 @@ export const Register = () => {
       <div className="max-w-md mx-auto mt-8 p-6 bg-white dark:bg-slate-700 rounded-lg shadow-md">
         <h1 className="text-2xl font-bold mb-4 dark:text-gray-200">Registration successful</h1>
         <p className="dark:text-gray-300">
-          Redirecting to <a href="/login" className="text-primary-600 hover:text-primary-500">login</a>...
+          Redirecting to <Link to="/login" className="text-primary-600 hover:text-primary-500">login</Link>...
         </p>
       </div>
     );
@@ -198,9 +198,9 @@ export const Register = () => {
         </button>
         <p className="text-sm text-center dark:text-gray-300">
           Already have an account?{' '}
-          <a href="/login" className="text-primary-600 hover:text-primary-500">
+          <Link to="/login" className="text-primary-600 hover:text-primary-500">
             Login
-          </a>
+          </Link>
         </p>
       </form>
     </div>
