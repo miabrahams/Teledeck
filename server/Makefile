@@ -26,7 +26,7 @@ templ-watch:
 APP_NAME = teledeck
 .PHONY: dev
 dev:
-	air --build.cmd "go build -o ./tmp/$(APP_NAME) cmd/$(APP_NAME)/main.go" --build.bin "./tmp/$(APP_NAME)"
+	go tool air --build.cmd "go build -o ./tmp/$(APP_NAME) cmd/$(APP_NAME)/main.go" --build.bin "./tmp/$(APP_NAME)"
 
 .PHONY:fmt
 fmt:
