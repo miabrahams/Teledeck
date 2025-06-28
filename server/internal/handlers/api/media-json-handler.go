@@ -1,3 +1,4 @@
+// Package webapi contains API handlers for JSON requests
 package webapi
 
 import (
@@ -7,6 +8,7 @@ import (
 	"log/slog"
 	"math"
 	"net/http"
+
 	"teledeck/internal/controllers"
 	"teledeck/internal/middleware"
 	"teledeck/internal/models"
@@ -14,13 +16,13 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-type MediaJsonHandler struct {
+type MediaJSONHandler struct {
 	c   *controllers.MediaController
 	log *slog.Logger
 }
 
-func NewMediaJsonHandler(controller *controllers.MediaController, log *slog.Logger) *MediaJsonHandler {
-	return &MediaJsonHandler{c: controller, log: log}
+func NewMediaJSONHandler(controller *controllers.MediaController, log *slog.Logger) *MediaJSONHandler {
+	return &MediaJSONHandler{c: controller, log: log}
 }
 
 // TODO: Make configurable
@@ -29,7 +31,7 @@ const (
 )
 
 // Wrapper function to parse query parameters for pagination and preferences
-func (h *MediaJsonHandler) getWithPrefs(w http.ResponseWriter, r *http.Request, callback func(searchPrefs models.SearchPrefs, page int)) {
+func (h *MediaJSONHandler) getWithPrefs(w http.ResponseWriter, r *http.Request, callback func(searchPrefs models.SearchPrefs, page int)) {
 	ctx := r.Context()
 	searchPrefs, ok := ctx.Value(middleware.SearchPrefKey).(models.SearchPrefs)
 	if !ok {
@@ -45,7 +47,7 @@ func (h *MediaJsonHandler) getWithPrefs(w http.ResponseWriter, r *http.Request, 
 	callback(searchPrefs, page)
 }
 
-func (h *MediaJsonHandler) GetGallery(w http.ResponseWriter, r *http.Request) {
+func (h *MediaJSONHandler) GetGallery(w http.ResponseWriter, r *http.Request) {
 	h.getWithPrefs(w, r, func(searchPrefs models.SearchPrefs, page int) {
 		items, err := h.c.GetPaginatedMediaItems(page, itemsPerPage, searchPrefs)
 		if err != nil {
@@ -56,7 +58,7 @@ func (h *MediaJsonHandler) GetGallery(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (h *MediaJsonHandler) GetThumbnail(w http.ResponseWriter, r *http.Request) {
+func (h *MediaJSONHandler) GetThumbnail(w http.ResponseWriter, r *http.Request) {
 	mediaItemID := chi.URLParam(r, "mediaItemID")
 
 	fileName, err := h.c.GetThumbnail(mediaItemID)
@@ -72,7 +74,7 @@ func (h *MediaJsonHandler) GetThumbnail(w http.ResponseWriter, r *http.Request) 
 	writeJSON(w, http.StatusOK, map[string]string{"fileName": fileName})
 }
 
-func (h *MediaJsonHandler) GetGalleryIds(w http.ResponseWriter, r *http.Request) {
+func (h *MediaJSONHandler) GetGalleryIds(w http.ResponseWriter, r *http.Request) {
 	h.getWithPrefs(w, r, func(searchPrefs models.SearchPrefs, page int) {
 		items, err := h.c.GetPaginatedMediaItemIds(page, itemsPerPage, searchPrefs)
 		if err != nil {
@@ -85,7 +87,7 @@ func (h *MediaJsonHandler) GetGalleryIds(w http.ResponseWriter, r *http.Request)
 }
 
 // Wrapper function to retrieve media item from context and pass it to a callback
-func (h *MediaJsonHandler) mediaCallback(
+func (h *MediaJSONHandler) mediaCallback(
 	w http.ResponseWriter, r *http.Request, callback func(m *models.MediaItemWithMetadata),
 ) {
 	ctx := r.Context()
@@ -98,13 +100,13 @@ func (h *MediaJsonHandler) mediaCallback(
 	callback(mediaItem)
 }
 
-func (h *MediaJsonHandler) GetMediaItem(w http.ResponseWriter, r *http.Request) {
+func (h *MediaJSONHandler) GetMediaItem(w http.ResponseWriter, r *http.Request) {
 	h.mediaCallback(w, r, func(m *models.MediaItemWithMetadata) {
 		writeJSON(w, http.StatusOK, m)
 	})
 }
 
-func (h *MediaJsonHandler) GetNumPages(w http.ResponseWriter, r *http.Request) {
+func (h *MediaJSONHandler) GetNumPages(w http.ResponseWriter, r *http.Request) {
 	h.getWithPrefs(w, r, func(p models.SearchPrefs, _ int) {
 		mic := h.c.GetMediaItemCount(p)
 		totalPages := int(math.Ceil(float64(mic) / float64(itemsPerPage)))
@@ -113,7 +115,7 @@ func (h *MediaJsonHandler) GetNumPages(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (h *MediaJsonHandler) ToggleFavorite(w http.ResponseWriter, r *http.Request) {
+func (h *MediaJSONHandler) ToggleFavorite(w http.ResponseWriter, r *http.Request) {
 	h.mediaCallback(w, r, func(m *models.MediaItemWithMetadata) {
 		item, err := h.c.ToggleFavorite(m.ID)
 		if err != nil {
@@ -124,7 +126,7 @@ func (h *MediaJsonHandler) ToggleFavorite(w http.ResponseWriter, r *http.Request
 	})
 }
 
-func (h *MediaJsonHandler) DeleteMedia(w http.ResponseWriter, r *http.Request) {
+func (h *MediaJSONHandler) DeleteMedia(w http.ResponseWriter, r *http.Request) {
 	h.mediaCallback(w, r, func(m *models.MediaItemWithMetadata) {
 		h.getWithPrefs(w, r, func(p models.SearchPrefs, page int) {
 			if m.Favorite {
@@ -140,7 +142,7 @@ func (h *MediaJsonHandler) DeleteMedia(w http.ResponseWriter, r *http.Request) {
 			}
 
 			if nextItem == nil {
-				writeJSON(w, http.StatusNoContent, nil)
+				w.WriteHeader(http.StatusNoContent)
 			} else {
 				slog.Info("retrieved next item", "item", nextItem)
 				writeJSON(w, http.StatusOK, nextItem)
@@ -153,7 +155,7 @@ type DeletePageRequest struct {
 	ItemIDs []string `json:"itemIds"`
 }
 
-func (h *MediaJsonHandler) DeletePage(w http.ResponseWriter, r *http.Request) {
+func (h *MediaJSONHandler) DeletePage(w http.ResponseWriter, r *http.Request) {
 	var req DeletePageRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "Invalid request body")

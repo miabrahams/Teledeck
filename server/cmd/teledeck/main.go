@@ -10,6 +10,8 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+	"time"
+
 	"teledeck/internal/config"
 	"teledeck/internal/controllers"
 	api "teledeck/internal/handlers/api"
@@ -21,7 +23,6 @@ import (
 	"teledeck/internal/service/store/dbstore"
 	"teledeck/internal/service/thumbnailer"
 	"teledeck/internal/service/web"
-	"time"
 
 	m "teledeck/internal/middleware"
 
@@ -31,16 +32,6 @@ import (
 
 	"github.com/joho/godotenv"
 )
-
-/*
-* Set to production at build time
-* used to determine what assets to load
- */
-var Environment = "development"
-
-func init() {
-	os.Setenv("env", Environment)
-}
 
 func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
@@ -123,7 +114,7 @@ func main() {
 
 	// TwitterScrapeHandler := handlers.NewTwitterScrapeHandler(twitterScrapeServce)
 
-	mediaJsonHandler := api.NewMediaJsonHandler(mediaController, logger)
+	mediaJSONHandler := api.NewMediaJSONHandler(mediaController, logger)
 
 	webFileHandler := web.WebFileHandler()
 
@@ -141,7 +132,7 @@ func main() {
 			m.CSPMiddleware,
 			authMiddleware.AddUserToContext,
 			// m.WithLogger(logger),
-			//middleware.NewGoChiLogger(true, slog.LevelInfo, middleware.IsDebugHeaderSet),
+			// middleware.NewGoChiLogger(true, slog.LevelInfo, middleware.IsDebugHeaderSet),
 		)
 
 		r.Group(func(r chi.Router) {
@@ -161,7 +152,6 @@ func main() {
 				r.Use(m.SearchParamsMiddleware)
 
 				r.Route("/x", func(r chi.Router) {
-
 					StaticFileServer(r, "/assets", cfg.HtmxAssetDir)
 					r.Get("/", hxHomeHandler.ServeHTTP)
 					r.Route("/mediaItem/{mediaItemID}", func(r chi.Router) {
@@ -194,17 +184,17 @@ func main() {
 
 		r.Route("/api", func(r chi.Router) {
 			r.Use(m.SearchParamsMiddleware)
-			r.Get("/gallery", mediaJsonHandler.GetGallery)
-			r.Get("/gallery/totalPages", mediaJsonHandler.GetNumPages)
-			r.Get("/thumbnail/{mediaItemID}", mediaJsonHandler.GetThumbnail)
-			r.Get("/", mediaJsonHandler.GetMediaItem)
+			r.Get("/gallery", mediaJSONHandler.GetGallery)
+			r.Get("/gallery/totalPages", mediaJSONHandler.GetNumPages)
+			r.Get("/thumbnail/{mediaItemID}", mediaJSONHandler.GetThumbnail)
+			r.Get("/", mediaJSONHandler.GetMediaItem)
 			r.Route("/media/{mediaItemID}", func(r chi.Router) {
 				r.Use(mediaItemMiddleware)
-				r.Get("/", mediaJsonHandler.GetMediaItem)
-				r.Delete("/", mediaJsonHandler.DeleteMedia)
-				r.Post("/favorite", mediaJsonHandler.ToggleFavorite)
+				r.Get("/", mediaJSONHandler.GetMediaItem)
+				r.Delete("/", mediaJSONHandler.DeleteMedia)
+				r.Post("/favorite", mediaJSONHandler.ToggleFavorite)
 			})
-			r.Delete("/page", mediaJsonHandler.DeletePage)
+			r.Delete("/page", mediaJSONHandler.DeletePage)
 		})
 	})
 
@@ -233,15 +223,13 @@ func main() {
 		}
 	}()
 
-	logger.Info("Server started", slog.String("port", cfg.Port), slog.String("env", Environment))
+	logger.Info("Server started", slog.String("port", cfg.Port), slog.String("env", cfg.Environment))
 
-	// Kill signal will request shutdown
 	killSig := make(chan os.Signal, 1)
 	go func() {
 		signal.Notify(killSig, os.Interrupt, syscall.SIGTERM)
 		<-killSig
 
-		// Attempt to gracefully shut down the server
 		logger.Info("Shutting down server")
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
@@ -257,7 +245,7 @@ func main() {
 	logger.Info("Server shutdown complete")
 }
 
-// FileServer conveniently sets up a http.FileServer handler to serve static files from a http.FileSystem.
+// StaticFileServer conveniently sets up a http.FileServer handler to serve static files from a http.FileSystem.
 // Installs static assets on /static (js, css etc) and media files on [path]
 func StaticFileServer(r chi.Router, path string, dir string) {
 	// Ensure path is formatted correctly and ends with '/'
