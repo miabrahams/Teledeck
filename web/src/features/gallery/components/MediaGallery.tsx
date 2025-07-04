@@ -1,9 +1,5 @@
-// src/features/gallery/components/MediaGallery.tsx
 import React from 'react';
-import MediaCard from '../../media/components/MediaCard';
-import { useGallery } from '../api';
-import { useAtomValue } from 'jotai';
-import { searchPrefsAtom } from '@preferences/state';
+import { useAtom, useAtomValue } from 'jotai';
 import {
   Box,
   Container,
@@ -14,6 +10,47 @@ import {
   Button,
   Spinner
 } from '@radix-ui/themes';
+import { useGallery } from '../api';
+import { searchPrefsAtom } from '@preferences/state';
+import MediaCard from '../../media/components/MediaCard';
+import FullscreenView from './FullScreenView';
+import Pagination from './Pagination';
+import { ContextMenu } from './ContextMenu';
+import { useContextMenu } from '../hooks/useContextMenu'
+import { usePageNavigation, useKeyboardNavigation } from '@gallery/hooks/usePageNavigation';
+import { fullscreenItemAtom } from '@gallery/state';
+
+
+const PaginatedMediaGallery: React.FC = () => {
+  const [ fullscreenItem, setFullscreenItem ] = useAtom(fullscreenItemAtom);
+  const { contextMenuState, contextMenuRef } = useContextMenu()
+  const { currentPage, nextPage, previousPage } = usePageNavigation()
+  useKeyboardNavigation(nextPage, previousPage);
+
+  const P = React.useMemo(() => <Pagination />, [ currentPage ])
+  const closeFullScreen = React.useCallback(() => { setFullscreenItem(null); } , [ setFullscreenItem ]);
+
+  return (
+    <div id="media-index">
+        { P }
+        <MediaGallery currentPage={currentPage} />
+        { P }
+      {contextMenuState.item && (
+        <ContextMenu
+          state = {contextMenuState}
+          menuRef = {contextMenuRef}
+        />
+      )}
+      {fullscreenItem && (
+        <FullscreenView
+          item={fullscreenItem}
+          closeFullScreen={closeFullScreen}
+          onClose={closeFullScreen}
+        />
+      )}
+    </div>
+  );
+};
 
 type MediaGalleryProps = { currentPage: number };
 
@@ -78,4 +115,4 @@ const ErrorStatus: React.FC<{message: string}> = ({message}) => {
   );
 }
 
-export default MediaGallery;
+export default PaginatedMediaGallery;
