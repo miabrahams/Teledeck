@@ -11,12 +11,10 @@ import (
 	"gorm.io/gorm"
 )
 
-// Todo: Create test database
+// TODO: Move this config up
 func getDB() (*gorm.DB, error) {
 
-	db := database.MustOpen("~/apps/TG-Collector/teledeck.db")
-
-	return db, nil
+	return database.Open("~/apps/TG-Collector/teledeck.db")
 }
 
 func getMediaStore(db *gorm.DB) *MediaStore {

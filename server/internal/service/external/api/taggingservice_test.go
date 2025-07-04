@@ -1,7 +1,6 @@
 package external
 
 import (
-	"io"
 	"log/slog"
 	"os"
 	"teledeck/internal/config"
@@ -12,22 +11,31 @@ import (
 )
 
 // TODO: Configurable
-func setupTaggingService() *TaggingService {
-	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	cfg := config.MustLoadConfig()
+func setupTaggingService() (*TaggingService, error) {
+	logger := slog.Default()
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		logger.Error("Error loading config", "error", err)
+		return nil, err
+	}
 
 	conn, err := grpc.NewClient(cfg.TaggerURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		logger.Info("Could not connect to AI services.")
-		return nil
+		return nil, err
 	}
-	return NewTaggingService(logger, conn)
+	return NewTaggingService(logger, conn), nil
 }
 
 var taggingService *TaggingService
 
 func TestMain(m *testing.M) {
-	taggingService = setupTaggingService()
+	var err error
+	taggingService, err = setupTaggingService()
+	if err != nil {
+		slog.Error("Failed to setup tagging service", "error", err)
+		return
+	}
 	os.Exit(m.Run())
 }
 

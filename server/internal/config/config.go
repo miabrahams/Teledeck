@@ -31,19 +31,8 @@ func (cfg *Config) ThumbnailDir(workDir string) string {
 	return filepath.Join(workDir, cfg.StaticMediaDir, "thumbnails")
 }
 
-func loadConfig() (*Config, error) {
+func LoadConfig() (*Config, error) {
 	var cfg Config
 	err := envconfig.Process("", &cfg)
-	if err != nil {
-		return nil, err
-	}
-	return &cfg, nil
-}
-
-func MustLoadConfig() *Config {
-	cfg, err := loadConfig()
-	if err != nil {
-		panic(err)
-	}
-	return cfg
+	return &cfg, err
 }

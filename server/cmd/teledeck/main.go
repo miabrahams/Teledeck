@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -34,15 +35,24 @@ import (
 )
 
 func main() {
+	if err := runMain(); err != nil {
+		slog.Default().Error("Error running main", "error", err)
+		os.Exit(1)
+	}
+}
+
+func runMain() error {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	slog.SetDefault(logger)
 	err := godotenv.Load("../.env")
 	if err != nil {
-		logger.Error("Error loading .env file")
-		return
+		return fmt.Errorf("godotenv.Load: %w", err)
 	}
 
-	cfg := config.MustLoadConfig()
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		return fmt.Errorf("load config: %w", err)
+	}
 
 	// Get static paths
 	pwd, err := os.Getwd()
@@ -55,7 +65,10 @@ func main() {
 	logger.Info("media folders", "media", mediaDir, "thumbnails", thumbnailDir)
 
 	/* Register Database Stores */
-	db := database.MustOpen(cfg.DatabaseName)
+	db, err := database.Open(cfg.DatabaseName)
+	if err != nil {
+		return fmt.Errorf("open database: %w", err)
+	}
 	mediaStore := dbstore.NewMediaStore(db, logger) // TODO: Just use global logger
 	tagsStore := dbstore.NewTagsStore(db, logger)
 	aestheticsStore := dbstore.NewAestheticsStore(db, logger)
@@ -243,6 +256,7 @@ func main() {
 	wg.Wait()
 
 	logger.Info("Server shutdown complete")
+	return nil
 }
 
 // StaticFileServer conveniently sets up a http.FileServer handler to serve static files from a http.FileSystem.

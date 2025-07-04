@@ -1,7 +1,10 @@
 package main
 
 import (
+	"errors"
+	"fmt"
 	"log/slog"
+	"os"
 	"teledeck/internal/config"
 	"teledeck/internal/controllers"
 	"teledeck/internal/models"
@@ -14,30 +17,44 @@ import (
 )
 
 func main() {
-	cfg := config.MustLoadConfig()
-	db := db.MustOpen(cfg.DatabaseName)
+	if err := runMain(); err != nil {
+		slog.Default().Error("Error running main", "error", err)
+		os.Exit(1)
+	}
+}
+
+func runMain() error {
+	cfg, cfgErr := config.LoadConfig()
+	db, dbErr := db.Open(cfg.DatabaseName)
+	if err := errors.Join(cfgErr, dbErr); err != nil {
+		return err
+	}
+
 	logger := slog.Default()
 	tagsStore := dbstore.NewTagsStore(db, logger)
 	mediaStore := dbstore.NewMediaStore(db, logger)
 
 	conn, err := grpc.NewClient(cfg.TaggerURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return fmt.Errorf("connecting to tagging service: %w", err)
+	}
 	taggingService := external.NewTaggingService(logger, conn)
 
 	tagsController := controllers.NewTagsController(tagsStore, mediaStore, taggingService)
 
 	allItems, err := mediaStore.GetAllMediaItems()
 	if err != nil {
-		logger.Error("Error getting all media items", "Error", err)
-		return
+		return fmt.Errorf("getting all media items: %w", err)
 	}
 
 	for _, item := range allItems {
 		if models.IsPhoto(item.MediaType) {
 			tags, err := tagsController.TagImageItem(&item.MediaItem, 0.4)
 			if err != nil {
-				logger.Error("Error tagging image", "Filename", item.FileName, "ID", item.ID, "Error", err)
+				return fmt.Errorf("tagging image: Filename %s  ID: %s  err: %w", item.FileName, item.ID, err)
 			}
 			logger.Info("Tagged image", "Filename", item.FileName, "Tags", tags)
 		}
 	}
+	return nil
 }

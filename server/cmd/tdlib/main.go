@@ -13,13 +13,13 @@ import (
 func main() {
 	err := godotenv.Load("../.env")
 	if err != nil {
-		log.Fatalf("godotenv.Load error: %s", err.Error())
+		log.Fatalf("godotenv.Load: %s", err.Error())
 	}
 
-	cfg := config.MustLoadConfig()
+	cfg, err := config.LoadConfig()
 
 	if err != nil {
-		log.Fatalf("strconv.Atoi error: %s", err.Error())
+		log.Fatalf("load config: %s", err.Error())
 	}
 
 	slog.Info("cfg: ", "API ID", cfg.TelegramAPIID, "API Hash", cfg.TelegramAPIHash)
