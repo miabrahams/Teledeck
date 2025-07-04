@@ -2,93 +2,71 @@
 package telegram
 
 import (
+	"context"
 	"log"
-	"path/filepath"
+
+	// "path/filepath"
 	"strconv"
 
-	"github.com/zelenin/go-tdlib/client"
+	"github.com/gotd/td/telegram"
+	"github.com/gotd/td/tg"
 )
 
 type TelegramService struct {
-	tdlibClient *client.Client
+	client *tg.Client
 }
 
-func NewTelegramService(apiIDRaw, apiHash string) (*TelegramService, error) {
+func NewTelegramService(ctx context.Context, apiIDRaw, apiHash string) (svc TelegramService, close func(), err error) {
 	apiID64, err := strconv.ParseInt(apiIDRaw, 10, 32)
 	if err != nil {
 		log.Fatalf("strconv.Atoi error: %s", err)
-		return nil, err
+		return svc, close, err
 	}
 
-	apiID := int32(apiID64)
-	authorizer := client.ClientAuthorizer()
-	go client.CliInteractor(authorizer)
+	apiID := int(apiID64)
+	client := telegram.NewClient(apiID, apiHash, telegram.Options{})
 
-	authorizer.TdlibParameters <- &client.SetTdlibParametersRequest{
-		UseTestDc:           false,
-		DatabaseDirectory:   filepath.Join(".tdlib", "database"),
-		FilesDirectory:      filepath.Join(".tdlib", "files"),
-		UseFileDatabase:     true,
-		UseChatInfoDatabase: true,
-		UseMessageDatabase:  true,
-		UseSecretChats:      false,
-		ApiId:               apiID,
-		ApiHash:             apiHash,
-		SystemLanguageCode:  "en",
-		DeviceModel:         "Server",
-		SystemVersion:       "1.0.0",
-		ApplicationVersion:  "1.0.0",
-	}
+	closeCtx, close := context.WithCancel(ctx)
+	var api *tg.Client
 
-	_, err = client.SetLogVerbosityLevel(&client.SetLogVerbosityLevelRequest{
-		NewVerbosityLevel: 1,
+	err = client.Run(closeCtx, func(tgCtx context.Context) error {
+		api = client.API()
+
+		<-tgCtx.Done()
+		log.Println("Closing telegram client.")
+		return nil
 	})
-	if err != nil {
-		log.Fatalf("SetLogVerbosityLevel error: %s", err)
-		return nil, err
-	}
 
-	tdlibClient, err := client.NewClient(authorizer)
-	if err != nil {
-		log.Fatalf("NewClient error: %s", err)
-		return nil, err
-	}
+	/*
+		authorizer.TdlibParameters <- &client.SetTdlibParametersRequest{
+			UseTestDc:           false,
+			DatabaseDirectory:   filepath.Join(".tdlib", "database"),
+			FilesDirectory:      filepath.Join(".tdlib", "files"),
+			UseFileDatabase:     true,
+			UseChatInfoDatabase: true,
+			UseMessageDatabase:  true,
+			UseSecretChats:      false,
+			ApiId:               apiID,
+			ApiHash:             apiHash,
+			SystemLanguageCode:  "en",
+			DeviceModel:         "Server",
+			SystemVersion:       "1.0.0",
+			ApplicationVersion:  "1.0.0",
+		}
+	*/
 
-	return &TelegramService{tdlibClient: tdlibClient}, nil
-}
-
-func (s *TelegramService) GetVersion() {
-	optionValue, err := s.tdlibClient.GetOption(&client.GetOptionRequest{
-		Name: "version",
-	})
-	if err != nil {
-		log.Fatalf("GetOption error: %s", err)
-	}
-
-	log.Printf("TDLib version: %s", optionValue.(*client.OptionValueString).Value)
-}
-
-func (s *TelegramService) GetMe() {
-	// client authorizer
-	me, err := s.tdlibClient.GetMe()
-	if err != nil {
-		log.Fatalf("GetMe error: %s", err)
-	}
-
-	if me.Usernames != nil {
-		log.Printf("Me: %s %s [%s]", me.FirstName, me.LastName, me.Usernames.ActiveUsernames)
-	} else {
-		log.Printf("Me: %s %s (No username)", me.FirstName, me.LastName)
-	}
+	return TelegramService{client: api}, close, nil
 }
 
 func (s *TelegramService) ListenForUpdates() {
-	listener := s.tdlibClient.GetListener()
-	defer listener.Close()
+	/*
+		listener := s.tdlibClient.GetListener()
+		defer listener.Close()
 
-	for update := range listener.Updates {
-		if update.GetClass() == client.ClassUpdate {
-			log.Printf("%#v", update)
+		for update := range listener.Updates {
+			if update.GetClass() == client.ClassUpdate {
+				log.Printf("%#v", update)
+			}
 		}
-	}
+	*/
 }
