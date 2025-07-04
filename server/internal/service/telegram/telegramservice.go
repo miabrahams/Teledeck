@@ -1,4 +1,5 @@
-package external
+// Package telegram provides methods to access the go-tdlib client
+package telegram
 
 import (
 	"log"
@@ -12,15 +13,14 @@ type TelegramService struct {
 	tdlibClient *client.Client
 }
 
-func NewTelegramService(apiIdRaw, apiHash string) (*TelegramService, error) {
-
-	apiId64, err := strconv.ParseInt(apiIdRaw, 10, 32)
+func NewTelegramService(apiIDRaw, apiHash string) (*TelegramService, error) {
+	apiID64, err := strconv.ParseInt(apiIDRaw, 10, 32)
 	if err != nil {
 		log.Fatalf("strconv.Atoi error: %s", err)
 		return nil, err
 	}
 
-	apiId := int32(apiId64)
+	apiID := int32(apiID64)
 	authorizer := client.ClientAuthorizer()
 	go client.CliInteractor(authorizer)
 
@@ -32,7 +32,7 @@ func NewTelegramService(apiIdRaw, apiHash string) (*TelegramService, error) {
 		UseChatInfoDatabase: true,
 		UseMessageDatabase:  true,
 		UseSecretChats:      false,
-		ApiId:               apiId,
+		ApiId:               apiID,
 		ApiHash:             apiHash,
 		SystemLanguageCode:  "en",
 		DeviceModel:         "Server",
@@ -55,14 +55,12 @@ func NewTelegramService(apiIdRaw, apiHash string) (*TelegramService, error) {
 	}
 
 	return &TelegramService{tdlibClient: tdlibClient}, nil
-
 }
 
 func (s *TelegramService) GetVersion() {
 	optionValue, err := s.tdlibClient.GetOption(&client.GetOptionRequest{
 		Name: "version",
 	})
-
 	if err != nil {
 		log.Fatalf("GetOption error: %s", err)
 	}
@@ -82,11 +80,9 @@ func (s *TelegramService) GetMe() {
 	} else {
 		log.Printf("Me: %s %s (No username)", me.FirstName, me.LastName)
 	}
-
 }
 
-func (s *TelegramService) listenForUpdates() {
-
+func (s *TelegramService) ListenForUpdates() {
 	listener := s.tdlibClient.GetListener()
 	defer listener.Close()
 
