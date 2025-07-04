@@ -76,7 +76,7 @@ def run_with_context(cfg: Settings, func: ServiceRoutine):
     async def task():
         await with_context(cfg, func)
 
-    asyncio.get_event_loop().run_until_complete(task())
+    asyncio.run(task())
 
 def setup_argparse():
     parser = argparse.ArgumentParser(description='Custom commands')
