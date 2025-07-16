@@ -85,7 +85,6 @@ const VideoItem: React.FC<MediaProps> = ({ item, setFullscreen }) => {
         onMouseLeave={onLeave}
       >
         <video
-          onClick={handleVideoClick}
           onPlay={handlePlay}
           onPause={handlePause}
           ref={videoRef}
@@ -105,6 +104,19 @@ const VideoItem: React.FC<MediaProps> = ({ item, setFullscreen }) => {
             <Play className="w-12 h-12 text-white" />
           )}
         </Flex>
+        {/* Transparent overlay for play/pause in center */}
+        <Box
+          position="absolute"
+          top="50%"
+          left="50%"
+          width="80px"
+          height="80px"
+          style={{
+            transform: 'translate(-50%, -50%)',
+            borderRadius: '50%',
+          }}
+          onClick={handleVideoClick}
+        />
       </Box>
     </AspectRatio>
   );
