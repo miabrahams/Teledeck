@@ -81,3 +81,8 @@ export const deletePage = async (itemIds: string[], preferences: SearchPreferenc
   return res.data as DeletePageResponse;
 }
 
+export const undoDelete = async (): Promise<MediaItem> => {
+  const res = instance.post('/api/undo');
+  return apiHandler(res);
+}
+

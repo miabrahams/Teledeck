@@ -5,6 +5,7 @@ import (
 
 	"log/slog"
 	"strconv"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -207,7 +208,11 @@ func (s *MediaStore) MarkDeleted(item *models.MediaItem) error {
 	if item.Favorite {
 		return ErrFavorite{}
 	}
-	result := s.db.Model(item).Update("user_deleted", true)
+	now := time.Now()
+	result := s.db.Model(item).Updates(map[string]interface{}{
+		"user_deleted": true,
+		"deleted_at":   &now,
+	})
 	return result.Error
 }
 
@@ -245,4 +250,23 @@ func (s *MediaStore) SetThumbnail(mediaItemID, fileName string) error {
 	}
 	res := s.db.Create(&thumbnail)
 	return res.Error
+}
+
+func (s *MediaStore) UndoLastDeleted() (*models.MediaItemWithMetadata, error) {
+	var lastDeleted models.MediaItem
+
+	result := s.db.Where("user_deleted = true AND deleted_at IS NOT NULL").Order("deleted_at DESC").First(&lastDeleted)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	result = s.db.Model(&lastDeleted).Updates(map[string]interface{}{
+		"user_deleted": false,
+		"deleted_at":   nil,
+	})
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return s.GetMediaItem(lastDeleted.ID)
 }

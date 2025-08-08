@@ -57,6 +57,16 @@ func (l *LocalMediaFileOperator) Recycle(path string) error {
 	return os.Rename(srcPath, dstPath)
 }
 
+func (l *LocalMediaFileOperator) Restore(path string) error {
+	srcPath := filepath.Join(l.recycleDir, path)
+	dstPath := filepath.Join(l.baseDir, path)
+
+	if err := os.MkdirAll(filepath.Dir(dstPath), 0755); err != nil {
+		return err
+	}
+	return os.Rename(srcPath, dstPath)
+}
+
 func (l *LocalMediaFileOperator) Rename(oldPath, newPath string) error {
 	return os.Rename(filepath.Join(l.baseDir, oldPath), filepath.Join(l.baseDir, newPath))
 }

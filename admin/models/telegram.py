@@ -63,6 +63,7 @@ class MediaItem(SQLModel, table=True):
     seen: bool = Field(nullable=False, index=True)
     favorite: bool = Field(default=False, nullable=False, index=True)
     user_deleted: bool = Field(default=False, nullable=False, index=True)
+    deleted_at: Optional[datetime] = Field(nullable=True, index=True)
 
     source: Source = Relationship(back_populates="media_items")
     media_type: MediaType = Relationship(back_populates="media_items")

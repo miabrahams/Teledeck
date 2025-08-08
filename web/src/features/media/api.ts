@@ -5,7 +5,7 @@ import {
   QueryClient,
 } from '@tanstack/react-query';
 import { SearchPreferences } from '@shared/types/preferences';
-import { deleteItem, getMediaItem, getThumbnail, postFavorite } from '@shared/api/requests';
+import { deleteItem, getMediaItem, getThumbnail, postFavorite, undoDelete } from '@shared/api/requests';
 import { MediaItem, MediaID } from '@shared/types/media';
 import queryKeys from '@shared/api/queryKeys'
 
@@ -115,6 +115,18 @@ export const useGalleryMutations = () => {
     },
     onError: (error, variables, context) => {
       console.log('Deletion error:', context, variables, error);
-    }})
+    }}),
+  undoDelete: useMutation({
+    mutationFn: undoDelete,
+    onSuccess: (restoredItem) => {
+      if (restoredItem) {
+        queryClient.setQueryData(['mediaItem', restoredItem.id], restoredItem);
+        invalidatePageIds(queryClient);
+      }
+    },
+    onError: (error) => {
+      console.log('Undo error:', error);
+    }
+  })
   }
 }

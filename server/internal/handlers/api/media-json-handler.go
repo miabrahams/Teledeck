@@ -200,3 +200,18 @@ func (h *MediaJSONHandler) DeletePage(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, result)
 	})
 }
+
+func (h *MediaJSONHandler) UndoDelete(w http.ResponseWriter, r *http.Request) {
+	restoredItem, err := h.c.UndoLastDeleted()
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Error undoing delete")
+		return
+	}
+
+	if restoredItem == nil {
+		writeError(w, http.StatusNotFound, "No deleted items to restore")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, restoredItem)
+}

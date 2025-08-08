@@ -19,6 +19,7 @@ import { ContextMenu } from './ContextMenu';
 import { useContextMenu } from '../hooks/useContextMenu'
 import { usePageNavigation, useKeyboardNavigation } from '@gallery/hooks/usePageNavigation';
 import { fullscreenItemAtom } from '@gallery/state';
+import UndoButton from './UndoButton';
 
 
 const PaginatedMediaGallery: React.FC = () => {
@@ -63,7 +64,7 @@ const MediaGallery: React.FC<MediaGalleryProps> = ({ currentPage }) => {
   if (!data || data.length === 0) return <EmptyMessage />;
 
   return (
-    <Container maxWidth={"100%"}>
+    <Container maxWidth={"100%"} style={{ position: 'relative' }}>
       <Grid
         className="media-gallery"
         columns='repeat(auto-fill, minmax(300px, 1fr))'
@@ -73,6 +74,7 @@ const MediaGallery: React.FC<MediaGalleryProps> = ({ currentPage }) => {
           <MediaCard itemId={mediaItem.id} key={mediaItem.id} />
         ))}
       </Grid>
+      {data && data.length > 0 && <UndoButton />}
     </Container>
   );
 };

@@ -44,6 +44,20 @@ func (s *MediaController) RecycleMediaItem(mediaItem models.MediaItem) error {
 	return s.fileOps.Recycle(mediaItem.FileName)
 }
 
+func (s *MediaController) UndoLastDeleted() (*models.MediaItemWithMetadata, error) {
+	restoredItem, err := s.store.UndoLastDeleted()
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.fileOps.Restore(restoredItem.FileName)
+	if err != nil {
+		return nil, err
+	}
+
+	return restoredItem, nil
+}
+
 func (s *MediaController) RecycleAndGetNext(mediaItem *models.MediaItem, page int, P models.SearchPrefs) (*models.MediaItemWithMetadata, error) {
 	// TODO: 100 items per page is hardcoded here
 	nextMediaItem, err := s.store.MarkDeletedAndGetNext(mediaItem, page, 100, P)

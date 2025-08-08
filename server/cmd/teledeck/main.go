@@ -208,6 +208,7 @@ func runMain() error {
 				r.Post("/favorite", mediaJSONHandler.ToggleFavorite)
 			})
 			r.Delete("/page", mediaJSONHandler.DeletePage)
+			r.Post("/undo", mediaJSONHandler.UndoDelete)
 		})
 	})
 
