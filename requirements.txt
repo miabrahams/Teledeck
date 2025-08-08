@@ -37,6 +37,7 @@ python-dateutil
 python-dotenv
 python-telegram
 pyzmq
+rich
 rsa
 six
 sqlmodel
@@ -44,6 +45,7 @@ stack-data
 telegram_text
 Telethon
 tornado
+tqdm
 traitlets
 typing_extensions
 wcwidth
