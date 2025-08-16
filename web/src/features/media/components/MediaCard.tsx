@@ -91,6 +91,7 @@ const VideoItem: React.FC<MediaProps> = ({ item, setFullscreen }) => {
           poster={isSuccess ? `/thumbnails/${data.fileName}` : undefined}
           className={classes.videoFit}
           src={`/media/${item.file_name}`}
+          muted
         />
         <Flex
           position="absolute"

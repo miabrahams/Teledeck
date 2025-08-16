@@ -75,6 +75,7 @@ const FullscreenView: React.FC<FullscreenViewProps> = ({ item, onClose, closeFul
               className="max-w-full max-h-[90vh] rounded-lg"
               controls
               autoPlay
+              muted={false}
               src={`/media/${item.file_name}`}
             />
           ) : (
