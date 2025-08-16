@@ -109,3 +109,44 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Python**: No centralized test runner specified
 - **Frontend**: `cd web && npm run lint`
 - **Integration**: Playwright tests in `playwright/` directory
+
+## Full-Stack Development Patterns
+
+### Database Schema Changes
+When modifying the database schema, changes must be made in multiple places:
+
+1. **Go Models**: Update structs in `server/internal/models/dbmodels.go` with GORM tags
+2. **Python Models**: Update SQLModel classes in `admin/models/telegram.py` 
+3. **Database Migration**: Create Alembic migration in `alembic/versions/` using `alembic revision -m "description"`
+4. **Migration Content**: Include both `upgrade()` and `downgrade()` functions with proper SQL operations
+
+### API Development Pattern
+Full-stack API changes follow this flow:
+
+1. **Database Layer**: Add methods to store interfaces (`server/internal/service/store/store.go`) and implementations (`server/internal/service/store/dbstore/`)
+2. **Controller Layer**: Add business logic methods in `server/internal/controllers/`
+3. **Handler Layer**: Add HTTP endpoints in `server/internal/handlers/api/` 
+4. **Router Registration**: Add routes in `server/cmd/teledeck/main.go` under the `/api` group
+5. **Frontend API**: Add request functions in `web/src/shared/api/requests.ts`
+6. **React Integration**: Add mutation/query hooks in feature-specific API files (e.g., `web/src/features/media/api.ts`)
+
+### File Operations
+The file operations system uses an interface pattern:
+- **Interface**: `server/internal/service/files/fileoperator.go` defines operations
+- **Implementation**: `server/internal/service/files/localfile/` contains actual file system operations
+- **Usage**: Controllers use the interface, allowing for easy testing and alternative implementations
+
+### State Management (Frontend)
+- **TanStack Query**: Used for server state management and caching
+- **Jotai**: Used for client-side state (preferences, UI state)
+- **Optimistic Updates**: Mutations often include optimistic updates for better UX
+
+### Error Handling Patterns
+- **Go**: Custom error types (e.g., `ErrFavorite{}`) for business logic errors
+- **API**: Consistent JSON error responses via `writeError()` helper
+- **Frontend**: Error boundaries and mutation error handling via TanStack Query
+
+### Database Conventions
+- **Soft Deletes**: Use `user_deleted` boolean + `deleted_at` timestamp for audit trails
+- **Indexing**: Add indexes for frequently queried fields (especially filtering/sorting columns)
+- **Foreign Keys**: Properly defined relationships between tables with cascade options where appropriate

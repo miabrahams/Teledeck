@@ -22,6 +22,13 @@ recycle:
 dump-schema:
 	sqlite3 teledeck.db '.schema' > alembic/schema.sql
 
+alembic-gen:
+	python -m alembic revision -m "$(MSG)" --autogenerate
+
+alembic-upgrade:
+	python -m alembic upgrade head
+
+
 build:
 	@cd server && make build
 
