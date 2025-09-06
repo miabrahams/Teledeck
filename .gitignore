@@ -5,6 +5,7 @@ venv
 *.db
 *.pyc
 __pycache__/
+config.yml
 
 web/dist/*
 

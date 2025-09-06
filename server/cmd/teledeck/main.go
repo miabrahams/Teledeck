@@ -55,13 +55,8 @@ func runMain() error {
 	}
 
 	// Get static paths
-	pwd, err := os.Getwd()
-	if err != nil {
-		logger.Error("could not read working directory", slog.Any("err", err))
-		os.Exit(1)
-	}
-	mediaDir := cfg.MediaDir(pwd)
-	thumbnailDir := cfg.ThumbnailDir(pwd)
+	mediaDir := cfg.MediaDir()
+	thumbnailDir := cfg.ThumbnailDir()
 	logger.Info("media folders", "media", mediaDir, "thumbnails", thumbnailDir)
 
 	/* Register Database Stores */
@@ -217,7 +212,7 @@ func runMain() error {
 	}
 
 	srv := &http.Server{
-		Addr:    "0.0.0.0" + cfg.Port,
+		Addr:    fmt.Sprintf("0.0.0.0:%s", cfg.Port),
 		Handler: r,
 	}
 

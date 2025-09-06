@@ -67,6 +67,7 @@ func (t *Thumbnailer) SetHandler(cb func(Result)) {
 func (t *Thumbnailer) worker() {
 	for input := range t.queue {
 		outpath, err := t.generateVideoThumbnail(input.srcfile, input.outfile)
+		slog.Info("Thumbnail generation complete", "srcfile", input.srcfile, "outpath", outpath, "err", err)
 		t.results <- Result{CorrelationID: input.correlationID, Outpath: outpath, Err: err}
 	}
 }
@@ -83,14 +84,17 @@ func (t *Thumbnailer) handleResults() {
 }
 
 func (t *Thumbnailer) generateVideoThumbnail(srcfile, outfile string) (outpath string, err error) {
+	fmt.Println("1")
 	stats, err := os.Stat(srcfile)
 	if err != nil {
 		return "", fmt.Errorf("could not stat file: %w", err)
 	}
+	fmt.Println("2")
 
 	if stats.IsDir() {
 		return "", fmt.Errorf("source is a directory")
 	}
+	fmt.Println("3")
 
 	if outfile == "" {
 		outfile = strings.ReplaceAll(filepath.Base(srcfile), filepath.Ext(srcfile), "")
@@ -105,8 +109,10 @@ func (t *Thumbnailer) generateVideoThumbnail(srcfile, outfile string) (outpath s
 	/* Call ffmpeg on srcfile and save to outfile*/
 	// How to tell if the command failed?
 	// Note: may fail for short videos. Add test please!!
+	fmt.Println("4")
 	var outBuf, errBuf bytes.Buffer
 	cmd := exec.Command("ffmpeg", "-i", srcfile, "-vf", "thumbnail", "-update", "true", "-frames:v", "1", outpath)
+	fmt.Println("5")
 	fmt.Println("Running ffmpeg: " + cmd.String())
 	cmd.Stdout = &outBuf
 	cmd.Stderr = &errBuf

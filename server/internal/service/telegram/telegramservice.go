@@ -36,6 +36,9 @@ func NewTelegramService(ctx context.Context, apiIDRaw, apiHash string) (svc Tele
 		log.Println("Closing telegram client.")
 		return nil
 	})
+	if err != nil {
+		return svc, close, err
+	}
 
 	/*
 		authorizer.TdlibParameters <- &client.SetTdlibParametersRequest{
@@ -58,8 +61,8 @@ func NewTelegramService(ctx context.Context, apiIDRaw, apiHash string) (svc Tele
 	return TelegramService{client: api}, close, nil
 }
 
+/*
 func (s *TelegramService) ListenForUpdates() {
-	/*
 		listener := s.tdlibClient.GetListener()
 		defer listener.Close()
 
@@ -68,5 +71,5 @@ func (s *TelegramService) ListenForUpdates() {
 				log.Printf("%#v", update)
 			}
 		}
-	*/
 }
+*/

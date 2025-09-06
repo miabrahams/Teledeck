@@ -24,7 +24,7 @@ Teledeck allows you to organize, search and manage your media on your own terms.
 Full install instructions are forthcoming.
 
 Requirements:
-- Golang >=1.22
+- Golang >=1.24
 - Python >= 3.9
 
 Instructions:

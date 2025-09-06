@@ -67,7 +67,7 @@ const MediaGallery: React.FC<MediaGalleryProps> = ({ currentPage }) => {
     <Container maxWidth={"100%"} style={{ position: 'relative' }}>
       <Grid
         className="media-gallery"
-        columns='repeat(auto-fill, minmax(300px, 1fr))'
+        columns='repeat(auto-fill, minmax(440px, 1fr))'
         gap="4"
       >
         {data.map((mediaItem) => (

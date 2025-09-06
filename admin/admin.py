@@ -105,11 +105,13 @@ if __name__ == '__main__':
         directory_path = Path('static/media')
         orphan_path = Path('recyclebin/orphan')
         engine = create_engine(f"sqlite:///{cfg.DB_PATH}")
+        raise NotImplementedError("Needs config!!")
         find_orphans(engine, directory_path, orphan_path)
 
     if args.find_failed_deletes:
         directory_path = Path('static/media')
-        orphan_path = Path('recyclebin/orphan')
+        # orphan_path = Path('recyclebin/orphan')
+        raise NotImplementedError("Needs config!!")
         find_failed_deletes(engine, directory_path, orphan_path)
 
     elif args.wipe_thumbnails:
