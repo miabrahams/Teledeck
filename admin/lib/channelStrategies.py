@@ -5,10 +5,10 @@ from .ChannelManager import ChannelManager
 
 class ChannelProvider(Protocol):
     """Protocol for providing channels to process"""
-    async def get_channels(self, cm: ChannelManager) -> AsyncGenerator[Channel, None]:
+    def get_channels(self, cm: ChannelManager) -> AsyncGenerator[Channel, None]:
         ...
 
-class SingleChannelNameLookup:
+class SingleChannelNameLookup(ChannelProvider):
     """Provides a single channel for export"""
     def __init__(self, channel_name: str):
         self.channel_name = channel_name
@@ -19,8 +19,8 @@ class SingleChannelNameLookup:
             raise ValueError(f"Channel not found: {self.channel_name}")
         yield channel
 
-class AllChannelsInFolder:
+class AllChannelsInFolder(ChannelProvider):
     """Provides channels from the update folder"""
-    async def get_channels(self, cm: ChannelManager):
+    async def get_channels(self, cm: ChannelManager) -> AsyncGenerator[Channel, None]:
         async for channel in cm.get_target_channels():
             yield channel

@@ -30,9 +30,9 @@ async def save_forwards(chat_name: str, cfg: Settings, ctx: TLContext):
         print(n)
 
 
-async def channel_check_list_sync(cfg: Settings, ctx: TLContext):
+async def channel_list_sync(channel_name: str, _: Settings, ctx: TLContext):
     cm = ChannelManager(ctx)
-    target_channels = await cm.get_update_folder_channels()
+    target_channels = await cm.get_update_folder_channels(channel_name)
     cm.logger.write("Found channels:")
     titles = [f"{n}: {channel.title}" for n, channel in enumerate(target_channels)]
     cm.logger.write("\n".join(titles))

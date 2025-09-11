@@ -4,7 +4,7 @@ from typing import Optional, List
 from datetime import datetime
 
 class UserModel(SQLModel, table=True):
-    __tablename__ = 'users'
+    __tablename__ = 'users' # pyright: ignore[reportAssignmentType]
 
     id: int = Field(primary_key=True)
     email: str = Field(nullable=False, sa_type=sa.TEXT)
@@ -14,7 +14,7 @@ class UserModel(SQLModel, table=True):
 
 
 class Session(SQLModel, table=True):
-    __tablename__ = 'sessions'
+    __tablename__ = 'sessions' # pyright: ignore[reportAssignmentType]
 
     id: int = Field(primary_key=True)
     session_id: str = Field(nullable=False, sa_type=sa.TEXT)
@@ -23,35 +23,35 @@ class Session(SQLModel, table=True):
     user: UserModel = Relationship(back_populates="sessions")
 
 class ChannelModel(SQLModel, table=True):
-    __tablename__ = "channels"
+    __tablename__ = "channels" # pyright: ignore[reportAssignmentType]
 
     id: int = Field(primary_key=True)
     title: str = Field(nullable=False, sa_type=sa.TEXT)
     check: bool = Field(nullable=False, default=False)
 
 class Source(SQLModel, table=True):
-    __tablename__ = 'sources'
+    __tablename__ = 'sources' # pyright: ignore[reportAssignmentType]
 
     id: int = Field(primary_key=True, default=None)
     name: str = Field(nullable=False, unique=True)
     media_items: List["MediaItem"] = Relationship(back_populates="source")
 
 class MediaType(SQLModel, table=True):
-    __tablename__ = 'media_types'
+    __tablename__ = 'media_types' # pyright: ignore[reportAssignmentType]
 
     id: int = Field(primary_key=True, default=None)
     type: str = Field(nullable=False, unique=True)
     media_items: List["MediaItem"] = Relationship(back_populates="media_type")
 
 class MediaItemTag(SQLModel, table=True):
-    __tablename__ = 'media_item_tags'
+    __tablename__ = 'media_item_tags' # pyright: ignore[reportAssignmentType]
 
     media_item_id: str = Field(foreign_key="media_items.id", primary_key=True)
     tag_id: int = Field(foreign_key="tags.id", primary_key=True, index=True)
     weight: float = Field(nullable=True, index=True)
 
 class MediaItem(SQLModel, table=True):
-    __tablename__ = 'media_items'
+    __tablename__ = 'media_items' # pyright: ignore[reportAssignmentType]
 
     id: str = Field(primary_key=True, max_length=36)
     source_id: int = Field(foreign_key="sources.id", nullable=False)
@@ -73,7 +73,7 @@ class MediaItem(SQLModel, table=True):
 
 
 class TelegramMetadata(SQLModel, table=True):
-    __tablename__ = 'telegram_metadata'
+    __tablename__ = 'telegram_metadata' # pyright: ignore[reportAssignmentType]
 
     media_item_id: str = Field(foreign_key="media_items.id", primary_key=True)
     channel_id: int = Field(foreign_key="channels.id", nullable=False)
@@ -87,7 +87,7 @@ class TelegramMetadata(SQLModel, table=True):
     media_item: MediaItem = Relationship(back_populates="telegram_metadata")
 
 class TwitterMetadata(SQLModel, table=True):
-    __tablename__ = 'twitter_metadata'
+    __tablename__ = 'twitter_metadata' # pyright: ignore[reportAssignmentType]
 
     media_item_id: str = Field(foreign_key="media_items.id", primary_key=True)
     tweet_id: int = Field(nullable=False)
@@ -99,14 +99,14 @@ class TwitterMetadata(SQLModel, table=True):
     media_item: MediaItem = Relationship(back_populates="twitter_metadata")
 
 class Tag(SQLModel, table=True):
-    __tablename__ = 'tags'
+    __tablename__ = 'tags' # pyright: ignore[reportAssignmentType]
 
     id: int = Field(default=None, primary_key=True)
     name: str = Field(nullable=False, unique=True)
     media_items: List[MediaItem] = Relationship(back_populates="tags", link_model=MediaItemTag)
 
 class AestheticScore(SQLModel, table=True):
-    __tablename__ = 'aesthetic_score'
+    __tablename__ = 'aesthetic_score' # pyright: ignore[reportAssignmentType]
     media_item_id: str = Field(
         foreign_key="media_items.id",
         primary_key=True,
@@ -115,7 +115,7 @@ class AestheticScore(SQLModel, table=True):
     score: float = Field(nullable=False)
 
 class Thumbnail(SQLModel, table=True):
-    __tablename__ = 'thumbnails'
+    __tablename__ = 'thumbnails' # pyright: ignore[reportAssignmentType]
     media_item_id: str = Field(
         foreign_key="media_items.id",
         primary_key=True,
@@ -123,7 +123,7 @@ class Thumbnail(SQLModel, table=True):
     filename: str = Field(nullable=False)
 
 class MediaItemDuplicates(SQLModel, table=True):
-    __tablename__ = 'media_item_duplicates'
+    __tablename__ = 'media_item_duplicates' # pyright: ignore[reportAssignmentType]
 
     first: str = Field(foreign_key="media_items.id", primary_key=True)
     second: str = Field(foreign_key="media_items.id", primary_key=True)

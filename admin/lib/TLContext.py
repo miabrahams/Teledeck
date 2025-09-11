@@ -13,7 +13,7 @@ class TLContext:
     db: DatabaseService
     client: TelegramClient
 
-ServiceRoutine = Callable[[Settings, TLContext], Coroutine[Any, Any, None]]
+ServiceRoutine = Callable[[Settings, TLContext], Coroutine[Any, Any, Any]]
 
 async def with_context(cfg: Settings, cb: ServiceRoutine):
     db_service = DatabaseService(DatabaseConfig.from_config(cfg))

@@ -30,10 +30,7 @@ class ChannelManager:
                     raise ValueError(f"Channel not found: {channel_model.id}. Got {channel}")
                 yield channel
             except Exception as e:
-                if isinstance(channel, Channel):
-                    err_msg = f"Failed to get channel: {channel_model.id} {channel.title}"
-                else:
-                    err_msg = f"Failed to get channel: {channel_model.id}"
+                err_msg = f"Failed to get channel: {channel_model.id}"
                 self.logger.write(err_msg)
                 self.logger.write(str(e))
                 self.logger.add_data(err_msg)
@@ -68,14 +65,14 @@ class ChannelManager:
         return self.get_target_channels(nameMatch)
 
 
-    async def get_update_folder_channels(self) -> List[Channel]:
+    async def get_update_folder_channels(self, channel_name: str) -> List[Channel]:
         chat_folders: Any  = await self.client(tlfunctions.messages.GetDialogFiltersRequest())
         if not isinstance(chat_folders, DialogFilters):
             raise ValueError("Could not find folders")
 
         try:
             media_folder = next(
-                (folder for folder in chat_folders.filters if isinstance(folder, DialogFilter) and folder.title == "MediaView")
+                (folder for folder in chat_folders.filters if isinstance(folder, DialogFilter) and folder.title == channel_name)
             )
         except StopIteration:
             raise NameError("MediaView folder not found.")

@@ -8,8 +8,8 @@ from dotenv import load_dotenv
 from sqlmodel import create_engine, Session, select
 from sqlalchemy import Engine
 from models.telegram import Tag, MediaItem, Thumbnail
-from lib.TLContext import with_context, ServiceRoutine, TLContext
-from lib.commands import save_forwards, channel_check_list_sync, run_update, run_export
+from lib.TLContext import with_context, ServiceRoutine
+from lib.commands import save_forwards, channel_list_sync, run_update, run_export
 from lib.config import Settings, create_export_location
 
 
@@ -85,7 +85,7 @@ def setup_argparse():
     parser.add_argument('--find-failed-deletes', action='store_true', help='Find files in folder which should have been deleted')
     parser.add_argument('--save-forwards', help='Find files not associated with an entry.')
     parser.add_argument('--wipe-thumbnails',action='store_true', help='Wipe thumbnails from database and disk')
-    parser.add_argument('--update-channels', action='store_true', help='Update list of channels to check.')
+    parser.add_argument('--update-channels-from', type=str, default="Teledeck", help='Update list of channels to check from folder name')
     parser.add_argument('--client-update', action='store_true', help='Pull updates from selected channels')
     parser.add_argument('--export-channel', type=str, help='Export all messages from specified channel name to separate database')
     parser.add_argument('--export-path', type=str, help='Path for exported channel data')
@@ -118,12 +118,11 @@ if __name__ == '__main__':
         engine = create_engine(f"sqlite:///{cfg.DB_PATH}")
         wipe_thumbnails(engine)
 
-
     elif args.save_forwards:
         run_with_context(cfg, partial(save_forwards, args.save_forwards))
 
-    elif args.update_channels:
-        run_with_context(cfg, channel_check_list_sync)
+    elif args.update_channels_from:
+        run_with_context(cfg, partial(channel_list_sync, args.update_channels_from))
 
     elif args.client_update:
         run_with_context(cfg, run_update)

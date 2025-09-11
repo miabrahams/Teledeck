@@ -13,7 +13,7 @@ from .config import DatabaseConfig
 from .Logger import RichLogger
 from models.telegram import (
     MediaItem, TelegramMetadata, MediaType,
-    ChannelModel, Source, MediaItemTag, Tag
+    ChannelModel, Source
 )
 from .types import DownloadItem
 from sqlmodel import create_engine
@@ -77,7 +77,8 @@ class DatabaseService:
                 seen=False,
                 media_type_id=media_type.id,
                 file_size=item.file_size or 0,
-                file_name=item.file_name
+                file_name=item.file_name,
+                deleted_at=None,
             )
 
             telegram_metadata = TelegramMetadata(
