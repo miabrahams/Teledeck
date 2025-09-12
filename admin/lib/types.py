@@ -7,12 +7,13 @@ from telethon.tl.custom.file import File # type: ignore
 from telethon.tl.types import ( # type: ignore
     Channel,
     Document,
+    # MessageMediaDocument, # TODO: test
     MessageMediaWebPage,
 )
 
 MessageQueueItem = Tuple[Channel, Message]
 MessageTaskQueue = asyncio.Queue[MessageQueueItem]
-DLMedia = MessageMediaWebPage | Document | File
+DLMedia = MessageMediaWebPage | Document | File # | MessageMediaDocument
 Downloadable = DLMedia | Message
 
 TaskWrapper = Callable[[Message, Channel], Coroutine[Any, Any, None]]

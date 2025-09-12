@@ -7,14 +7,12 @@ from dataclasses import dataclass
 
 class PathConfig(BaseModel):
     """Configuration for path overrides"""
-
     media_path: Path
     db_path: Path
 
 
 class BaseConfig(BaseSettings):
     """Base configuration with common settings"""
-
     TELEGRAM_API_ID: int = 0
     TELEGRAM_API_HASH: str = ""
     TELEGRAM_PHONE: str = ""
@@ -24,10 +22,10 @@ class BaseConfig(BaseSettings):
     ENV: str = ""
     MAX_RETRY_ATTEMPTS: int = 5
     RETRY_BASE_DELAY: float = 2.0
-    MAX_CONCURRENT_TASKS: int = 1
+    MAX_CONCURRENT_TASKS: int = 2
     SLOW_MODE: bool = False
     SLOW_MODE_DELAY: Tuple[float, float] = (5.0, 10.0)
-    DEFAULT_FETCH_LIMIT: int | None = 65
+    DEFAULT_FETCH_LIMIT: int | None = 100
     MESSAGE_STRATEGY: str = "unread"
     WRITE_MESSAGE_LINKS: bool = False
 
@@ -60,7 +58,6 @@ class Settings(BaseConfig):
 
 class ExportConfig(PathConfig):
     """Configuration for export commands"""
-
     channel_id: Optional[int] = None
     channel_name: Optional[str] = None
     message_limit: Optional[int] = None
@@ -103,12 +100,9 @@ class BackoffConfig:
         )
 
 
-# TODO: Merge with PathConfig
 @dataclass
-class ProcessingConfig:
+class ProcessingConfig(PathConfig):
     """Configuration for media processing"""
-
-    media_path: Path
     orphan_path: Path
     write_message_links: bool = False
     max_file_size: int = 1_000_000_000  # 1GB default
@@ -117,6 +111,7 @@ class ProcessingConfig:
     def from_config(cls, cfg: Settings):
         return cls(
             media_path=cfg.MEDIA_PATH,
+            db_path=cfg.DB_PATH,
             orphan_path=cfg.ORPHAN_PATH,
             write_message_links=cfg.WRITE_MESSAGE_LINKS,
         )

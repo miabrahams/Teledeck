@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Optional
 from telethon.tl.custom.message import Message
 from telethon.tl.custom.file import File
-from telethon.tl.types import Channel, Document
+from telethon.tl.types import Channel, Document, WebPage
 
 from .TLContext import TLContext
 from .types import Downloadable, MediaItem, DownloadItem, MessageMediaWebPage
@@ -10,6 +10,8 @@ from .api import find_web_preview, get_message_link
 from .exceptions import ErrorContext, MediaError, DownloadError
 from .config import ProcessingConfig
 
+# The complexity here I believe stems from combining Document vs MessageMediaDocument.
+# Document will arise from inspecting a MessageMediaWebPage?
 
 class MediaContext:
     def __init__(self, message: Message, channel: Channel):
@@ -35,18 +37,18 @@ class MediaProcessor:
         self.client = ctx.client
         self.config = cfg
 
-    async def process_message(self, message: Message, channel: Channel):
-        return await self._process_message(MediaContext(message, channel))
-
     def log_message_info(self, mCtx: MediaContext, info: dict):
         self.logger.save_to_json({"message": mCtx.message.id, "channel": mCtx.channel.title, "info": info})
+
+    async def process_message(self, message: Message, channel: Channel):
+        return await self._process_message(MediaContext(message, channel))
 
     async def _process_message(self, mCtx: MediaContext):
         """Main entry point for processing media content"""
 
         try:
             # Handle forwarded content
-            await self.process_forward(mCtx)
+            await self.log_forwards(mCtx)
 
             mText = mCtx.message.text
             if mText and len(mText) > 300:
@@ -66,8 +68,8 @@ class MediaProcessor:
             raise MediaError(f"Message processing failed: {str(e)}", mCtx.error("processing")) from e
 
 
-    async def process_forward(self, mCtx: MediaContext):
-        """Process forwarded content"""
+    async def log_forwards(self, mCtx: MediaContext):
+        """Add log entries for forwarded messages and extract channels"""
 
         forward = getattr(mCtx.message, "forward", None)
         if not forward or not forward.is_channel:
@@ -140,15 +142,18 @@ class MediaProcessor:
             elif isinstance(item.target, MessageMediaWebPage):
                 self.logger.write("Web Page")
                 self.logger.write(item.target.to_json())
+                self.logger.write(item.target.media)
                 final_target = item.target.media
             else:
-                # TODO: Test embedded videos
                 self.logger.write("Unknown target type")
                 final_target = item.target.media
 
             if final_target is None:
                 self.logger.write("No target found.")
-                self.logger.write(item.target.stringify()) # file?
+                if isinstance(item.target, File):
+                    self.logger.write("File:", item.target.name, item.target.mime_type)
+                else:
+                    self.logger.write(item.target.stringify())
                 return None
 
             existing = self.db.find_existing_media(final_target)
@@ -178,9 +183,11 @@ class MediaProcessor:
             self.logger.progress.update(download_task, completed=current, total=total)
 
         try:
+            if isinstance(downloadable, MessageMediaWebPage) and isinstance(downloadable.webpage, WebPage):
+                # TODO: Check webpage handling. Can we get Twitter embeds here?
+                print("Found webpage: ", downloadable.webpage.url)
             result = await self.client.download_media(
-                # TODO: Check webpage handling
-                downloadable,
+                downloadable,  # type: ignore this function can handle other types
                 str(self.config.media_path),
                 progress_callback=progress_callback
             )

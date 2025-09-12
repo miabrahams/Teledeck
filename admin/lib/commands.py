@@ -27,9 +27,10 @@ async def save_forwards(chat_name: str, cfg: Settings, ctx: TLContext):
         return
 
     n = 0
-    async for message in ctx.client.iter_messages(entity, limit=5000):
+    fetch_limit = cfg.DEFAULT_FETCH_LIMIT or 1000
+    async for message in ctx.client.iter_messages(entity, limit=fetch_limit):
         try:
-            await mp.process_forward(message)
+            await mp.log_forwards(message)
         except Exception as e:
             print(e)
         n += 1
