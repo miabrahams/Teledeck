@@ -9,7 +9,7 @@ from sqlmodel import create_engine, Session, select
 from sqlalchemy import Engine
 from models.telegram import Tag, MediaItem, Thumbnail
 from lib.TLContext import with_context, ServiceRoutine
-from lib.commands import save_forwards, channel_list_sync, run_update, run_export
+from lib.commands import save_forwards, channel_list_sync, run_update, run_export, login
 from lib.config import Settings, create_export_location
 
 
@@ -80,12 +80,13 @@ def run_with_context(cfg: Settings, func: ServiceRoutine):
 
 def setup_argparse():
     parser = argparse.ArgumentParser(description='Custom commands')
+    parser.add_argument('--login', action='store_true', help='Log in to the Telegram client.')
     parser.add_argument('--add-tags', action='store_true', help='Add tags to the database')
     parser.add_argument('--find-orphans', action='store_true', help='Find files not associated with an entry.')
     parser.add_argument('--find-failed-deletes', action='store_true', help='Find files in folder which should have been deleted')
     parser.add_argument('--save-forwards', help='Find files not associated with an entry.')
     parser.add_argument('--wipe-thumbnails',action='store_true', help='Wipe thumbnails from database and disk')
-    parser.add_argument('--update-channels-from', type=str, default="Teledeck", help='Update list of channels to check from folder name')
+    parser.add_argument('--update-channels-from', type=str, help='Update list of channels to check from folder name')
     parser.add_argument('--client-update', action='store_true', help='Pull updates from selected channels')
     parser.add_argument('--export-channel', type=str, help='Export all messages from specified channel name to separate database')
     parser.add_argument('--export-path', type=str, help='Path for exported channel data')
@@ -96,6 +97,9 @@ if __name__ == '__main__':
     parser = setup_argparse()
     args = parser.parse_args()
     cfg = Settings()
+
+    if args.login:
+        run_with_context(cfg, login)
 
     if args.add_tags:
         engine = create_engine(f"sqlite:///{cfg.DB_PATH}")

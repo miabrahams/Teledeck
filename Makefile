@@ -9,9 +9,14 @@ backup-db:
 	cp $(DB_NAME) $(BACKUP_DIR)/database_$(DATE).db
 	@echo "Database backed up to $(BACKUP_DIR)/database_$(DATE).db"
 
-
 xo:
 	xo schema -o ./data/xo $(DB_NAME)
+
+login:
+	python admin/admin.py --login
+
+update-channels:
+	python admin/admin.py --update-channels-from Teledeck
 
 update:
 	python admin/admin.py --client-update

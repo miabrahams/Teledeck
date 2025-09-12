@@ -9,7 +9,7 @@ config.yml
 
 web/dist/*
 
-
+.DS_Store
 
 static/*
 recyclebin/*

@@ -8,6 +8,12 @@ from .ChannelManager import ChannelManager
 from .MediaProcessor import ProcessingConfig, MediaProcessor
 from .channelStrategies import SingleChannelNameLookup, AllChannelsInFolder
 
+async def login(_: Settings, ctx: TLContext):
+    ctx.client.start()
+    me = await ctx.client.get_me()
+    print(me.stringify())
+    await ctx.client.send_message(me, 'Hello, myself!')
+
 async def save_forwards(chat_name: str, cfg: Settings, ctx: TLContext):
     mp = MediaProcessor(ctx, ProcessingConfig.from_config(cfg))
     entity: hints.EntityLike | None = None
@@ -43,9 +49,10 @@ async def run_update(cfg: Settings, ctx: TLContext):
     updater = TeledeckUpdater(cfg, ctx)
     provider = AllChannelsInFolder()
     config = UpdaterConfig(
-        message_strategy="unread",
+        message_strategy="unread", # all, unread
         message_limit=cfg.DEFAULT_FETCH_LIMIT,
-        description="Update"
+        description="Update",
+        mark_read=True,
     )
     await updater.process_channels(provider, config)
 

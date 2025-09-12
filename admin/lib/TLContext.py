@@ -31,16 +31,20 @@ class TLContextProvider:
 
     async def __aenter__(self):
         self._client = TelegramClient(self.config.session_file, self.config.api_id, self.config.api_hash)
-        await self._client.connect()
+        try:
+            await self._client.connect()
+        except Exception as e:
+            self.logger.write(f'Failed to connect: {e}')
+            raise e
         return TLContext(self.settings, self.logger, self.db, self.client)
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         if exc_type is not None:
             self.logger.add_data({"Exception":
                 {
-                    "exc_val": exc_val,
-                    "exc_tb": exc_tb,
-                    "exc_type": exc_type
+                    "exc_val": str(exc_val),
+                    "exc_tb": str(exc_tb),
+                    "exc_type": str(exc_type)
                 }
             })
         if self._client:

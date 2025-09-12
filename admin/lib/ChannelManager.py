@@ -72,10 +72,10 @@ class ChannelManager:
 
         try:
             media_folder = next(
-                (folder for folder in chat_folders.filters if isinstance(folder, DialogFilter) and folder.title == channel_name)
+                (folder for folder in chat_folders.filters if isinstance(folder, DialogFilter) and folder.title.text == channel_name)
             )
         except StopIteration:
-            raise NameError("MediaView folder not found.")
+            raise NameError("folder not found: " + channel_name)
 
         peer_channels = [peer for peer in media_folder.include_peers if isinstance(peer, InputPeerChannel)]
 
