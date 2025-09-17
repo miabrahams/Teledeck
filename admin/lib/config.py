@@ -28,6 +28,7 @@ class BaseConfig(BaseSettings):
     DEFAULT_FETCH_LIMIT: int | None = 100
     MESSAGE_STRATEGY: str = "unread"
     WRITE_MESSAGE_LINKS: bool = False
+    MAX_FILE_SIZE: int = 1024 * 1024 * 1024  # 1GB default
 
 
 class Settings(BaseConfig):
@@ -100,12 +101,11 @@ class BackoffConfig:
         )
 
 
-@dataclass
 class ProcessingConfig(PathConfig):
     """Configuration for media processing"""
     orphan_path: Path
     write_message_links: bool = False
-    max_file_size: int = 1_000_000_000  # 1GB default
+    max_file_size: int = 1024 * 1024 * 1024
 
     @classmethod
     def from_config(cls, cfg: Settings):
@@ -114,6 +114,7 @@ class ProcessingConfig(PathConfig):
             db_path=cfg.DB_PATH,
             orphan_path=cfg.ORPHAN_PATH,
             write_message_links=cfg.WRITE_MESSAGE_LINKS,
+            max_file_size=cfg.MAX_FILE_SIZE,
         )
 
 
