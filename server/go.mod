@@ -18,6 +18,7 @@ require (
 	gorm.io/driver/sqlite v1.5.5
 	gorm.io/gen v0.3.26
 	gorm.io/gorm v1.25.9
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -83,7 +84,6 @@ require (
 	github.com/stretchr/objx v0.5.2 // indirect
 	golang.org/x/sys v0.33.0 // indirect
 	google.golang.org/grpc v1.73.0
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
 tool github.com/air-verse/air

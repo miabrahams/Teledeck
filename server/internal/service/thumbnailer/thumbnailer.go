@@ -13,7 +13,13 @@ import (
 	"sync"
 )
 
-type Thumbnailer struct {
+type Thumbnailer interface {
+	BaseDir() string
+	SetHandler(func(Result))
+	GenerateVideoThumbnail(srcfile, outfile string, correlationID any) error
+}
+
+type FFMpegThumbnailer struct {
 	baseDir       string
 	inFlightMap   map[string]struct{}
 	inFlightMutex sync.Mutex
@@ -41,22 +47,21 @@ var (
 	ErrQueueFull           = errors.New("thumbnail queue full")
 )
 
-func NewThumbnailer(basedir string, workerCount int) *Thumbnailer {
-	t := &Thumbnailer{
+func NewThumbnailer(basedir string, workerCount int) Thumbnailer {
+	return &FFMpegThumbnailer{
 		baseDir:     basedir,
 		workerCount: workerCount,
 		inFlightMap: make(map[string]struct{}),
 		queue:       make(chan item, 100),
 		results:     make(chan Result, 100),
 	}
-	return t
 }
 
-func (t *Thumbnailer) BaseDir() string {
+func (t *FFMpegThumbnailer) BaseDir() string {
 	return t.baseDir
 }
 
-func (t *Thumbnailer) SetHandler(cb func(Result)) {
+func (t *FFMpegThumbnailer) SetHandler(cb func(Result)) {
 	t.callback = cb
 	for i := 0; i < t.workerCount; i++ {
 		go t.worker()
@@ -64,7 +69,7 @@ func (t *Thumbnailer) SetHandler(cb func(Result)) {
 	go t.handleResults()
 }
 
-func (t *Thumbnailer) worker() {
+func (t *FFMpegThumbnailer) worker() {
 	for input := range t.queue {
 		outpath, err := t.generateVideoThumbnail(input.srcfile, input.outfile)
 		slog.Info("Thumbnail generation complete", "srcfile", input.srcfile, "outpath", outpath, "err", err)
@@ -72,7 +77,7 @@ func (t *Thumbnailer) worker() {
 	}
 }
 
-func (t *Thumbnailer) handleResults() {
+func (t *FFMpegThumbnailer) handleResults() {
 	for res := range t.results {
 		t.inFlightMutex.Lock()
 		delete(t.inFlightMap, res.Srcfile)
@@ -83,7 +88,7 @@ func (t *Thumbnailer) handleResults() {
 	}
 }
 
-func (t *Thumbnailer) generateVideoThumbnail(srcfile, outfile string) (outpath string, err error) {
+func (t *FFMpegThumbnailer) generateVideoThumbnail(srcfile, outfile string) (outpath string, err error) {
 	fmt.Println("1")
 	stats, err := os.Stat(srcfile)
 	if err != nil {
@@ -126,7 +131,7 @@ func (t *Thumbnailer) generateVideoThumbnail(srcfile, outfile string) (outpath s
 }
 
 // TODO: Some error checking??
-func (t *Thumbnailer) GenerateVideoThumbnail(srcfile, outfile string, correlationID any) (err error) {
+func (t *FFMpegThumbnailer) GenerateVideoThumbnail(srcfile, outfile string, correlationID any) (err error) {
 	slog.Info("Generating thumbnail for video", "srcfile", srcfile, "outfile", outfile)
 	t.inFlightMutex.Lock()
 	if _, ok := t.inFlightMap[srcfile]; ok {

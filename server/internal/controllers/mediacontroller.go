@@ -13,7 +13,7 @@ import (
 
 type MediaController struct {
 	store       store.MediaStore
-	thumbnailer *thumbnailer.Thumbnailer
+	thumbnailer thumbnailer.Thumbnailer
 	fileOps     files.LocalFileOperator
 	fileRoot    string
 }
@@ -24,7 +24,7 @@ var (
 )
 
 func NewMediaController(store store.MediaStore, fileOps files.LocalFileOperator,
-	fileRoot string, tn *thumbnailer.Thumbnailer,
+	fileRoot string, tn thumbnailer.Thumbnailer,
 ) *MediaController {
 	c := MediaController{
 		store:       store,
