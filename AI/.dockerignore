@@ -1,0 +1,15 @@
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.tmp
+*.log
+.env
+venv
+.cache
+.git
+playwright
+web
+server
+admin
+alembic

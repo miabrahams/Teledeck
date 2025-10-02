@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: teledeck-ai
+  labels:
+    app: teledeck-ai
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: teledeck-ai
+  template:
+    metadata:
+      labels:
+        app: teledeck-ai
+    spec:
+      containers:
+        - name: teledeck-ai
+          image: REGION-docker.pkg.dev/PROJECT_ID/teledeck/ai-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+              name: http
+            - containerPort: 9090
+              name: grpc
+          env:
+            - name: HTTP_PORT
+              value: "8080"
+            - name: GRPC_PORT
+              value: "9090"
+            - name: DEVICE
+              value: "cuda"
+          resources:
+            limits:
+              cpu: "4"
+              memory: "16Gi"
+              nvidia.com/gpu: "1"
+            requests:
+              cpu: "2"
+              memory: "8Gi"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+      tolerations:
+        - key: "nvidia.com/gpu"
+          operator: Exists
+          effect: NoSchedule
+      nodeSelector:
+        cloud.google.com/gke-accelerator: nvidia-tesla-t4
+      restartPolicy: Always

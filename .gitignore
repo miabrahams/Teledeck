@@ -1,8 +1,6 @@
 venv
 .env
-*.session
-*.session-journal
-*.db
+
 *.pyc
 __pycache__/
 config.yml
@@ -21,3 +19,9 @@ server/static/css/style.min.css
 server/internal/service/web/dist/*
 repopack-output*.txt
 SCRATCH.md
+
+*.session
+*.session-journal
+*.db
+*.sqlite
+*.bin

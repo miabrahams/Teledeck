@@ -1,0 +1,40 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: teledeck-ai
+  annotations:
+    run.googleapis.com/ingress: all
+spec:
+  template:
+    metadata:
+      annotations:
+        run.googleapis.com/gpu: "NVIDIA_TESLA_T4"
+        run.googleapis.com/gpu-count: "1"
+        run.googleapis.com/cpu-throttling: "false"
+        autoscaling.knative.dev/maxScale: "3"
+        run.googleapis.com/launch-stage: BETA
+        run.googleapis.com/runtime: python311
+        run.googleapis.com/ingress: all
+    spec:
+      containerConcurrency: 1
+      timeoutSeconds: 60
+      containers:
+        - image: REGION-docker.pkg.dev/PROJECT_ID/teledeck/ai-service:latest
+          ports:
+            - name: h2c
+              containerPort: 8080
+          env:
+            - name: GRPC_PORT
+              value: "8080"
+            - name: DEVICE
+              value: "cuda"
+            - name: ENABLE_HTTP
+              value: "0"
+            - name: ENABLE_GRPC
+              value: "1"
+          resources:
+            limits:
+              cpu: "4"
+              memory: "16Gi"
+              nvidia.com/gpu: "1"
+      volumes: []
