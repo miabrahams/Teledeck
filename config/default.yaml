@@ -1,0 +1,51 @@
+# Base configuration shared by Go and Python components.
+# Override values in config/local.yaml (ignored by git) or via environment variables.
+app:
+  env: development
+  http_port: 4000
+  session_cookie_name: session
+
+paths:
+  db_path: ./teledeck.db
+  static_root: ./static
+  media_root: ./static/media
+  orphan_root: ./recyclebin/orphan
+  recycle_root: ./recyclebin
+  static_assets: ./server/assets
+  update_state: ./data/update_info
+  export_root: ./exports
+
+storage:
+  max_file_size_bytes: 1073741824
+
+telegram:
+  api_id: 0
+  api_hash: ""
+  phone: ""
+  db_key: ""
+  session_file: user
+
+backoff:
+  max_attempts: 5
+  base_delay_seconds: 2.0
+  slow_mode: false
+  slow_mode_delay_seconds:
+    min: 5.0
+    max: 10.0
+
+queue:
+  max_concurrent_tasks: 2
+
+fetch:
+  default_limit: 100
+  strategy: unread
+  write_message_links: false
+
+twitter:
+  auth_token: ""
+  csrf_token: ""
+
+tagging:
+  grpc_host: localhost
+  grpc_port: 8081
+  default_cutoff: 0.35

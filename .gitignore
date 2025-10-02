@@ -4,6 +4,7 @@ venv
 *.pyc
 __pycache__/
 config.yml
+config/local.yaml
 
 web/dist/*
 

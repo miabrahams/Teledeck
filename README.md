@@ -30,6 +30,7 @@ Requirements:
 Instructions:
 - Clone the repo.
 - Activate Python environment with requirements.txt
+- Copy `config/local.example.yaml` to `config/local.yaml` and fill in Telegram/Twitter secrets or point the paths at your media volume (see `config/README.md` for details).
 - Run `make update` to pull Telegram updates. It will search for a folder called Teledeck.
 - `make dev` to run the Go server. The application will open on http://localhost:4000 by default.
 

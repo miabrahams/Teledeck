@@ -25,7 +25,7 @@ func main() {
 
 func runMain() error {
 	cfg, cfgErr := config.LoadConfig()
-	db, dbErr := db.Open(cfg.DatabaseName)
+	db, dbErr := db.Open(cfg.DatabasePath())
 	if err := errors.Join(cfgErr, dbErr); err != nil {
 		return err
 	}
@@ -34,7 +34,7 @@ func runMain() error {
 	tagsStore := dbstore.NewTagsStore(db, logger)
 	mediaStore := dbstore.NewMediaStore(db, logger)
 
-	conn, err := grpc.NewClient(cfg.TaggerURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(cfg.GRPCAddress(), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return fmt.Errorf("connecting to tagging service: %w", err)
 	}

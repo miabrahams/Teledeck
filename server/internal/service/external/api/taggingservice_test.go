@@ -19,7 +19,7 @@ func setupTaggingService() (*TaggingService, error) {
 		return nil, err
 	}
 
-	conn, err := grpc.NewClient(cfg.TaggerURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(cfg.GRPCAddress(), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		logger.Info("Could not connect to AI services.")
 		return nil, err

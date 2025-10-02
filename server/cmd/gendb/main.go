@@ -24,7 +24,7 @@ func runMain() error {
 	})
 
 	cfg, cfgErr := config.LoadConfig()
-	gormdb, dbErr := database.Open(cfg.DatabaseName)
+	gormdb, dbErr := database.Open(cfg.DatabasePath())
 	if err := errors.Join(cfgErr, dbErr); err != nil {
 		return fmt.Errorf("failed to load config or open database: %w", err)
 	}

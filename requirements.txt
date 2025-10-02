@@ -36,6 +36,7 @@ Pygments
 python-dateutil
 python-dotenv
 python-telegram
+PyYAML
 pyzmq
 rich
 rsa

@@ -60,7 +60,7 @@ func runMain() error {
 	logger.Info("media folders", "media", mediaDir, "thumbnails", thumbnailDir)
 
 	/* Register Database Stores */
-	db, err := database.Open(cfg.DatabaseName)
+	db, err := database.Open(cfg.DatabasePath())
 	if err != nil {
 		return fmt.Errorf("open database: %w", err)
 	}
@@ -83,7 +83,7 @@ func runMain() error {
 	// telegramService := services.NewTelegramService(cfg.Telegram_API_ID, cfg.Telegram_API_Hash)
 
 	// TODO: Better handling for unavailable services
-	conn, err := grpc.NewClient(cfg.TaggerURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(cfg.GRPCAddress(), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	var taggingService *external.TaggingService
 	var aestheticsService *external.AestheticsService
 	if err != nil {
@@ -95,13 +95,13 @@ func runMain() error {
 
 	thumbnailService := thumbnailer.NewThumbnailer(thumbnailDir, 8)
 
-	mediaFileOperator := localfile.NewLocalMediaFileOperator(cfg.StaticMediaDir, cfg.RecycleDir, logger)
+	mediaFileOperator := localfile.NewLocalMediaFileOperator(cfg.StaticMediaDir(), cfg.RecycleDir(), logger)
 	mediaController := controllers.NewMediaController(mediaStore, mediaFileOperator, mediaDir, thumbnailService)
 	tagsController := controllers.NewTagsController(tagsStore, mediaStore, taggingService)
 	scoreController := controllers.NewAestheticsController(aestheticsStore, mediaController, aestheticsService)
 
 	// Middleware
-	authMiddleware := m.NewAuthMiddleware(sessionStore, cfg.SessionCookieName)
+	authMiddleware := m.NewAuthMiddleware(sessionStore, cfg.App.SessionCookieName)
 	mediaItemMiddleware := m.NewMediaItemMiddleware(mediaController)
 
 	/* Handlers */
@@ -117,7 +117,7 @@ func runMain() error {
 		UserStore:         userStore,
 		SessionStore:      sessionStore,
 		PasswordHash:      passwordhash,
-		SessionCookieName: cfg.SessionCookieName,
+		SessionCookieName: cfg.App.SessionCookieName,
 	})
 
 	// TwitterScrapeHandler := handlers.NewTwitterScrapeHandler(twitterScrapeServce)
@@ -160,7 +160,7 @@ func runMain() error {
 				r.Use(m.SearchParamsMiddleware)
 
 				r.Route("/x", func(r chi.Router) {
-					StaticFileServer(r, "/assets", cfg.HtmxAssetDir)
+					StaticFileServer(r, "/assets", cfg.HtmxAssetDir())
 					r.Get("/", hxHomeHandler.ServeHTTP)
 					r.Route("/mediaItem/{mediaItemID}", func(r chi.Router) {
 						r.Use(mediaItemMiddleware)
@@ -212,7 +212,7 @@ func runMain() error {
 	}
 
 	srv := &http.Server{
-		Addr:    fmt.Sprintf("0.0.0.0:%s", cfg.Port),
+		Addr:    fmt.Sprintf("0.0.0.0:%s", cfg.PortString()),
 		Handler: r,
 	}
 
@@ -232,7 +232,7 @@ func runMain() error {
 		}
 	}()
 
-	logger.Info("Server started", slog.String("port", cfg.Port), slog.String("env", cfg.Environment))
+	logger.Info("Server started", slog.String("port", cfg.PortString()), slog.String("env", cfg.App.Env))
 
 	killSig := make(chan os.Signal, 1)
 	go func() {

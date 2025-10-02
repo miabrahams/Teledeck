@@ -1,0 +1,17 @@
+# Copy to config/local.yaml and override secrets or environment-specific values.
+app:
+  env: development
+
+telegram:
+  api_id: 123456
+  api_hash: change-me
+  phone: +1234567890
+  db_key: change-me
+
+twitter:
+  auth_token: change-me
+  csrf_token: change-me
+
+tagging:
+  grpc_host: localhost
+  grpc_port: 8081

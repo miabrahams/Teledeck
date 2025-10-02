@@ -22,7 +22,7 @@ func main() {
 		log.Fatalf("load config: %s", err.Error())
 	}
 
-	slog.Info("cfg: ", "API ID", cfg.TelegramAPIID, "API Hash", cfg.TelegramAPIHash)
+	slog.Info("cfg: ", "API ID", cfg.Telegram.APIID, "API Hash", cfg.Telegram.APIHash)
 	/*
 
 		tdService, err := external.NewTelegramService(cfg.Telegram_API_ID, cfg.Telegram_API_Hash)

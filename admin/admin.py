@@ -132,7 +132,7 @@ if __name__ == '__main__':
         run_with_context(cfg, run_update)
 
     elif args.export_channel:
-        export_path = Path(args.export_path) if args.export_path else cfg.EXPORT_PATH / str(args.export_channel)
-        overrides = create_export_location(args.export_channel, Path(args.export_path), cfg)
+        export_path = Path(args.export_path) if args.export_path else None
+        overrides = create_export_location(args.export_channel, export_path, cfg)
         message_limit = args.message_limit if args.message_limit else None
         run_with_context(overrides, partial(run_export, args.export_channel, args.message_limit))
