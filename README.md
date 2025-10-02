@@ -1,6 +1,6 @@
 # Teledeck
 
-"I know came across this a great photo somwehere... where was it again?"
+"I saw the perfect meme for this yesterday... where was it again?"
 
 Teledeck is an AI-powered social media aggregator and image analysis tool designed to put you in control of your digital media library.
 
@@ -43,3 +43,24 @@ Tagging and aesthetic score servers:
 ## Example commands
 Export channel messages
 ``` python admin/admin.py --export-channel [name] --export-path export/[name] --message-limit 50 ```
+
+
+# Configuration
+
+## Files
+- `default.yaml` – checked-in defaults suitable for development.
+- `local.yaml` – optional, ignored by git; override secrets and machine-specific paths here.
+- `local.example.yaml` – quick template for generating a local override.
+
+## Load order
+1. `default.yaml`
+2. `local.yaml` (if present)
+3. Environment variables (either the new `SECTION__KEY=value` form or the legacy `PORT`, `MEDIA_PATH`, etc.).
+
+Set `TELEDECK_CONFIG_DIR` to point at a custom configuration directory or `TELEDECK_CONFIG_FILE` to use a single YAML file.
+
+## Environment overrides
+- Nested keys can be set with double underscores: `export APP__HTTP_PORT=4001`.
+- Legacy names like `PORT`, `TAGGER_URL`, and `TELEGRAM_API_ID` are still honoured for compatibility.
+
+All paths in YAML are relative to the repository by default. Use absolute paths in `local.yaml` for deployments.
