@@ -22,7 +22,10 @@ type MediaJSONHandler struct {
 }
 
 func NewMediaJSONHandler(controller controllers.MediaController, log *slog.Logger) *MediaJSONHandler {
-	return &MediaJSONHandler{c: controller, log: log}
+	return &MediaJSONHandler{
+		c:   controller,
+		log: log,
+	}
 }
 
 // TODO: Make configurable
@@ -58,12 +61,17 @@ func (h *MediaJSONHandler) GetGallery(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+type ThumbnailResponse struct {
+	FileName string `json:"fileName,omitempty"`
+	Message  string `json:"message,omitempty"`
+}
+
 func (h *MediaJSONHandler) GetThumbnail(w http.ResponseWriter, r *http.Request) {
 	mediaItemID := chi.URLParam(r, "mediaItemID")
 
 	fileName, err := h.c.GetThumbnail(mediaItemID)
 	if errors.Is(err, controllers.ErrThumbnailInProgress) {
-		writeJSON(w, http.StatusAccepted, map[string]string{"message": "Thumbnail generation in progress"})
+		writeJSON(w, http.StatusAccepted, ThumbnailResponse{Message: "Thumbnail generation in progress"})
 		return
 	}
 	if err != nil {
@@ -71,7 +79,7 @@ func (h *MediaJSONHandler) GetThumbnail(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]string{"fileName": fileName})
+	writeJSON(w, http.StatusOK, ThumbnailResponse{FileName: fileName})
 }
 
 func (h *MediaJSONHandler) GetGalleryIds(w http.ResponseWriter, r *http.Request) {
@@ -111,7 +119,7 @@ func (h *MediaJSONHandler) GetNumPages(w http.ResponseWriter, r *http.Request) {
 		mic := h.c.GetMediaItemCount(p)
 		totalPages := int(math.Ceil(float64(mic) / float64(itemsPerPage)))
 		h.log.Info("getNumPages", "mic", mic, "totalPages", totalPages)
-		writeJSON(w, http.StatusOK, totalPages)
+		writeJSON(w, http.StatusOK, NumPagesResponse{TotalPages: totalPages})
 	})
 }
 
@@ -153,6 +161,10 @@ func (h *MediaJSONHandler) DeleteMedia(w http.ResponseWriter, r *http.Request) {
 
 type DeletePageRequest struct {
 	ItemIDs []string `json:"itemIds"`
+}
+
+type NumPagesResponse struct {
+	TotalPages int `json:"totalPages"`
 }
 
 func (h *MediaJSONHandler) DeletePage(w http.ResponseWriter, r *http.Request) {
