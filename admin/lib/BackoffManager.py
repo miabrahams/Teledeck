@@ -1,9 +1,13 @@
 # utils.py
 import asyncio
 import random
-from .config import BackoffConfig
+from typing import Awaitable, Callable, TypeVar
 
+from .config import BackoffConfig
 from .exceptions import RateLimitError
+
+
+T = TypeVar("T")
 
 class BackoffManager:
     def __init__(self, cfg: BackoffConfig):
@@ -13,14 +17,14 @@ class BackoffManager:
         wait_time = 2 ** attempt
         await asyncio.sleep(10 * base_delay * wait_time)
 
-    async def process_with_backoff(self, callback):
+    async def process_with_backoff(self, callback: Callable[[], Awaitable[T]]) -> T:
         for attempt in range(self.config.max_attempts):
             try:
                 if self.config.slow_mode:
                     await asyncio.sleep(random.uniform(*self.config.slow_mode_delay))
                 else:
                     await asyncio.sleep(self.config.base_delay)
-                return await callback
+                return await callback()
             except Exception as e:
                 if attempt < self.config.max_attempts - 1:
                     await self.exponential_backoff(attempt, self.config.base_delay)

@@ -1,18 +1,15 @@
-from telethon import functions # type: ignore
-from telethon.client.telegramclient import TelegramClient # type: ignore
-from telethon.tl.custom.message import Message # type: ignore
-from telethon.tl.types import ( # type: ignore
+from telethon import functions
+from telethon.client.telegramclient import TelegramClient
+from telethon.tl.custom.message import Message
+from telethon.tl.types import (
     InputChannel,
     Channel,
-    ExportedMessageLink
+    ExportedMessageLink,
+    Document,
+    WebPage,
 )
 from typing import Any, Optional
 
-
-from telethon.tl.types import ( # type: ignore
-    Document,
-)
-from telethon.tl.types.messages import ChatFull as WebPage # type: ignore
 
 from .types import MediaItem
 

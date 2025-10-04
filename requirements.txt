@@ -37,6 +37,8 @@ python-dateutil
 python-dotenv
 python-telegram
 PyYAML
+pytest
+pytest-asyncio
 pyzmq
 rich
 rsa

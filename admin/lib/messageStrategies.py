@@ -8,13 +8,13 @@ from telethon.tl.types import ( # type: ignore
 )
 from telethon.hints import Entity # type: ignore
 from telethon.tl.types.messages import ChatFull as ChatFullMessage
-from typing import Any, cast, AsyncIterable
+from typing import Any, cast, AsyncIterable, AsyncIterator
 
 ##### Message filtering strategies
 
-async def NoMessages() -> AsyncIterable[Message]:
-    return
-    yield
+async def NoMessages() -> AsyncIterator[Message]:
+    if False:  # pragma: no cover - intentional empty async generator
+        yield
 
 def get_all_messages(tclient: TelegramClient, entity: Entity, limit: int | None)-> AsyncIterable[Message]:
     if limit is None:

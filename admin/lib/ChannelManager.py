@@ -62,7 +62,7 @@ class ChannelManager:
 
     async def get_channel_by_name(self, name: str):
         nameMatch = ChannelModel.title.like(f"%{name}%")
-        return self.get_target_channels(nameMatch)
+        return self.get_target_channels([nameMatch])
 
 
     async def get_update_folder_channels(self, channel_name: str) -> List[Channel]:
@@ -83,4 +83,3 @@ class ChannelManager:
         self.logger.write(f"{len(target_channels)} channels found")
 
         return cast(List[Channel], target_channels)
-

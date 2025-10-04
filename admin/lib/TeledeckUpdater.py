@@ -45,8 +45,9 @@ class TeledeckUpdater:
 
         # Configure message processor
         async def process_message(message, channel):
-            cb = self.processor.process_message(message, channel)
-            await self.backoff.process_with_backoff(cb)
+            await self.backoff.process_with_backoff(
+                lambda: self.processor.process_message(message, channel)
+            )
             if updater_config.mark_read:
                 await message.mark_read()
             self.logger.finish_message()

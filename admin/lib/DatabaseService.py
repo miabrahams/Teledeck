@@ -186,7 +186,7 @@ class DatabaseService:
 
         with Session(self.engine) as session:
             for channel in target_channels:
-                existingChannel = session.get(ChannelModel, {"id": channel.id})
+                existingChannel = session.get(ChannelModel, channel.id)
                 if existingChannel:
                     existingChannel.check = True
                     session.commit()
