@@ -10,7 +10,8 @@ const instance = axios.create()
 
 
 
-export const getTotalPages = async (preferences: SearchPreferences): Promise<number> => {
+type totalPagesResponse = { totalPages: number; }
+export const getTotalPages = async (preferences: SearchPreferences): Promise<totalPagesResponse> => {
   const res = instance.get(withPreferences(API_ENDPOINTS.total_pages, preferences));
   return apiHandler(res);
 }

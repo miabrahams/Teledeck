@@ -5,7 +5,17 @@ import { currentPageAtom } from '../state';
 import { searchPrefsAtom } from '@preferences/state';
 
 
-export const usePageNavigation = () => {
+export type pageNavigationParams = {
+  currentPage: number;
+  totalPages: number;
+  nextPage: () => void;
+  previousPage: () => void;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+  changePage: (n: number) => void;
+}
+
+export const usePageNavigation: () => pageNavigationParams = () => {
   const searchPrefs = useAtomValue(searchPrefsAtom);
   const [currentPage, setCurrentPage] = useAtom(currentPageAtom);
   let { data: totalPages } = useTotalPages(searchPrefs);

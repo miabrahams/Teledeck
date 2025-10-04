@@ -12,16 +12,16 @@ tailwind-watch:
 
 .PHONY: tailwind-build
 tailwind-build:
-	./tailwindcss -i ./static/css/input.css -o ./static/css/style.css
-	./tailwindcss -i ./static/css/input.css -o ./static/css/style.min.css --minify
+	./tailwindcss -i ./assets/css/input.css -o ./assets/css/style.css
+	./tailwindcss -i ./assets/css/input.css -o ./assets/css/style.min.css --minify
 
 .PHONY: templ
 templ:
-	templ generate
+	go tool templ generate
 
 .PHONY: templ-watch
 templ-watch:
-	templ generate --watch
+	go tool templ generate --watch
 
 APP_NAME = teledeck
 .PHONY: dev
@@ -45,9 +45,7 @@ staticcheck:
 	staticcheck ./...
 
 .PHONY: build
-build: vet
-	make tailwind-build
-	make templ-generate
+build: vet tailwind-build templ
 	go build -ldflags "-X main.Environment=production" -o ./bin/$(APP_NAME) ./cmd/$(APP_NAME)/main.go
 
 

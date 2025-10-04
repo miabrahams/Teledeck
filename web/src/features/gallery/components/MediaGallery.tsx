@@ -25,16 +25,16 @@ import UndoButton from './UndoButton';
 const PaginatedMediaGallery: React.FC = () => {
   const [ fullscreenItem, setFullscreenItem ] = useAtom(fullscreenItemAtom);
   const { contextMenuState, contextMenuRef } = useContextMenu()
-  const { currentPage, nextPage, previousPage } = usePageNavigation()
-  useKeyboardNavigation(nextPage, previousPage);
+  const nav = usePageNavigation()
+  useKeyboardNavigation(nav.nextPage, nav.previousPage);
 
-  const P = React.useMemo(() => <Pagination />, [ currentPage ])
+  const P = React.useMemo(() => <Pagination {...nav} />, [ nav.currentPage, nav.totalPages ])
   const closeFullScreen = React.useCallback(() => { setFullscreenItem(null); } , [ setFullscreenItem ]);
 
   return (
     <div id="media-index">
         { P }
-        <MediaGallery currentPage={currentPage} />
+        <MediaGallery currentPage={nav.currentPage} />
         { P }
       {contextMenuState.item && (
         <ContextMenu

@@ -2,7 +2,7 @@
 // src/features/gallery/components/Pagination.tsx
 import React from 'react';
 import { ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
-import { usePageNavigation } from '@gallery/hooks/usePageNavigation';
+import { pageNavigationParams } from '@gallery/hooks/usePageNavigation';
 import { useDeletePage, useGallery } from '@gallery/api';
 import { useAtomValue } from 'jotai';
 import { searchPrefsAtom } from '@preferences/state';
@@ -16,16 +16,7 @@ import {
 
 const PAGE_SIZE = 20; // Adjust based on your needs
 
-const Pagination: React.FC = () => {
-  const {
-    currentPage,
-    totalPages,
-    nextPage,
-    previousPage,
-    hasNextPage,
-    hasPreviousPage,
-    changePage
-  } = usePageNavigation();
+const Pagination: React.FC<pageNavigationParams> = ({ currentPage, totalPages, nextPage, previousPage, hasNextPage, hasPreviousPage, changePage }) => {
 
   const searchPrefs = useAtomValue(searchPrefsAtom);
   const { data: currentPageItems } = useGallery(searchPrefs, currentPage);

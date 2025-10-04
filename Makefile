@@ -1,4 +1,4 @@
-.PHONY: build server tagger grpc-update deploy-classifier stop-classifier vite web
+.PHONY: build server tagger grpc-update deploy-classifier stop-classifier vite web dump-channel
 
 BACKUP_DIR = ./data/db_backup
 DATE := $(shell date +%Y%m%d)
@@ -32,7 +32,6 @@ alembic-gen:
 
 alembic-upgrade:
 	python -m alembic upgrade head
-
 
 build:
 	@cd server && make build

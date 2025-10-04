@@ -13,7 +13,10 @@ import queryKeys from '@shared/api/queryKeys'
 export const useTotalPages = (preferences: SearchPreferences) => {
   return useQuery<number>({
     queryKey: queryKeys.gallery.numPages(preferences),
-    queryFn: () => getTotalPages(preferences),
+    queryFn: async () => {
+      let tp = await getTotalPages(preferences);
+      return tp.totalPages;
+    }
   });
 
 
