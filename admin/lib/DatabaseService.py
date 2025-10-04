@@ -86,7 +86,7 @@ class DatabaseService:
                 file_id=item.id,
                 channel_id=channel_id,
                 date=getattr(message, "date", datetime.now()),
-                text=getattr(message, "text", ""),
+                text=getattr(message, "text") or "",
                 url=f"/media/{item.file_name}",
                 message_id=message.id,
                 from_preview=int(item.from_preview),
