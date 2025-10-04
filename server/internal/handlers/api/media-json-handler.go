@@ -17,11 +17,11 @@ import (
 )
 
 type MediaJSONHandler struct {
-	c   *controllers.MediaController
+	c   controllers.MediaController
 	log *slog.Logger
 }
 
-func NewMediaJSONHandler(controller *controllers.MediaController, log *slog.Logger) *MediaJSONHandler {
+func NewMediaJSONHandler(controller controllers.MediaController, log *slog.Logger) *MediaJSONHandler {
 	return &MediaJSONHandler{c: controller, log: log}
 }
 

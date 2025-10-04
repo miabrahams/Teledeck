@@ -21,7 +21,7 @@ const (
 	SearchPrefKey ContextKey = "searchPrefs"
 )
 
-func NewMediaItemMiddleware(controller *controllers.MediaController) func(http.Handler) http.Handler {
+func NewMediaItemMiddleware(controller controllers.MediaController) func(http.Handler) http.Handler {
 	c := controller
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

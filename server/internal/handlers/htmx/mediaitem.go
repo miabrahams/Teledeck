@@ -11,10 +11,10 @@ import (
 )
 
 type MediaItemHandler struct {
-	controller *controllers.MediaController
+	controller controllers.MediaController
 }
 
-func NewMediaItemHandler(controller *controllers.MediaController) *MediaItemHandler {
+func NewMediaItemHandler(controller controllers.MediaController) *MediaItemHandler {
 	return &MediaItemHandler{controller: controller}
 }
 

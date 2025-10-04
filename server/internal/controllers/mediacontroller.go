@@ -11,32 +11,50 @@ import (
 	"teledeck/internal/service/thumbnailer"
 )
 
-type MediaController struct {
+var (
+	ErrThumbnailInProgress = errors.New("thumbnail generation in progress")
+	vidTypes               = []string{"video", "webp", "gif"}
+)
+
+// MediaController is the interface used by handlers/other controllers.
+type MediaController interface {
+	RecycleMediaItem(mediaItem models.MediaItem) error
+	UndoLastDeleted() (*models.MediaItemWithMetadata, error)
+	RecycleAndGetNext(mediaItem *models.MediaItem, page int, P models.SearchPrefs) (*models.MediaItemWithMetadata, error)
+	GetAbsolutePath(mediaItem *models.MediaItem) string
+	GetTotalMediaItems() int64
+	GetMediaItemCount(P models.SearchPrefs) int64
+	GetPaginatedMediaItems(page, itemsPerPage int, P models.SearchPrefs) ([]models.MediaItemWithMetadata, error)
+	GetPaginatedMediaItemIds(page, itemsPerPage int, P models.SearchPrefs) ([]models.MediaItemID, error)
+	GetAllMediaItems() ([]models.MediaItemWithMetadata, error)
+	ToggleFavorite(id string) (*models.MediaItemWithMetadata, error)
+	GetMediaItem(id string) (*models.MediaItemWithMetadata, error)
+	DeletePageItems(itemIDs []string, page int, searchPrefs models.SearchPrefs) (*DeletePageResult, error)
+	GetThumbnail(mediaItemID string) (string, error)
+}
+
+// LocalMediaController is the concrete implementation formerly named MediaController.
+type LocalMediaController struct {
 	store       store.MediaStore
 	thumbnailer thumbnailer.Thumbnailer
 	fileOps     files.LocalFileOperator
 	fileRoot    string
 }
 
-var (
-	ErrThumbnailInProgress = errors.New("thumbnail generation in progress")
-	vidTypes               = []string{"video", "webp", "gif"}
-)
-
 func NewMediaController(store store.MediaStore, fileOps files.LocalFileOperator,
 	fileRoot string, tn thumbnailer.Thumbnailer,
-) *MediaController {
-	c := MediaController{
+) MediaController {
+	c := &LocalMediaController{
 		store:       store,
 		fileOps:     fileOps,
 		fileRoot:    fileRoot,
 		thumbnailer: tn,
 	}
 	tn.SetHandler(c.onThumbnailGen)
-	return &c
+	return c
 }
 
-func (s *MediaController) RecycleMediaItem(mediaItem models.MediaItem) error {
+func (s *LocalMediaController) RecycleMediaItem(mediaItem models.MediaItem) error {
 	if err := s.store.MarkDeleted(&mediaItem); err != nil {
 		return err
 	}
@@ -44,7 +62,7 @@ func (s *MediaController) RecycleMediaItem(mediaItem models.MediaItem) error {
 	return s.fileOps.Recycle(mediaItem.FileName)
 }
 
-func (s *MediaController) UndoLastDeleted() (*models.MediaItemWithMetadata, error) {
+func (s *LocalMediaController) UndoLastDeleted() (*models.MediaItemWithMetadata, error) {
 	restoredItem, err := s.store.UndoLastDeleted()
 	if err != nil {
 		return nil, err
@@ -58,7 +76,7 @@ func (s *MediaController) UndoLastDeleted() (*models.MediaItemWithMetadata, erro
 	return restoredItem, nil
 }
 
-func (s *MediaController) RecycleAndGetNext(mediaItem *models.MediaItem, page int, P models.SearchPrefs) (*models.MediaItemWithMetadata, error) {
+func (s *LocalMediaController) RecycleAndGetNext(mediaItem *models.MediaItem, page int, P models.SearchPrefs) (*models.MediaItemWithMetadata, error) {
 	// TODO: 100 items per page is hardcoded here
 	nextMediaItem, err := s.store.MarkDeletedAndGetNext(mediaItem, page, 100, P)
 
@@ -75,35 +93,35 @@ func (s *MediaController) RecycleAndGetNext(mediaItem *models.MediaItem, page in
 	return nextMediaItem, nil
 }
 
-func (s *MediaController) GetAbsolutePath(mediaItem *models.MediaItem) string {
+func (s *LocalMediaController) GetAbsolutePath(mediaItem *models.MediaItem) string {
 	return s.fileRoot + "/" + mediaItem.FileName
 }
 
-func (s *MediaController) GetTotalMediaItems() int64 {
+func (s *LocalMediaController) GetTotalMediaItems() int64 {
 	return s.store.GetTotalMediaItems()
 }
 
-func (s *MediaController) GetMediaItemCount(P models.SearchPrefs) int64 {
+func (s *LocalMediaController) GetMediaItemCount(P models.SearchPrefs) int64 {
 	return s.store.GetMediaItemCount(P)
 }
 
-func (s *MediaController) GetPaginatedMediaItems(page, itemsPerPage int, P models.SearchPrefs) ([]models.MediaItemWithMetadata, error) {
+func (s *LocalMediaController) GetPaginatedMediaItems(page, itemsPerPage int, P models.SearchPrefs) ([]models.MediaItemWithMetadata, error) {
 	return s.store.GetPaginatedMediaItems(page, itemsPerPage, P)
 }
 
-func (s *MediaController) GetPaginatedMediaItemIds(page, itemsPerPage int, P models.SearchPrefs) ([]models.MediaItemID, error) {
+func (s *LocalMediaController) GetPaginatedMediaItemIds(page, itemsPerPage int, P models.SearchPrefs) ([]models.MediaItemID, error) {
 	return s.store.GetPaginatedMediaItemIds(page, itemsPerPage, P)
 }
 
-func (s *MediaController) GetAllMediaItems() ([]models.MediaItemWithMetadata, error) {
+func (s *LocalMediaController) GetAllMediaItems() ([]models.MediaItemWithMetadata, error) {
 	return s.store.GetAllMediaItems()
 }
 
-func (s *MediaController) ToggleFavorite(id string) (*models.MediaItemWithMetadata, error) {
+func (s *LocalMediaController) ToggleFavorite(id string) (*models.MediaItemWithMetadata, error) {
 	return s.store.ToggleFavorite(id)
 }
 
-func (s *MediaController) GetMediaItem(id string) (*models.MediaItemWithMetadata, error) {
+func (s *LocalMediaController) GetMediaItem(id string) (*models.MediaItemWithMetadata, error) {
 	return s.store.GetMediaItem(id)
 }
 
@@ -114,7 +132,7 @@ type DeletePageResult struct {
 	NextPage     []models.MediaItemWithMetadata `json:"nextPage,omitempty"`
 }
 
-func (s *MediaController) DeletePageItems(itemIDs []string, page int, searchPrefs models.SearchPrefs) (*DeletePageResult, error) {
+func (s *LocalMediaController) DeletePageItems(itemIDs []string, page int, searchPrefs models.SearchPrefs) (*DeletePageResult, error) {
 	const itemsPerPage = 100 // Match the constant from the handler
 
 	result := &DeletePageResult{
@@ -156,7 +174,7 @@ func (s *MediaController) DeletePageItems(itemIDs []string, page int, searchPref
 }
 
 // Note: May not have a way to handle failed thumbnail generations
-func (s *MediaController) GetThumbnail(mediaItemID string) (string, error) {
+func (s *LocalMediaController) GetThumbnail(mediaItemID string) (string, error) {
 	mediaItem, err := s.store.GetMediaItem(mediaItemID)
 	if err != nil {
 		slog.Info("cannot find video item")
@@ -183,7 +201,7 @@ func (s *MediaController) GetThumbnail(mediaItemID string) (string, error) {
 }
 
 // Save results
-func (s *MediaController) onThumbnailGen(result thumbnailer.Result) {
+func (s *LocalMediaController) onThumbnailGen(result thumbnailer.Result) {
 	if result.Err != nil {
 		slog.Error("Error generating thumbnail", "err", result.Err)
 		return

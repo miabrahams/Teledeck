@@ -163,10 +163,6 @@ func LoadConfig() (*Config, error) {
 		}
 	}
 
-	if err := applyLegacyEnv(&cfg); err != nil {
-		return nil, err
-	}
-
 	if err := applyEnvOverrides(&cfg); err != nil {
 		return nil, err
 	}
@@ -365,6 +361,7 @@ func applyEnvOverrides(cfg *Config) error {
 	return nil
 }
 
+/*
 func applyLegacyEnv(cfg *Config) error {
 	legacy := map[string]func(string) error{
 		"ENV": func(v string) error { cfg.App.Env = v; return nil },
@@ -419,6 +416,7 @@ func applyLegacyEnv(cfg *Config) error {
 
 	return nil
 }
+*/
 
 func parseBool(value string, fallback bool) bool {
 	switch strings.ToLower(strings.TrimSpace(value)) {
