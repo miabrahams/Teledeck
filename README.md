@@ -21,7 +21,29 @@ Teledeck allows you to organize, search and manage your media on your own terms.
 
 
 ## Installation
-Full install instructions are forthcoming.
+Setup Python environment:
+```bash
+uv venv
+uv pip install -r requirements.txt
+```
+
+
+Follow the instructions [here](https://docs.telethon.dev/en/stable/basic/signing-in.html) to set up a Telegram API ID and hash for your account. Add the values to configuration and login:
+
+```bash
+cp .env.example .env
+cp config.example.yml config.yml
+make login
+```
+
+```bash
+make update-channels
+```
+
+```bash
+make update
+```
+
 
 Requirements:
 - Golang >=1.24
