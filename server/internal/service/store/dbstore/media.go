@@ -208,10 +208,9 @@ func (s *MediaStore) MarkDeleted(item *models.MediaItem) error {
 	if item.Favorite {
 		return ErrFavorite{}
 	}
-	now := time.Now()
-	result := s.db.Model(item).Updates(map[string]interface{}{
+	result := s.db.Model(item).Updates(map[string]any{
 		"user_deleted": true,
-		"deleted_at":   &now,
+		"deleted_at":   time.Now().Format(time.RFC3339),
 	})
 	return result.Error
 }
