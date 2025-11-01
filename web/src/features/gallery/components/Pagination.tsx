@@ -11,7 +11,8 @@ import {
   Button,
   Text,
   Select,
-  AlertDialog
+  AlertDialog,
+  Box
 } from '@radix-ui/themes';
 
 const PAGE_SIZE = 20; // Adjust based on your needs
@@ -72,12 +73,17 @@ const Pagination: React.FC<pageNavigationParams> = ({ currentPage, totalPages, n
       direction="column"
       align="center"
       gap="3"
-      py="6"
+      py="4"
+      px="3"
+      style={{
+        borderTop: '1px solid var(--gray-a4)',
+      }}
     >
       {/* Main pagination controls */}
-      <Flex align="center" gap="2">
+      <Flex align="center" justify="center" gap="2" wrap="wrap" style={{ width: '100%' }}>
         <Button
           variant="soft"
+          size="2"
           disabled={!hasPreviousPage}
           onClick={previousPage}
         >
@@ -85,25 +91,37 @@ const Pagination: React.FC<pageNavigationParams> = ({ currentPage, totalPages, n
           Previous
         </Button>
 
-        <Flex align="center" gap="2" mx="4">
-          {pageNumbers.map((pageNum, idx) =>
-            pageNum === -1 ? (
-              <Text key={`ellipsis-${idx}`} size="2" color="gray">...</Text>
-            ) : (
-              <Button
-                key={pageNum}
-                variant={currentPage === pageNum ? "solid" : "soft"}
-                onClick={() => changePage(pageNum)}
-                size="1"
-              >
-                {pageNum}
-              </Button>
-            )
-          )}
-        </Flex>
+        {/* Page numbers: horizontally scrollable to avoid overflow */}
+        <Box
+          mx="3"
+          style={{
+            maxWidth: 'min(100%, 720px)',
+            overflowX: 'auto',
+            scrollbarWidth: 'thin',
+            WebkitOverflowScrolling: 'touch',
+          }}
+        >
+          <Flex align="center" gap="2" px="1">
+            {pageNumbers.map((pageNum, idx) =>
+              pageNum === -1 ? (
+                <Text key={`ellipsis-${idx}`} size="2" color="gray">…</Text>
+              ) : (
+                <Button
+                  key={pageNum}
+                  variant={currentPage === pageNum ? 'solid' : 'soft'}
+                  onClick={() => changePage(pageNum)}
+                  size="1"
+                >
+                  {pageNum}
+                </Button>
+              )
+            )}
+          </Flex>
+        </Box>
 
         <Button
           variant="soft"
+          size="2"
           disabled={!hasNextPage}
           onClick={nextPage}
         >
@@ -153,7 +171,7 @@ const Pagination: React.FC<pageNavigationParams> = ({ currentPage, totalPages, n
       </Flex>
 
       {/* Page size selector and info */}
-      <Flex align="center" gap="3">
+      <Flex align="center" gap="3" wrap="wrap" justify="center">
         <Text size="2" color="gray">
           Page {currentPage} of {totalPages}
         </Text>

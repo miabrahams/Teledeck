@@ -5,7 +5,11 @@ import { useAtom } from 'jotai';
 import { searchStringAtom } from '@preferences/state';
 import { TextField, Flex } from '@radix-ui/themes';
 
-const SearchBox: React.FC = () => {
+type SearchBoxProps = {
+  fullWidth?: boolean;
+};
+
+const SearchBox: React.FC<SearchBoxProps> = ({ fullWidth = false }) => {
   const [searchString, setSearchString] = useAtom(searchStringAtom);
   const [searchValue, setSearchValue] = useState(searchString);
 
@@ -20,13 +24,13 @@ const SearchBox: React.FC = () => {
   }, [searchValue]);
 
   return (
-    <Flex align="center" gap="1">
+    <Flex align="center" gap="1" style={{ width: fullWidth ? '100%' : undefined }}>
       <TextField.Root
-          size="2"
-          placeholder="Search..."
-          value={searchValue}
-          onChange={(e) => setSearchValue(e.target.value)}
-          style={{ minWidth: '200px' }}
+        size="2"
+        placeholder="Search..."
+        value={searchValue}
+        onChange={(e) => setSearchValue(e.target.value)}
+        style={fullWidth ? { width: '100%' } : { minWidth: '200px' }}
       >
         <TextField.Slot>
           <Search width="16" height="16" />
