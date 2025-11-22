@@ -27,7 +27,6 @@ class MediaContext:
             **kwargs
         )
 
-# TODO: Use Protocol
 class MediaProcessor:
     """Handles extraction and processing of media from Telegram messages"""
 
@@ -36,6 +35,13 @@ class MediaProcessor:
         self.db = ctx.db
         self.client = ctx.client
         self.config = cfg
+
+    def validate_paths(self):
+        """Ensure that media and orphan paths exist"""
+        if not self.config.media_path.exists():
+            raise FileNotFoundError(f"Media path {self.config.media_path} does not exist. Please create it before running the processor.")
+        if not self.config.orphan_path.exists():
+            raise FileNotFoundError(f"Orphan path {self.config.orphan_path} does not exist. Please create it before running the processor.")
 
     def log_message_info(self, mCtx: MediaContext, info: dict):
         self.logger.save_to_json({"message": mCtx.message.id, "channel": mCtx.channel.title, "info": info})

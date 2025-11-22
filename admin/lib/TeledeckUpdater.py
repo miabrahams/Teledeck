@@ -25,6 +25,8 @@ class TeledeckUpdater:
 
 
     async def _process_channels(self, channel_provider: ChannelProvider, updater_config: UpdaterConfig):
+        self.processor.validate_paths()
+
         gather_channels = self.queue_manager.queueChannels(
             channel_provider.get_channels(self.cm))
 
