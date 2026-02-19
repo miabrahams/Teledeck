@@ -4,7 +4,8 @@
 - `server/` hosts the Go backend (`cmd/teledeck`, domain logic in `internal/`, Tailwind assets in `assets/`).
 - `web/` contains the Vite + React client; edit `web/src/`, bundle output lands in `web/dist/` for embedding in the Go service.
 - `AI/` holds Python tooling for tagging and scoring; place downloaded weights under `AI/models/`.
-- `admin/` exposes Telegram maintenance commands; persistent SQLite data lives in `data/` with exports in `export/`.
+- `admin/` exposes Telegram database and media collection commands.
+- persistent SQLite data lives in `data/` with exports in `export/`.
 - Shared settings live under `config/default.yaml`; override secrets in `config/local.yaml` (ignored by git) so both Go and Python read the same YAML tree. Database change files are tracked in `alembic/`.
 
 ## Build, Test, and Development Commands

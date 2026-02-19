@@ -1,3 +1,4 @@
+import re
 from telethon import hints
 from typing import cast
 from telethon.tl.custom.dialog import Dialog
@@ -6,7 +7,7 @@ from .TLContext import TLContext
 from .TeledeckUpdater import TeledeckUpdater
 from .ChannelManager import ChannelManager
 from .MediaProcessor import ProcessingConfig, MediaProcessor
-from .channelStrategies import SingleChannelNameLookup, AllChannelsInFolder
+from .channelStrategies import SingleChannelNameLookup, ChannelListProvider
 
 async def login(_: Settings, ctx: TLContext):
     ctx.client.start()
@@ -45,10 +46,39 @@ async def channel_list_sync(channel_name: str, _: Settings, ctx: TLContext):
     cm.logger.write("\n".join(titles))
     cm.db.update_channel_list(target_channels)
 
-async def run_update(cfg: Settings, ctx: TLContext):
+async def run_update(channel_pattern: str | None, confirm_update: bool, cfg: Settings, ctx: TLContext):
     """Run normal update process"""
+    cm = ChannelManager(ctx)
+    channels = [channel async for channel in cm.get_target_channels()]
+
+    if channel_pattern:
+        try:
+            pattern = re.compile(channel_pattern, re.IGNORECASE)
+        except re.error as e:
+            cm.logger.write(f"Invalid --channel-pattern regex: {e}")
+            return
+        channels = [channel for channel in channels if pattern.search(channel.title)]
+
+    if channel_pattern or confirm_update:
+        cm.logger.write("Matched channels:")
+        if channels:
+            titles = [f"{n}: {channel.title}" for n, channel in enumerate(channels)]
+            cm.logger.write("\n".join(titles))
+        else:
+            cm.logger.write("(none)")
+
+    if not channels:
+        cm.logger.write("No channels matched; update skipped.")
+        return
+
+    if confirm_update:
+        response = input(f"Proceed with update for {len(channels)} channel(s)? [y/N]: ").strip().lower()
+        if response not in ("y", "yes"):
+            cm.logger.write("Update cancelled.")
+            return
+
     updater = TeledeckUpdater(cfg, ctx)
-    provider = AllChannelsInFolder()
+    provider = ChannelListProvider(channels)
     config = UpdaterConfig(
         message_strategy="unread", # all, unread
         message_limit=cfg.DEFAULT_FETCH_LIMIT,

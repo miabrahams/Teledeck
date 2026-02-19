@@ -88,6 +88,8 @@ def setup_argparse():
     parser.add_argument('--wipe-thumbnails',action='store_true', help='Wipe thumbnails from database and disk')
     parser.add_argument('--update-channels-from', type=str, help='Update list of channels to check from folder name')
     parser.add_argument('--client-update', action='store_true', help='Pull updates from selected channels')
+    parser.add_argument('--channel-pattern', type=str, help='Regex/partial channel title match for --client-update')
+    parser.add_argument('--confirm-update', action='store_true', help='Show matched channels and confirm before --client-update')
     parser.add_argument('--export-channel', type=str, help='Export all messages from specified channel name to separate database')
     parser.add_argument('--export-path', type=str, help='Path for exported channel data')
     parser.add_argument('--message-limit', type=int, help='Path for exported channel data')
@@ -129,7 +131,7 @@ if __name__ == '__main__':
         run_with_context(cfg, partial(channel_list_sync, args.update_channels_from))
 
     elif args.client_update:
-        run_with_context(cfg, run_update)
+        run_with_context(cfg, partial(run_update, args.channel_pattern, args.confirm_update))
 
     elif args.export_channel:
         export_path = Path(args.export_path) if args.export_path else None
